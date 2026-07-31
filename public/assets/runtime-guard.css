@@ -1,0 +1,38 @@
+/* Runtime interaction safety without changing the approved AKARI CRM design. */
+#modal-root:empty,
+.sidebar-backdrop:not(.open) {
+  pointer-events: none !important;
+}
+
+#modal-root:not(:empty) {
+  pointer-events: auto;
+}
+
+button,
+[data-route],
+[data-action],
+[data-open-lead],
+[data-command],
+select,
+input,
+textarea {
+  touch-action: manipulation;
+}
+
+html[data-akari-runtime-error="true"] #app::before {
+  content: "The CRM interface encountered a runtime error. Refresh once to load the repaired version.";
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  z-index: 9999;
+  max-width: min(560px, calc(100vw - 30px));
+  padding: 11px 14px;
+  border: 1px solid rgba(255,112,125,.35);
+  border-radius: 11px;
+  color: #ffd1d5;
+  background: #241317;
+  box-shadow: 0 20px 60px rgba(0,0,0,.4);
+  font-size: 11px;
+  text-align: center;
+}
