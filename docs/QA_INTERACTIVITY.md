@@ -13,4 +13,6 @@ Validated interactions:
 - command palette navigation
 - mobile bottom navigation and sidebar
 
+Release gate added after the production placeholder/clickability incident reported on 31 July 2026.
+
 This document contains no customer or CRM data.

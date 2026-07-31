@@ -32,10 +32,11 @@ test.beforeEach(async ({ page }) => {
   });
   await page.goto('http://127.0.0.1:4173/');
   await expect(page.getByRole('heading', { name: /Good evening, Muaz/i })).toBeVisible();
+  await expect(page.locator('html')).toHaveAttribute('data-akari-interactive', 'ready');
 });
 
 test('desktop navigation and forms are clickable', async ({ page }) => {
-  await page.getByRole('button', { name: /AKARI Leads/i }).click();
+  await page.locator('.sidebar [data-route="leads"]').click();
   await expect(page.getByRole('heading', { name: 'AKARI Leads' })).toBeVisible();
 
   await page.getByRole('button', { name: /New lead/i }).click();
@@ -54,16 +55,16 @@ test('command palette and task interaction work', async ({ page }) => {
   await page.locator('[data-command="leads"]').click();
   await expect(page.getByRole('heading', { name: 'AKARI Leads' })).toBeVisible();
 
-  await page.getByRole('button', { name: /My Day/i }).click();
+  await page.locator('.sidebar [data-route="day"]').click();
   await expect(page.getByRole('heading', { name: 'My Day' })).toBeVisible();
-  await page.locator('[data-action="toggle-task"]').click();
+  await page.locator('[data-action="toggle-task"]').first().click();
   await expect(page.getByText('Task completed')).toBeVisible();
 });
 
 test('mobile navigation remains interactive', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole('button', { name: /Leads/i }).last().click();
+  await page.locator('.mobile-bottom [data-route="leads"]').click();
   await expect(page.getByRole('heading', { name: 'AKARI Leads' })).toBeVisible();
-  await page.getByRole('button', { name: /More/i }).click();
+  await page.locator('.mobile-bottom [data-action="open-sidebar"]').click();
   await expect(page.locator('#sidebar')).toHaveClass(/open/);
 });
