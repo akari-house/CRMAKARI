@@ -1,0 +1,19 @@
+{
+  "name": "AKARI CRM",
+  "short_name": "AKARI CRM",
+  "description": "Business Development and Revenue Operations workspace",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#090B14",
+  "theme_color": "#090B14",
+  "icons": [
+    {
+      "src": "./assets/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "scope": "./"
+}
+
