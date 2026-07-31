@@ -77,19 +77,45 @@ export async function onRequestGet(context) {
         p.next_follow_up_at,
         p.created_at,
         u.full_name AS owner,
-        c.full_name AS primary_contact,
-        c.email AS primary_contact_email,
-        c.telegram AS primary_contact_telegram,
-        COUNT(DISTINCT c2.id) AS contact_count,
-        COUNT(DISTINCT CASE WHEN o.stage NOT IN ('WON','LOST') THEN o.id END) AS open_opportunities,
-        COALESCE(SUM(CASE WHEN o.stage NOT IN ('WON','LOST') THEN COALESCE(o.estimated_value_base_currency, o.estimated_value, 0) ELSE 0 END), 0) AS pipeline_value
+        (
+          SELECT c.full_name
+          FROM contacts c
+          WHERE c.project_id = p.id AND c.tenant_id = p.tenant_id
+          ORDER BY c.is_primary_contact DESC, c.created_at ASC
+          LIMIT 1
+        ) AS primary_contact,
+        (
+          SELECT c.email
+          FROM contacts c
+          WHERE c.project_id = p.id AND c.tenant_id = p.tenant_id
+          ORDER BY c.is_primary_contact DESC, c.created_at ASC
+          LIMIT 1
+        ) AS primary_contact_email,
+        (
+          SELECT c.telegram
+          FROM contacts c
+          WHERE c.project_id = p.id AND c.tenant_id = p.tenant_id
+          ORDER BY c.is_primary_contact DESC, c.created_at ASC
+          LIMIT 1
+        ) AS primary_contact_telegram,
+        (
+          SELECT COUNT(*)
+          FROM contacts c
+          WHERE c.project_id = p.id AND c.tenant_id = p.tenant_id
+        ) AS contact_count,
+        (
+          SELECT COUNT(*)
+          FROM opportunities o
+          WHERE o.project_id = p.id AND o.tenant_id = p.tenant_id AND o.stage NOT IN ('WON','LOST')
+        ) AS open_opportunities,
+        (
+          SELECT COALESCE(SUM(COALESCE(o.estimated_value_base_currency, o.estimated_value, 0)), 0)
+          FROM opportunities o
+          WHERE o.project_id = p.id AND o.tenant_id = p.tenant_id AND o.stage NOT IN ('WON','LOST')
+        ) AS pipeline_value
       FROM projects p
       LEFT JOIN users u ON u.id = p.owner_user_id
-      LEFT JOIN contacts c ON c.project_id = p.id AND c.tenant_id = p.tenant_id AND c.is_primary_contact = 1
-      LEFT JOIN contacts c2 ON c2.project_id = p.id AND c2.tenant_id = p.tenant_id
-      LEFT JOIN opportunities o ON o.project_id = p.id AND o.tenant_id = p.tenant_id
       WHERE ${where}
-      GROUP BY p.id
       ORDER BY
         CASE p.priority WHEN 'URGENT' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 ELSE 4 END,
         COALESCE(p.next_follow_up_at, '9999-12-31') ASC,
