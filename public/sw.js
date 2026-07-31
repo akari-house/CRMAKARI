@@ -1,8 +1,9 @@
-const CACHE_NAME = 'akari-crm-shell-v5';
+const CACHE_NAME = 'akari-crm-shell-v6';
 const APP_SHELL = [
   './index.html',
-  './assets/crm.css?v=2',
-  './assets/crm.js?v=2',
+  './assets/crm.css?v=3',
+  './assets/crm.js?v=3',
+  './assets/interaction-fix.js?v=1',
   './assets/favicon.svg',
   './manifest.webmanifest',
 ];
