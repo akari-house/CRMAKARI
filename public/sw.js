@@ -6,6 +6,7 @@ const APP_SHELL = [
   './assets/crm.js?v=8',
   './assets/runtime-v8-compat.js?v=8',
   './assets/runtime-v8.js?v=8',
+  './assets/runtime-v8-final.js?v=8',
   './assets/favicon.svg',
   './manifest.webmanifest?v=8',
 ];
