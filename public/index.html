@@ -1,243 +1,28 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="dark" />
   <meta name="theme-color" content="#090b14" />
+  <meta name="description" content="AKARI CRM — Business Development, Marketing, Fundraising and Revenue Operations." />
   <title>AKARI CRM</title>
   <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
   <link rel="manifest" href="./manifest.webmanifest" />
-  <link rel="stylesheet" href="./assets/app.css" />
+  <link rel="stylesheet" href="./assets/crm.css?v=1" />
 </head>
 <body>
-<div class="app" id="app">
-  <aside class="sidebar" id="sidebar">
-    <div class="brand">
-      <div class="brand-mark"><img src="./assets/logo.svg" width="24" height="24" alt="" /></div>
-      <div class="brand-copy"><strong>AKARI CRM</strong><span>Growth & Capital OS</span></div>
-    </div>
-
-    <button class="workspace-switcher" onclick="showToast('Workspace switching will be enabled for multi-tenant users')">
-      <span class="workspace-left">
-        <span class="workspace-avatar">AH</span>
-        <span class="workspace-meta"><strong>AKARI House</strong><span>Customer 001 · Production</span></span>
-      </span>
-      <span style="color:var(--muted-2)">⌄</span>
-    </button>
-
-    <div class="nav-scroll">
-      <div class="nav-section">
-        <button class="nav-item active" data-view="home" onclick="switchView('home', this)"><span class="nav-icon">⌂</span><span>Home</span></button>
-        <button class="nav-item" data-view="day" onclick="switchView('day', this)"><span class="nav-icon">✓</span><span>My Day</span><span class="nav-count">0</span></button>
+  <div id="app" class="boot-screen" aria-live="polite">
+    <div class="boot-card">
+      <img src="./assets/logo.svg" width="44" height="44" alt="AKARI" />
+      <div>
+        <strong>AKARI CRM</strong>
+        <span>Opening your workspace…</span>
       </div>
-
-      <div class="nav-section">
-        <div class="nav-label">RELATIONSHIPS</div>
-        <button class="nav-item" data-view="projects" onclick="switchView('projects', this)"><span class="nav-icon">◇</span><span>Projects</span><span class="nav-count">0</span></button>
-        <button class="nav-item" onclick="showToast('Contacts view is connected at API level and is next for UI build')"><span class="nav-icon">◎</span><span>Contacts</span></button>
-        <button class="nav-item" onclick="showToast('Investor directory will be added with the fundraising module')"><span class="nav-icon">◈</span><span>Investors</span></button>
-        <button class="nav-item" onclick="showToast('Partner workspace is next for UI build')"><span class="nav-icon">⌁</span><span>Partners</span></button>
-      </div>
-
-      <div class="nav-section">
-        <div class="nav-label">BUSINESS DEVELOPMENT</div>
-        <button class="nav-item" data-view="pipeline" onclick="switchView('pipeline', this)"><span class="nav-icon">▥</span><span>Opportunities</span><span class="nav-count">0</span></button>
-        <button class="nav-item" onclick="showToast('Clients are lifecycle-filtered project records — no duplicate table')"><span class="nav-icon">◆</span><span>Clients</span></button>
-        <button class="nav-item" onclick="showToast('Fundraising mandates are planned after the core CRM import workflow')"><span class="nav-icon">↗</span><span>Fundraising</span></button>
-      </div>
-
-      <div class="nav-section">
-        <div class="nav-label">DELIVERY & COMMERCIAL</div>
-        <button class="nav-item" onclick="showToast('Campaigns API is ready; full campaign UI is next')"><span class="nav-icon">◫</span><span>Campaigns</span></button>
-        <button class="nav-item" onclick="switchView('day', document.querySelector('[data-view=day]'))"><span class="nav-icon">☑</span><span>Tasks</span></button>
-        <button class="nav-item" onclick="showToast('Finance access is permission-controlled')"><span class="nav-icon">$</span><span>Finance</span></button>
-        <button class="nav-item" onclick="showToast('Reports API is ready; report pages are next')"><span class="nav-icon">▤</span><span>Reports</span></button>
-      </div>
-
-      <div class="nav-section">
-        <div class="nav-label">WORKSPACE</div>
-        <button class="nav-item" onclick="showToast('Team and role administration is a scheduled build phase')"><span class="nav-icon">♙</span><span>Team</span></button>
-        <button class="nav-item" onclick="showToast('Invitation-only onboarding remains enforced')"><span class="nav-icon">＋</span><span>Invitations</span></button>
-        <button class="nav-item" onclick="showToast('Workspace settings are tenant-isolated')"><span class="nav-icon">⚙</span><span>Settings</span></button>
-      </div>
-    </div>
-
-    <div class="sidebar-footer">
-      <div class="profile-mini"><div class="avatar">AK</div><div><strong>AKARI User</strong><span>Loading workspace…</span></div></div>
-    </div>
-  </aside>
-
-  <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar(false)"></div>
-
-  <main class="main">
-    <header class="topbar">
-      <button class="mobile-menu" onclick="toggleSidebar(true)" aria-label="Open navigation">☰</button>
-      <div class="breadcrumb">AKARI House / <strong id="crumb">Home</strong></div>
-      <div class="search">
-        <span class="search-icon">⌕</span>
-        <input id="globalSearch" placeholder="Search projects, contacts, campaigns…" onclick="openCommand()" readonly />
-        <span class="search-kbd">Ctrl K</span>
-      </div>
-      <div class="top-actions">
-        <button class="icon-btn" id="shareBtn" onclick="toggleScreenShare()" title="Screen-share privacy mode">◉</button>
-        <button class="soft-btn" onclick="toggleCreate()"><b>＋</b><span>Create</span></button>
-        <button class="icon-btn" onclick="showToast('No unread notifications')">♢</button>
-        <div class="avatar">AK</div>
-      </div>
-    </header>
-
-    <div class="content">
-      <section class="view active" id="view-home">
-        <div class="page-header">
-          <div><div class="eyebrow">AKARI HOUSE · LIVE WORKSPACE</div><h1>Business overview</h1><p>Performance, pipeline and actions that need attention.</p></div>
-          <select class="date-filter" aria-label="Date range"><option>Current month</option><option>Current quarter</option><option>Current year</option></select>
-        </div>
-
-        <div class="metrics-grid">
-          <div class="metric-card yellow"><div class="metric-accent"></div><div class="metric-label">Monthly Target</div><div class="metric-value finance-value">—</div><div class="metric-sub">Loading target</div></div>
-          <div class="metric-card"><div class="metric-accent"></div><div class="metric-label">Revenue Booked</div><div class="metric-value finance-value">—</div><div class="metric-sub">Loading campaigns</div></div>
-          <div class="metric-card green"><div class="metric-accent"></div><div class="metric-label">Collected</div><div class="metric-value finance-value">—</div><div class="metric-sub">Loading payments</div></div>
-          <div class="metric-card"><div class="metric-accent"></div><div class="metric-label">AKARI Net Revenue</div><div class="metric-value finance-value">—</div><div class="metric-sub">Loading profitability</div></div>
-          <div class="metric-card yellow" onclick="switchView('pipeline', document.querySelector('[data-view=pipeline]'))"><div class="metric-accent"></div><div class="metric-label">Weighted Pipeline</div><div class="metric-value finance-value">—</div><div class="metric-sub">Loading opportunities</div></div>
-        </div>
-
-        <div class="mini-metrics">
-          <div class="mini-card"><span>Year-to-date revenue</span><strong class="finance-value">—</strong></div>
-          <div class="mini-card"><span>Active customers</span><strong>—</strong></div>
-          <div class="mini-card"><span>Active campaigns</span><strong>—</strong></div>
-          <div class="mini-card"><span>Active partners</span><strong>—</strong></div>
-          <div class="mini-card"><span>Outstanding payments</span><strong class="finance-value">—</strong></div>
-          <div class="mini-card"><span>Referral rewards due</span><strong class="finance-value">—</strong></div>
-        </div>
-
-        <div class="dashboard-grid">
-          <div class="panel">
-            <div class="panel-head"><div class="panel-title"><strong>Revenue performance</strong><span>Live reporting will populate as financial records are added</span></div><div class="segmented"><button class="active">Month</button><button>Quarter</button><button>Year</button></div></div>
-            <div class="panel-body">
-              <div class="revenue-chart" style="display:grid;place-items:center;min-height:270px;color:var(--muted)">
-                Revenue chart awaiting approved production records
-              </div>
-              <div class="chart-legend"><span><i class="legend-dot" style="background:var(--pink)"></i>Net revenue</span><span><i class="legend-dot" style="background:var(--yellow)"></i>Target</span><span><i class="legend-dot" style="background:#fff"></i>Collected</span></div>
-            </div>
-          </div>
-
-          <div class="panel">
-            <div class="panel-head"><div class="panel-title"><strong>Monthly target progress</strong><span>Loading company target</span></div><button class="icon-btn" onclick="showToast('Target settings are next for write-form implementation')">⋯</button></div>
-            <div class="panel-body"><div class="progress-list">
-              <div class="progress-row"><div class="progress-meta"><span>Revenue</span><strong class="finance-value">—</strong></div><div class="progress-track"><div class="progress-fill" style="width:0%"></div></div></div>
-              <div class="progress-row"><div class="progress-meta"><span>Deals won</span><strong>—</strong></div><div class="progress-track"><div class="progress-fill yellow" style="width:0%"></div></div></div>
-              <div class="progress-row"><div class="progress-meta"><span>Proposals</span><strong>—</strong></div><div class="progress-track"><div class="progress-fill green" style="width:0%"></div></div></div>
-              <div class="progress-row"><div class="progress-meta"><span>New customers</span><strong>—</strong></div><div class="progress-track"><div class="progress-fill" style="width:0%"></div></div></div>
-            </div></div>
-          </div>
-        </div>
-
-        <div class="two-col">
-          <div class="panel">
-            <div class="panel-head"><div class="panel-title"><strong>Opportunity funnel</strong><span>Live count and value by stage</span></div><button class="soft-btn" onclick="switchView('pipeline', document.querySelector('[data-view=pipeline]'))">Open pipeline</button></div>
-            <div class="panel-body"><div class="funnel"><div style="padding:24px;text-align:center;color:var(--muted)">Loading opportunities…</div></div></div>
-          </div>
-          <div class="panel">
-            <div class="panel-head"><div class="panel-title"><strong>Business attention</strong><span>Actionable risks and missing next steps</span></div><span class="pill">Live</span></div>
-            <div class="panel-body"><div class="attention-list"><div class="attention-item"><div class="attention-top"><div class="attention-icon">i</div><div class="attention-copy"><strong>Attention rules activate when production records are available.</strong><span>No private data is stored in this public repository.</span></div></div></div></div></div>
-          </div>
-        </div>
-
-        <div class="two-col">
-          <div class="panel">
-            <div class="panel-head"><div class="panel-title"><strong>My tasks today</strong><span>Loading open tasks</span></div><button class="soft-btn" onclick="switchView('day', document.querySelector('[data-view=day]'))">Open My Day</button></div>
-            <div class="panel-body"><div class="task-list"><div class="task-item"><div class="task-copy"><strong>Loading tasks…</strong></div></div></div></div>
-          </div>
-          <div class="panel">
-            <div class="panel-head"><div class="panel-title"><strong>Data readiness</strong><span>Controlled import status</span></div></div>
-            <div class="panel-body"><div class="attention-list">
-              <div class="attention-item"><div class="attention-top"><div class="attention-icon" style="background:var(--yellow-soft);color:var(--yellow)">1</div><div class="attention-copy"><strong>Production tenant is ready for a sanitized import dry run.</strong><span>Inspect → map → validate → deduplicate → preview → approve → import.</span></div></div></div>
-            </div></div>
-          </div>
-        </div>
-      </section>
-
-      <section class="view" id="view-day">
-        <div class="page-header"><div><div class="eyebrow">MY WORKSPACE</div><h1>My Day</h1><p>Loading your tasks and follow-ups…</p></div><button class="primary-btn" onclick="createAction('Task')">＋ Add task</button></div>
-        <div class="dashboard-grid">
-          <div class="panel">
-            <div class="panel-head"><div class="panel-title"><strong>Priority queue</strong><span>Overdue and due today</span></div><div class="segmented"><button class="active">All</button><button>Overdue</button><button>Today</button></div></div>
-            <div class="panel-body"><div class="task-list"><div class="task-item"><div class="task-copy"><strong>Loading tasks…</strong></div></div></div></div>
-          </div>
-          <div class="panel">
-            <div class="panel-head"><div class="panel-title"><strong>Daily scorecard</strong><span>No scorecard record yet</span></div><span class="pill pink">0%</span></div>
-            <div class="scorecard-grid">
-              <div class="scorecard-head">Activity</div><div class="scorecard-head">Target</div><div class="scorecard-head">Done</div>
-              <div>Outreach</div><div>0</div><div>0</div><div>Follow-ups</div><div>0</div><div>0</div><div>Meetings</div><div>0</div><div>0</div><div>Proposals</div><div>0</div><div>0</div><div>Deals won</div><div>0</div><div>0</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="view" id="view-projects">
-        <div class="page-header"><div><div class="eyebrow">0 RECORDS</div><h1>Projects</h1><p>One tenant-scoped record for each lead, prospect and customer.</p></div><button class="primary-btn" onclick="createAction('Project')">＋ New project</button></div>
-        <div class="table-tools">
-          <div class="view-tabs"><button class="view-tab active">All projects</button><button class="view-tab">My projects</button><button class="view-tab">Needs follow-up</button><button class="view-tab">Clients</button><button class="view-tab">Duplicate review</button></div>
-          <input class="table-search" id="projectSearch" placeholder="Filter projects…" oninput="filterProjects()" />
-          <button class="soft-btn" onclick="showToast('Saved filters are next for UI build')">Filter</button>
-          <button class="soft-btn" onclick="showToast('Column controls are next for UI build')">Columns</button>
-        </div>
-        <div class="table-wrap"><table id="projectsTable"><thead><tr><th>Project</th><th>Lifecycle</th><th>Priority</th><th>Owner</th><th>Primary contact</th><th>Open opportunities</th><th>Pipeline value</th><th>Last activity</th><th>Next follow-up</th><th>Source</th></tr></thead><tbody><tr><td colspan="10" style="height:110px;text-align:center;color:var(--muted)">Loading tenant projects…</td></tr></tbody></table></div>
-      </section>
-
-      <section class="view" id="view-pipeline">
-        <div class="page-header"><div><div class="eyebrow">0 ACTIVE OPPORTUNITIES</div><h1>Opportunity Pipeline</h1><p>Move deals forward with clear qualification, ownership and next actions.</p></div><button class="primary-btn" onclick="createAction('Opportunity')">＋ New opportunity</button></div>
-        <div class="table-tools"><div class="view-tabs"><button class="view-tab active">Pipeline</button><button class="view-tab">My opportunities</button><button class="view-tab">Closing this month</button><button class="view-tab">Stuck</button><button class="view-tab">Won</button></div><button class="soft-btn" onclick="showToast('Opportunity filters are next for UI build')">Filter</button></div>
-        <div class="kanban"><div class="kanban-col" style="grid-column:1/-1"><div class="deal-card"><div class="deal-title">Loading tenant opportunities…</div></div></div></div>
-      </section>
-    </div>
-  </main>
-
-  <nav class="mobile-bottom">
-    <button class="active" onclick="switchView('home', document.querySelector('[data-view=home]')); setMobileActive(this)">⌂<span>Home</span></button>
-    <button onclick="switchView('day', document.querySelector('[data-view=day]')); setMobileActive(this)">✓<span>My Day</span></button>
-    <button onclick="switchView('pipeline', document.querySelector('[data-view=pipeline]')); setMobileActive(this)">▥<span>Pipeline</span></button>
-    <button onclick="toggleSidebar(true); setMobileActive(this)">⋯<span>More</span></button>
-  </nav>
-</div>
-
-<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
-<aside class="drawer" id="drawer">
-  <div class="drawer-head">
-    <div class="drawer-topline"><div class="drawer-project"><div class="drawer-logo" id="drawerLogo">AK</div><div><h2 id="drawerTitle">Project</h2><p>Loading project details…</p></div></div><button class="close-btn" onclick="closeDrawer()">×</button></div>
-    <div class="drawer-actions"><button class="primary-btn" onclick="createAction('Activity')">＋ Add activity</button><button class="soft-btn" onclick="createAction('Opportunity')">Create opportunity</button><button class="soft-btn" onclick="createAction('Task')">Add task</button></div>
-  </div>
-  <div class="drawer-tabs"><button class="drawer-tab active">Overview</button><button class="drawer-tab">Contacts</button><button class="drawer-tab">Opportunities</button><button class="drawer-tab">Campaigns</button><button class="drawer-tab">Activity</button></div>
-  <div class="drawer-content">
-    <div class="drawer-section"><h3>Relationship overview</h3><div class="property-grid"><div class="property"><span>Lifecycle</span><strong>—</strong></div><div class="property"><span>Relationship health</span><strong>—</strong></div></div></div>
-    <div class="drawer-section"><h3>Commercial summary</h3><div class="property-grid"><div class="property"><span>Open pipeline</span><strong class="finance-value">—</strong></div><div class="property"><span>Weighted value</span><strong class="finance-value">—</strong></div></div></div>
-    <div class="drawer-section"><h3>Next action</h3><div style="color:var(--muted)">No project selected.</div></div>
-    <div class="drawer-section"><h3>Recent activity</h3><div style="color:var(--muted)">No project selected.</div></div>
-  </div>
-</aside>
-
-<div class="quick-create" id="quickCreate">
-  <button onclick="createAction('Project')"><span>＋</span><span><strong>Project</strong><br><small style="color:var(--muted-2)">Add a company or lead</small></span></button>
-  <button onclick="createAction('Contact')"><span>＋</span><span><strong>Contact</strong><br><small style="color:var(--muted-2)">Add a person</small></span></button>
-  <button onclick="createAction('Opportunity')"><span>＋</span><span><strong>Opportunity</strong><br><small style="color:var(--muted-2)">Create a commercial deal</small></span></button>
-  <button onclick="createAction('Task')"><span>＋</span><span><strong>Task</strong><br><small style="color:var(--muted-2)">Add work or follow-up</small></span></button>
-  <button onclick="createAction('Campaign')"><span>＋</span><span><strong>Campaign</strong><br><small style="color:var(--muted-2)">Start delivery after a win</small></span></button>
-</div>
-
-<div class="command" id="command" onclick="if(event.target===this) closeCommand()">
-  <div class="command-box">
-    <div class="command-input"><span style="color:var(--muted-2)">⌕</span><input id="commandInput" placeholder="Search or run a command…" /><span class="search-kbd" style="position:static;transform:none">ESC</span></div>
-    <div class="command-list">
-      <div class="command-item" onclick="switchView('projects', document.querySelector('[data-view=projects]')); closeCommand()"><span>◇</span><div><strong>Open Projects</strong><small>Search tenant project records</small></div></div>
-      <div class="command-item" onclick="switchView('pipeline', document.querySelector('[data-view=pipeline]')); closeCommand()"><span>▥</span><div><strong>Open Opportunity Pipeline</strong><small>Review active commercial opportunities</small></div></div>
-      <div class="command-item" onclick="switchView('day', document.querySelector('[data-view=day]')); closeCommand()"><span>✓</span><div><strong>Open My Day</strong><small>Tasks and follow-ups</small></div></div>
-      <div class="command-item" onclick="createAction('Activity'); closeCommand()"><span>＋</span><div><strong>Record activity</strong><small>Telegram, X DM, call, meeting or note</small></div></div>
     </div>
   </div>
-</div>
-
-<div class="toast" id="toast">Action completed</div>
-<script type="module" src="./assets/app.js"></script>
+  <div id="modal-root"></div>
+  <div id="toast-root" class="toast-stack" aria-live="polite"></div>
+  <script type="module" src="./assets/crm.js?v=1"></script>
 </body>
 </html>
