@@ -1,9 +1,8 @@
-const CACHE_NAME = 'akari-crm-shell-v3';
+const CACHE_NAME = 'akari-crm-shell-v4';
 const APP_SHELL = [
   './index.html',
-  './assets/app.css',
-  './assets/app.js',
-  './assets/interactive-import.js',
+  './assets/crm.css?v=1',
+  './assets/crm.js?v=1',
   './assets/favicon.svg',
   './manifest.webmanifest',
 ];
@@ -22,12 +21,15 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const request = event.request;
-  if (request.method !== 'GET' || new URL(request.url).pathname.includes('/api/')) return;
+  const url = new URL(request.url);
+  if (request.method !== 'GET' || url.pathname.startsWith('/api/')) return;
   event.respondWith(
     fetch(request)
       .then((response) => {
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+        if (response.ok && url.origin === self.location.origin) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+        }
         return response;
       })
       .catch(() => caches.match(request).then((cached) => cached || caches.match('./index.html')))
