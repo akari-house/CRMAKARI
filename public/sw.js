@@ -1,15 +1,27 @@
-const CACHE_NAME = 'akari-crm-shell-v6';
+const CACHE_NAME = 'akari-crm-shell-v7';
 const APP_SHELL = [
-  './index.html',
-  './assets/crm.css?v=3',
-  './assets/crm.js?v=3',
-  './assets/interaction-fix.js?v=1',
+  './index.html?runtime=v7',
+  './assets/crm.css?v=7',
+  './assets/runtime-guard.css?v=7',
+  './assets/runtime-guard.js?v=7',
+  './assets/crm.js?v=7',
+  './assets/interaction-fix.js?v=7',
   './assets/favicon.svg',
-  './manifest.webmanifest',
+  './manifest.webmanifest?v=7',
 ];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(async (cache) => {
+      for (const asset of APP_SHELL) {
+        try {
+          await cache.add(asset);
+        } catch (error) {
+          console.warn('AKARI CRM shell asset was not pre-cached', asset, error);
+        }
+      }
+    })
+  );
   self.skipWaiting();
 });
 
@@ -34,6 +46,10 @@ self.addEventListener('fetch', (event) => {
         }
         return response;
       })
-      .catch(() => caches.match(request).then((cached) => cached || caches.match('./index.html')))
+      .catch(async () => {
+        const exact = await caches.match(request);
+        if (exact) return exact;
+        return caches.match('./index.html?runtime=v7');
+      })
   );
 });
