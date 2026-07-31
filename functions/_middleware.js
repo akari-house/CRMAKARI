@@ -1,20 +1,41 @@
 import { DEMO_AUTH } from './lib/demo-data.js';
 import { json } from './lib/response.js';
 
+const INTERACTIVE_MODULE_TAG = '<script type="module" src="/assets/interactive-import.js"></script>';
+
+async function nextWithInteractiveUi(context) {
+  const response = await context.next();
+  const contentType = response.headers.get('content-type') || '';
+  if (context.request.method !== 'GET' || !contentType.includes('text/html') || response.status !== 200) return response;
+
+  const html = await response.text();
+  if (!html.includes('</body>') || html.includes('/assets/interactive-import.js')) {
+    return new Response(html, response);
+  }
+
+  const headers = new Headers(response.headers);
+  headers.delete('content-length');
+  return new Response(html.replace('</body>', `${INTERACTIVE_MODULE_TAG}</body>`), {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 /**
  * Authentication modes:
- * - demo: local/prototype mode using DEMO_AUTH.
+ * - demo: local/prototype mode using sanitized DEMO_AUTH.
  * - access: Cloudflare Access supplies the authenticated email header.
  *
- * Future customer SaaS auth can replace this middleware without changing the
- * tenant-scoped API and database model.
+ * Every CRM API request is resolved to one active tenant membership before the
+ * request reaches a tenant-scoped route.
  */
 export async function onRequest(context) {
   const mode = context.env.AUTH_MODE || 'demo';
 
   if (mode === 'demo') {
     context.data.auth = DEMO_AUTH;
-    return context.next();
+    return nextWithInteractiveUi(context);
   }
 
   if (mode !== 'access') {
@@ -57,6 +78,5 @@ export async function onRequest(context) {
     financeAccess: Boolean(membership.finance_access),
   };
 
-  return context.next();
+  return nextWithInteractiveUi(context);
 }
-
