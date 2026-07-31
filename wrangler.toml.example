@@ -1,0 +1,22 @@
+# Copy this file to wrangler.toml after creating the D1 database.
+name = "akari-crm"
+compatibility_date = "2026-07-31"
+pages_build_output_dir = "./public"
+
+[vars]
+AUTH_MODE = "demo"
+DEFAULT_TENANT_SLUG = "akari-house"
+
+# Replace the database IDs after running:
+# npx wrangler d1 create akari-crm-production
+[[d1_databases]]
+binding = "DB"
+database_name = "akari-crm-production"
+database_id = "REPLACE_WITH_PRODUCTION_D1_ID"
+migrations_dir = "db/migrations"
+
+# Add the R2 bucket later when file uploads are implemented.
+# [[r2_buckets]]
+# binding = "FILES"
+# bucket_name = "akari-crm-files"
+
