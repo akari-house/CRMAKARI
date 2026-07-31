@@ -132,7 +132,7 @@ function projectStatement(db, tenantId, userId, row, batchId, fileName, now) {
       source_type, source_name, owner_user_id, last_activity_at, next_follow_up_at,
       original_import_source, original_status, original_notes, legacy_import_data,
       created_at, updated_at, created_by, updated_by
-    ) VALUES (?, ?, ?, ?, 'LEAD', ?, ?, ?, ?, ?, ?, ?, ?, ?, 'AKARI_LEADS', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, 'LEAD', ?, ?, ?, ?, ?, ?, ?, ?, ?, 'AKARI_LEADS', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     id,
     tenantId,
@@ -221,7 +221,7 @@ function taskStatement(db, tenantId, userId, row, batchId, now) {
     tenantId,
     title,
     description,
-    String(value(row, 'Assigned To') || '').trim().toLowerCase() === 'muaz' ? userId : userId,
+    userId,
     userId,
     taskStatus(value(row, 'Status')),
     priority(value(row, 'Priority')),
