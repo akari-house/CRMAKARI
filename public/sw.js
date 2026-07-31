@@ -1,8 +1,8 @@
-const CACHE_NAME = 'akari-crm-shell-v4';
+const CACHE_NAME = 'akari-crm-shell-v5';
 const APP_SHELL = [
   './index.html',
-  './assets/crm.css?v=1',
-  './assets/crm.js?v=1',
+  './assets/crm.css?v=2',
+  './assets/crm.js?v=2',
   './assets/favicon.svg',
   './manifest.webmanifest',
 ];
@@ -23,8 +23,9 @@ self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
   if (request.method !== 'GET' || url.pathname.startsWith('/api/')) return;
+
   event.respondWith(
-    fetch(request)
+    fetch(request, { cache: 'no-store' })
       .then((response) => {
         if (response.ok && url.origin === self.location.origin) {
           const copy = response.clone();
