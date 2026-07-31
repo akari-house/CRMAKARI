@@ -1,5 +1,12 @@
-const CACHE_NAME = 'akari-crm-shell-v2';
-const APP_SHELL = ['./index.html', './assets/app.css', './assets/app.js', './assets/favicon.svg', './manifest.webmanifest'];
+const CACHE_NAME = 'akari-crm-shell-v3';
+const APP_SHELL = [
+  './index.html',
+  './assets/app.css',
+  './assets/app.js',
+  './assets/interactive-import.js',
+  './assets/favicon.svg',
+  './manifest.webmanifest',
+];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
@@ -26,4 +33,3 @@ self.addEventListener('fetch', (event) => {
       .catch(() => caches.match(request).then((cached) => cached || caches.match('./index.html')))
   );
 });
-
