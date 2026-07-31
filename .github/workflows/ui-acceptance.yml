@@ -18,14 +18,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Validate source
+          cache: npm
+      - name: Install dependencies and validate source
         run: |
           npm install
           npm run validate
       - name: Install Playwright Chromium
-        run: npx --yes @playwright/test@1.54.2 install --with-deps chromium
+        run: npx playwright install --with-deps chromium
       - name: Click-test production UI
-        run: npx --yes @playwright/test@1.54.2 test
+        run: npm run test:ui
       - name: Upload browser diagnostics
         if: failure()
         uses: actions/upload-artifact@v4
