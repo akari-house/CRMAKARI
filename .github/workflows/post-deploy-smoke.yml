@@ -1,0 +1,25 @@
+name: Post-Deploy Smoke
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Wait for Cloudflare Pages deployment
+        run: sleep 60
+
+      - name: Verify Pages frontend
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 8 --retry-delay 15 --retry-all-errors \
+            --max-time 30 \
+            https://crmakari.pages.dev/ \
+            --output /tmp/crmakari-index.html
+          grep -q "AKARI CRM" /tmp/crmakari-index.html
+          echo "AKARI CRM frontend is reachable on crmakari.pages.dev"
