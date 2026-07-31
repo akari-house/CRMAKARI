@@ -14,6 +14,8 @@ const required = [
   'functions/api/imports/akari-leads/commit.js',
   'db/migrations/0001_core.sql',
   'README.md',
+  'playwright.config.js',
+  'tests/ui.spec.js',
 ];
 
 for (const file of required) {
@@ -35,6 +37,8 @@ const jsFiles = [
   ...await findJavaScriptFiles('public/assets'),
   'public/sw.js',
   ...await findJavaScriptFiles('functions'),
+  'playwright.config.js',
+  'tests/ui.spec.js',
 ];
 
 for (const file of [...new Set(jsFiles)]) {
@@ -49,14 +53,23 @@ for (const file of [...new Set(jsFiles)]) {
 const html = await readFile('public/index.html', 'utf8');
 const shellRequirements = [
   'AKARI CRM',
-  './assets/crm.css?v=1',
-  './assets/crm.js?v=1',
+  './assets/crm.css?v=',
+  './assets/crm.js?v=',
   'id="app"',
   'id="modal-root"',
   'id="toast-root"',
 ];
 for (const requirement of shellRequirements) {
   if (!html.includes(requirement)) throw new Error(`The application shell is incomplete: missing ${requirement}`);
+}
+
+if (html.includes('./assets/app.js') || html.includes('./assets/interactive-import.js')) {
+  throw new Error('Legacy placeholder application scripts must not be loaded by the production entry point');
+}
+
+const serviceWorker = await readFile('public/sw.js', 'utf8');
+if (!serviceWorker.includes('./assets/crm.js?v=') || !serviceWorker.includes('./assets/crm.css?v=')) {
+  throw new Error('The service-worker shell does not include the production CRM application assets');
 }
 
 const repositoryTextFiles = [
