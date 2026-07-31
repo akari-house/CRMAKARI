@@ -4,6 +4,7 @@ const APP_SHELL = [
   './assets/crm.css?v=8',
   './assets/runtime-guard.css?v=8',
   './assets/crm.js?v=8',
+  './assets/runtime-v8-compat.js?v=8',
   './assets/runtime-v8.js?v=8',
   './assets/favicon.svg',
   './manifest.webmanifest?v=8',
