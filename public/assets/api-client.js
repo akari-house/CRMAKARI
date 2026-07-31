@@ -1,7 +1,7 @@
 /**
- * Minimal API client for the AKARI CRM Cloudflare Pages Functions backend.
- * The current prototype renders demo data directly in HTML. These methods are
- * ready for the next step: replacing sample values with live D1 records.
+ * Tenant-scoped API client for the AKARI CRM Cloudflare Pages Functions backend.
+ * All requests remain same-origin so Cloudflare Access and CRM membership checks
+ * apply automatically.
  */
 const JSON_HEADERS = { 'content-type': 'application/json' };
 
@@ -14,21 +14,36 @@ async function request(path, options = {}) {
 
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(payload.error || `Request failed with status ${response.status}`);
+    const requestError = new Error(payload.error || `Request failed with status ${response.status}`);
+    requestError.status = response.status;
+    requestError.details = payload.details;
+    throw requestError;
   }
   return payload;
+}
+
+function queryString(params = {}) {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== '') query.set(key, String(value));
+  }
+  const serialized = query.toString();
+  return serialized ? `?${serialized}` : '';
 }
 
 export const AkariApi = {
   health: () => request('health'),
   me: () => request('me'),
   dashboard: () => request('dashboard'),
-  projects: (query = '') => request(`projects?search=${encodeURIComponent(query)}`),
+  projects: (params = {}) => request(`projects${queryString(params)}`),
+  project: (id) => request(`projects/${encodeURIComponent(id)}`),
+  contacts: (params = {}) => request(`contacts${queryString(params)}`),
   opportunities: () => request('opportunities'),
-  tasks: () => request('tasks'),
+  tasks: (scope = 'mine') => request(`tasks${queryString({ scope })}`),
   campaigns: () => request('campaigns'),
   partners: () => request('partners'),
+  payments: () => request('payments'),
+  reports: () => request('reports'),
   createTask: (task) => request('tasks', { method: 'POST', body: JSON.stringify(task) }),
-  updateTask: (id, patch) => request(`tasks/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  updateTask: (id, patch) => request(`tasks/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(patch) }),
 };
-

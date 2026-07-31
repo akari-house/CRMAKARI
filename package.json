@@ -1,12 +1,12 @@
 {
   "name": "akari-crm",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "AKARI CRM \u2014 Business Development and Revenue Operations platform starter",
+  "description": "AKARI CRM — tenant-isolated business development, marketing, fundraising and revenue operations platform",
   "scripts": {
     "dev": "wrangler pages dev public --local",
-    "deploy": "wrangler pages deploy public --project-name akari-crm",
+    "deploy": "wrangler pages deploy public --project-name crmakari",
     "db:migrate:local": "wrangler d1 migrations apply akari-crm-local --local",
     "db:migrate:remote": "wrangler d1 migrations apply akari-crm-production --remote",
     "db:seed:local": "wrangler d1 execute akari-crm-local --local --file db/seed.sql",
