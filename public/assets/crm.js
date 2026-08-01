@@ -177,9 +177,9 @@ function shellHtml() {
             <span class="kbd">Ctrl K</span>
           </div>
           <div class="top-actions">
-            <button class="icon-btn hide-mobile" data-action="toggle-finance" title="Screen-share privacy">◉</button>
+            <button class="btn topbar-tool hide-mobile" data-action="toggle-finance" title="Hide or reveal financial values for screen sharing" aria-label="Toggle screen-share privacy"><span class="topbar-tool__icon" aria-hidden="true">◉</span><span class="topbar-tool__label">Privacy</span></button>
             <button class="btn" data-action="quick-create"><b>＋</b><span class="hide-mobile">Create</span></button>
-            <button class="icon-btn" data-action="refresh" title="Refresh current view">↻</button>
+            <button class="btn topbar-tool" data-action="refresh" title="Refresh the current CRM view" aria-label="Refresh current view"><span class="topbar-tool__icon" aria-hidden="true">↻</span><span class="topbar-tool__label">Refresh</span></button>
             <div class="avatar">${initials(displayName)}</div>
           </div>
         </header>

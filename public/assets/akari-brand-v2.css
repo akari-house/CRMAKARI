@@ -22,6 +22,36 @@ html[data-akari-ui="v1"] body{
     #06080d;
 }
 
+/* The shell already reserves the sidebar as grid column one. The previous
+   adapter also added the sidebar width as a margin, creating a blank column. */
+html[data-akari-ui="v1"] .main{
+  margin-left:0;
+  width:auto;
+}
+
+html[data-akari-ui="v1"] .content{
+  padding-inline:clamp(20px,2vw,32px);
+}
+
+html[data-akari-ui="v1"] .topbar-tool{
+  min-width:auto;
+  padding-inline:11px;
+  color:var(--ak-app-muted);
+  background:rgba(16,20,29,.82);
+}
+
+html[data-akari-ui="v1"] .topbar-tool:hover{
+  color:var(--ak-app-text);
+}
+
+html[data-akari-ui="v1"] .topbar-tool__icon{
+  width:14px;
+  display:inline-grid;
+  place-items:center;
+  color:var(--ak-brand-2);
+  font-size:13px;
+}
+
 html[data-akari-ui="v1"] .brand-logo{
   border-color:rgba(255,122,24,.44);
   background:linear-gradient(145deg,rgba(255,122,24,.22),rgba(255,176,32,.08));
@@ -125,4 +155,9 @@ html[data-akari-ui="v1"] .drawer-tab.active{
     transition-duration:.01ms!important;
     animation-duration:.01ms!important;
   }
+}
+
+@media (max-width:1100px){
+  html[data-akari-ui="v1"] .topbar-tool__label{display:none}
+  html[data-akari-ui="v1"] .topbar-tool{width:38px;padding:0}
 }

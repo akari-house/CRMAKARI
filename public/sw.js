@@ -1,4 +1,4 @@
-const CACHE_NAME = 'akari-crm-shell-v16';
+const CACHE_NAME = 'akari-crm-shell-v17';
 const APP_SHELL = [
   './index.html?runtime=v15',
   './assets/crm.css?v=15',
@@ -11,8 +11,8 @@ const APP_SHELL = [
   './assets/crm-stabilization-runtime-m1.css?v=15',
   './assets/dashboard-polish-v1.css?v=15',
   './assets/akari-app-v1.css?v=15',
-  './assets/akari-brand-v2.css?v=16',
-  './assets/crm.js?v=15',
+  './assets/akari-brand-v2.css?v=17',
+  './assets/crm.js?v=17',
   './assets/operations-v1.js?v=15',
   './assets/lifecycle-v1.js?v=15',
   './assets/identity-v1.js?v=15',
