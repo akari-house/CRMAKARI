@@ -1,0 +1,13 @@
+import { readFile } from 'node:fs/promises';
+const publicHtml=await readFile('public/index.html','utf8');
+const appHtml=await readFile('public/app/index.html','utf8');
+const middleware=await readFile('functions/_middleware.js','utf8');
+const waitlist=await readFile('functions/api/waitlist.js','utf8');
+const redirects=await readFile('public/_redirects','utf8');
+for(const token of ['CRM by AKARI','Join the waitlist','What would you realistically pay per month?','/app/','/api/waitlist','public-home-r6.css'])if(!publicHtml.includes(token))throw new Error(`Public homepage missing ${token}`);
+for(const token of ['/assets/crm.js?v=','/assets/fundraising-closing-r5.js?v=','id="app"','id="modal-root"','id="toast-root"'])if(!appHtml.includes(token))throw new Error(`Protected app shell missing ${token}`);
+for(const token of ["pathname==='/api/waitlist'","pathname==='/'",'cf-access-jwt-assertion','tenant_memberships'])if(!middleware.includes(token))throw new Error(`Public/private middleware split missing ${token}`);
+for(const token of ['public_waitlist','monthly_budget','priority_features_json','consent_at','ON CONFLICT(email)'])if(!waitlist.includes(token))throw new Error(`Waitlist persistence missing ${token}`);
+for(const token of ['/app/* /app/index.html 200','/fundraising /app/index.html 200','/leads /app/index.html 200'])if(!redirects.includes(token))throw new Error(`Protected route rewrite missing ${token}`);
+if(publicHtml.includes('src="/assets/crm.js'))throw new Error('Public homepage must not boot the CRM renderer');
+console.log('CRM by AKARI public entry validation passed');
