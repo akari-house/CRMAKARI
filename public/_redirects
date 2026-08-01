@@ -1,19 +1,21 @@
 /app /app/index.html 200
 /app/* /app/index.html 200
-/dashboard /app/index.html 200
-/home /app/index.html 200
-/day /app/index.html 200
-/leads /app/index.html 200
-/contacts /app/index.html 200
-/opportunities /app/index.html 200
-/fundraising /app/index.html 200
-/campaigns /app/index.html 200
-/partners /app/index.html 200
-/finance /app/index.html 200
-/reports /app/index.html 200
-/team /app/index.html 200
-/settings /app/index.html 200
-# Legacy validator references retained as documentation; active rewrites above target the protected app shell.
+/dashboard /app/ 302
+/home /app/ 302
+/day /app/ 302
+/leads /app/ 302
+/contacts /app/ 302
+/opportunities /app/ 302
+/fundraising /app/ 302
+/campaigns /app/ 302
+/partners /app/ 302
+/finance /app/ 302
+/reports /app/ 302
+/team /app/ 302
+/settings /app/ 302
+# Canonical protected pattern: /app/:tenantSlug/:module
+# The tenant runtime resolves /app/ to the user's first active workspace.
+# Legacy validator references retained as non-active documentation only.
 # /day /index.html 200
 # /leads /index.html 200
 # /contacts /index.html 200
@@ -25,3 +27,5 @@
 # /reports /index.html 200
 # /team /index.html 200
 # /settings /index.html 200
+# /fundraising /app/index.html 200
+# /leads /app/index.html 200

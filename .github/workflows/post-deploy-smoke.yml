@@ -15,40 +15,42 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Verify protected CRM endpoints
+      - name: Verify public homepage and protected CRM entry
         shell: bash
         env:
           ACCESS_AUD: c588ec31c2f28826d192548846f060dd7fa9355b3bd20ddff59600c5d3596eaf
         run: |
           set -euo pipefail
 
+          check_public_home() {
+            url="$1"
+            body=$(mktemp)
+            status=$(curl --silent --show-error --max-time 30 --header 'Accept: text/html' --output "$body" --write-out '%{http_code}' "$url")
+            echo "$url returned HTTP $status"
+            test "$status" = "200"
+            grep -q "CRM by AKARI" "$body"
+            grep -q "Enter CRM" "$body"
+          }
+
           check_access_redirect() {
             url="$1"
             expected_host="$2"
             headers=$(mktemp)
-
-            status=$(curl --silent --show-error \
-              --max-time 30 \
-              --header 'Accept: text/html' \
-              --dump-header "$headers" \
-              --output /dev/null \
-              --write-out '%{http_code}' \
-              "$url")
-
+            status=$(curl --silent --show-error --max-time 30 --header 'Accept: text/html' --dump-header "$headers" --output /dev/null --write-out '%{http_code}' "$url")
             location=$(awk 'BEGIN{IGNORECASE=1} /^location:/ {sub(/\r$/, ""); print substr($0, index($0,$2))}' "$headers" | tail -n 1)
-
             echo "$url returned HTTP $status"
             echo "Redirect location: $location"
-
             test "$status" = "302"
             printf '%s' "$location" | grep -q "cloudflareaccess.com/cdn-cgi/access/login/${expected_host}"
             printf '%s' "$location" | grep -q "kid=${ACCESS_AUD}"
           }
 
-          check_access_redirect "https://crmakari.pages.dev/" "crmakari.pages.dev"
-          check_access_redirect "https://crm.akarihouse.com/" "crm.akarihouse.com"
+          check_public_home "https://crmakari.pages.dev/"
+          check_public_home "https://crm.akarihouse.com/"
+          check_access_redirect "https://crmakari.pages.dev/app/" "crmakari.pages.dev"
+          check_access_redirect "https://crm.akarihouse.com/app/" "crm.akarihouse.com"
 
-          echo "Both AKARI CRM browser endpoints redirect with the configured Access audience."
+          echo "Public CRM by AKARI homepage and protected CRM entry are healthy."
 
       - name: Mark deployment smoke success
         if: success()
@@ -61,7 +63,7 @@ jobs:
             --header "Accept: application/vnd.github+json" \
             --header "X-GitHub-Api-Version: 2022-11-28" \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
-            --data '{"state":"success","context":"deployment/smoke","description":"AKARI CRM browser login redirect is healthy","target_url":"https://crm.akarihouse.com"}'
+            --data '{"state":"success","context":"deployment/smoke","description":"Public homepage and protected CRM entry are healthy","target_url":"https://crm.akarihouse.com"}'
 
       - name: Mark deployment smoke failure
         if: failure()
@@ -74,4 +76,4 @@ jobs:
             --header "Accept: application/vnd.github+json" \
             --header "X-GitHub-Api-Version: 2022-11-28" \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
-            --data '{"state":"failure","context":"deployment/smoke","description":"AKARI CRM browser login redirect failed","target_url":"https://crm.akarihouse.com"}'
+            --data '{"state":"failure","context":"deployment/smoke","description":"Public homepage or protected CRM entry failed","target_url":"https://crm.akarihouse.com"}'
