@@ -40,6 +40,7 @@ function responseFor(url, method, mode) {
   if (path === '/api/team') return {items:[{userId:'usr_owner',fullName:'Muaz Test',role:'OWNER',status:'ACTIVE',financeAccess:true}],total:1};
   if (path === '/api/billing-profile') return {tenant:{name:'AKARI House',baseCurrency:'USD'},billingProfile:{legalName:'AKARI House',addressLine1:'Example Street 1',country:'Germany',email:'billing@example.com',invoicePrefix:'AKARI',defaultTaxRate:0,defaultPaymentTermsDays:14}};
   if (parsed.pathname === '/api/opportunities/opp_1/workspace') return mode === 'won' ? wonWorkspace : qualifiedWorkspace;
+  if (parsed.pathname === '/api/engagements/eng_1') return wonWorkspace.engagements[0];
   if (parsed.pathname === '/api/projects/prj_1') return {id:'prj_1',name:'Project Alpha',opportunities:[opportunity],contacts:[],activities:[]};
   if (parsed.pathname.startsWith('/api/akari-leads')) return {items:[],total:0,categories:[]};
   if (path === '/api/contacts') return {items:[],total:0};
@@ -83,6 +84,14 @@ test('won lifecycle connects engagement invoice payment and referral payout', as
   await page.getByRole('button',{name:'Manage lifecycle'}).click();
   const workspace = page.getByLabel('Revenue lifecycle workspace');
   await expect(workspace.getByText('Project Alpha · GTM Partnership',{exact:true})).toBeVisible();
+
+  await workspace.getByRole('button',{name:'Manage engagement'}).click();
+  await expect(page.getByRole('heading',{name:'Manage service engagement'})).toBeVisible();
+  await expect(page.locator('#revenue-active-form input[name="campaignCost"]')).toHaveValue('500');
+  await expect(page.locator('#revenue-active-form input[name="creatorCost"]')).toHaveValue('1500');
+  await expect(page.locator('#revenue-active-form input[name="otherCost"]')).toHaveValue('0');
+  await page.locator('#revenue-active-form').getByRole('button',{name:'Cancel'}).click();
+
   await workspace.locator('[data-revenue-action="invoice"]').click();
   await expect(page.getByRole('heading',{name:'Create engagement invoice'})).toBeVisible();
   await page.fill('input[name="recipientAddressLine1"]','Client Street 2');
