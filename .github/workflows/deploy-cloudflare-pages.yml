@@ -68,6 +68,75 @@ jobs:
             --commit-hash "${GITHUB_SHA}" \
             --commit-message "AKARI CRM ${GITHUB_SHA}"
 
+      - name: Ensure production custom domain is attached
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          project="crmakari"
+          domain="crm.akarihouse.com"
+          api="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${project}/domains"
+          auth=(-H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H "Content-Type: application/json")
+
+          domains_json="$(curl --fail --silent --show-error "${auth[@]}" "${api}")"
+          attached="$(printf '%s' "${domains_json}" | jq -r --arg domain "${domain}" '.result[]? | select(.name == $domain) | .name' | head -n 1)"
+
+          if [ "${attached}" != "${domain}" ]; then
+            echo "Attaching ${domain} to ${project}."
+            curl --fail --silent --show-error \
+              -X POST \
+              "${auth[@]}" \
+              --data "{\"name\":\"${domain}\"}" \
+              "${api}" >/tmp/cloudflare-domain-create.json
+            cat /tmp/cloudflare-domain-create.json
+          else
+            echo "${domain} is already attached to ${project}."
+          fi
+
+          domain_status=""
+          for attempt in $(seq 1 30); do
+            domain_json="$(curl --fail --silent --show-error "${auth[@]}" "${api}/${domain}")"
+            domain_status="$(printf '%s' "${domain_json}" | jq -r '.result.status // empty')"
+            echo "Custom domain status: ${domain_status:-unknown} (attempt ${attempt}/30)"
+
+            if [ "${domain_status}" = "active" ]; then
+              break
+            fi
+
+            case "${domain_status}" in
+              blocked|deactivated|error)
+                printf '%s\n' "${domain_json}"
+                exit 1
+                ;;
+            esac
+
+            sleep 10
+          done
+
+          if [ "${domain_status}" != "active" ]; then
+            echo "${domain} did not become active within the verification window."
+            exit 1
+          fi
+
+      - name: Verify production URLs
+        run: |
+          set -euo pipefail
+
+          check_url() {
+            url="$1"
+            code="$(curl --silent --show-error --location --max-time 30 --output /dev/null --write-out '%{http_code}' "${url}" || true)"
+            echo "${url} returned HTTP ${code}"
+
+            if [ "${code}" = "000" ] || [ "${code}" = "404" ] || [[ "${code}" =~ ^5 ]]; then
+              echo "Production URL verification failed for ${url}."
+              exit 1
+            fi
+          }
+
+          check_url "https://crmakari.pages.dev"
+          check_url "https://crm.akarihouse.com"
+
       - name: Mark deployment successful
         if: success()
         env:
@@ -78,7 +147,7 @@ jobs:
             -H "Authorization: Bearer ${GH_TOKEN}" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
-            -d '{"state":"success","context":"deployment/cloudflare","description":"AKARI CRM deployed to Cloudflare Pages","target_url":"https://crm.akarihouse.com"}'
+            -d '{"state":"success","context":"deployment/cloudflare","description":"AKARI CRM deployed and production URLs verified","target_url":"https://crm.akarihouse.com"}'
 
       - name: Mark deployment failed
         if: failure()
@@ -90,4 +159,4 @@ jobs:
             -H "Authorization: Bearer ${GH_TOKEN}" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
-            -d '{"state":"failure","context":"deployment/cloudflare","description":"AKARI CRM Cloudflare deployment failed","target_url":"https://github.com/'"${GITHUB_REPOSITORY}"'/actions"}'
+            -d '{"state":"failure","context":"deployment/cloudflare","description":"AKARI CRM deployment or URL verification failed","target_url":"https://github.com/'"${GITHUB_REPOSITORY}"'/actions"}'
