@@ -1,7 +1,7 @@
 import { json,error,readJson } from '../../lib/response.js';
 import { all,first,run,makeId,nowIso } from '../../lib/db.js';
 import { requireTenant,canViewFinance } from '../../lib/permissions.js';
-import { parseFundraisingFlags,sanitizeCapitalRoom,capitalRoomSummary } from '../../lib/fundraising-os.js';
+import { parseFundraisingFlags,sanitizeCapitalRoom,capitalRoomSummary,sanitizeInvestorPipelineItem,investorPipelineSummary } from '../../lib/fundraising-os.js';
 const WRITE_ROLES=new Set(['OWNER','ADMIN','BD_MANAGER']);
 async function settings(db,tenantId){return first(db,'SELECT feature_flags_json FROM tenant_settings WHERE tenant_id = ? LIMIT 1',[tenantId]);}
 async function projects(db,tenantId){return all(db,'SELECT id,name,category,region,website,funding_stage,total_funds_raised,currency,valuation,owner_user_id FROM projects WHERE tenant_id = ? ORDER BY name COLLATE NOCASE',[tenantId]);}
@@ -10,24 +10,47 @@ async function persist(db,auth,tenantId,flags,action,entityId,before,after){
   const payload=JSON.stringify(flags); const row=await settings(db,tenantId);
   if(row) await run(db,'UPDATE tenant_settings SET feature_flags_json = ?, updated_at = ? WHERE tenant_id = ?',[payload,nowIso(),tenantId]);
   else await run(db,'INSERT INTO tenant_settings (tenant_id,feature_flags_json,created_at,updated_at) VALUES (?, ?, ?, ?)',[tenantId,payload,nowIso(),nowIso()]);
-  await run(db,"INSERT INTO audit_logs (id,tenant_id,user_id,action,entity_type,entity_id,before_data,after_data,created_at) VALUES (?, ?, ?, ?, 'FUNDRAISING_CAPITAL_ROOM', ?, ?, ?, ?)",[makeId('aud'),tenantId,auth.userId,action,entityId,JSON.stringify(before||{}),JSON.stringify(after||{}),nowIso()]);
+  await run(db,"INSERT INTO audit_logs (id,tenant_id,user_id,action,entity_type,entity_id,before_data,after_data,created_at) VALUES (?, ?, ?, ?, 'FUNDRAISING', ?, ?, ?, ?)",[makeId('aud'),tenantId,auth.userId,action,entityId,JSON.stringify(before||{}),JSON.stringify(after||{}),nowIso()]);
 }
+const investorCategory=value=>/(venture|vc|fund|investor|angel|capital)/i.test(String(value||''));
+function decorateRooms(rooms,projectMap){return rooms.filter(room=>projectMap.has(room.projectId)).map(room=>{const project=projectMap.get(room.projectId);const investorPipeline=Array.isArray(room.investorPipeline)?room.investorPipeline:[];return {...room,project,projectCategory:project.category,projectRegion:project.region,investorPipeline,investorSummary:investorPipelineSummary(investorPipeline)};});}
 export async function onRequestGet(context){try{
   const auth=context.data.auth; const tenantId=requireTenant(auth); if(!context.env.DB)return error('D1 binding DB is not configured',500);
   const [settingRow,projectRows]=await Promise.all([settings(context.env.DB,tenantId),projects(context.env.DB,tenantId)]);
-  const {rooms}=parseFundraisingFlags(settingRow?.feature_flags_json); const projectMap=new Map(projectRows.map(p=>[p.id,p]));
-  const items=rooms.filter(r=>projectMap.has(r.projectId)).map(r=>({...r,project:projectMap.get(r.projectId)}));
-  return json({items,projects:projectRows,summary:capitalRoomSummary(items),permissions:{canWrite:WRITE_ROLES.has(auth?.role),canFinance:canViewFinance(auth)}});
+  const {rooms}=parseFundraisingFlags(settingRow?.feature_flags_json); const projectMap=new Map(projectRows.map(project=>[project.id,project]));
+  const items=decorateRooms(rooms,projectMap); const investorProjects=projectRows.filter(project=>investorCategory(project.category));
+  return json({items,projects:projectRows,investorProjects,summary:capitalRoomSummary(items),permissions:{canWrite:WRITE_ROLES.has(auth?.role),canFinance:canViewFinance(auth)}});
 }catch(cause){return error(cause.message||'Fundraising workspace could not be loaded',Number(cause.status||500));}}
 export async function onRequestPost(context){try{
   const auth=context.data.auth; const tenantId=requireTenant(auth); if(!WRITE_ROLES.has(auth?.role))return error('Owner, Admin or BD Manager permission is required',403);
   const body=await readJson(context.request); if(!context.env.DB)return json({updated:true,demo:true});
-  const project=await first(context.env.DB,'SELECT id,name FROM projects WHERE tenant_id = ? AND id = ? LIMIT 1',[tenantId,String(body.projectId||'')]);
-  if(!project)return error('Selected project was not found in this workspace',404);
-  if(body.ownerUserId && !(await member(context.env.DB,tenantId,String(body.ownerUserId))))return error('Selected fundraising owner is not an active workspace member',422);
-  const settingRow=await settings(context.env.DB,tenantId); const parsed=parseFundraisingFlags(settingRow?.feature_flags_json); const index=parsed.rooms.findIndex(r=>r.id===body.id||r.projectId===project.id);
-  const existing=index>=0?parsed.rooms[index]:{}; const room=sanitizeCapitalRoom({...body,projectId:project.id,projectName:project.name},existing);
-  if(index>=0)parsed.rooms[index]=room;else parsed.rooms.push(room); parsed.flags.fundraisingCapitalRooms=parsed.rooms.slice(0,250);
-  await persist(context.env.DB,auth,tenantId,parsed.flags,index>=0?'FUNDRAISING_ROOM_UPDATED':'FUNDRAISING_ROOM_CREATED',room.id,existing,room);
-  return json({updated:true,item:room,summary:capitalRoomSummary(parsed.rooms)});
-}catch(cause){return error(cause.message||'Capital Room could not be saved',Number(cause.status||500));}}
+  const action=String(body.action||'save-room').toLowerCase(); const settingRow=await settings(context.env.DB,tenantId); const parsed=parseFundraisingFlags(settingRow?.feature_flags_json);
+  if(action==='save-room'){
+    const project=await first(context.env.DB,'SELECT id,name,category,region FROM projects WHERE tenant_id = ? AND id = ? LIMIT 1',[tenantId,String(body.projectId||'')]);
+    if(!project)return error('Selected project was not found in this workspace',404);
+    if(body.ownerUserId && !(await member(context.env.DB,tenantId,String(body.ownerUserId))))return error('Selected fundraising owner is not an active workspace member',422);
+    const index=parsed.rooms.findIndex(room=>room.id===body.id||room.projectId===project.id); const existing=index>=0?parsed.rooms[index]:{};
+    const room=sanitizeCapitalRoom({...body,projectId:project.id,projectName:project.name},existing); room.projectCategory=project.category; room.projectRegion=project.region;
+    if(index>=0)parsed.rooms[index]=room;else parsed.rooms.push(room); parsed.flags.fundraisingCapitalRooms=parsed.rooms.slice(0,250);
+    await persist(context.env.DB,auth,tenantId,parsed.flags,index>=0?'FUNDRAISING_ROOM_UPDATED':'FUNDRAISING_ROOM_CREATED',room.id,existing,room);
+    return json({updated:true,item:room,summary:capitalRoomSummary(parsed.rooms)});
+  }
+  const roomIndex=parsed.rooms.findIndex(room=>room.id===String(body.roomId||'')); if(roomIndex<0)return error('Capital Room was not found in this workspace',404);
+  const room={...parsed.rooms[roomIndex],investorPipeline:Array.isArray(parsed.rooms[roomIndex].investorPipeline)?[...parsed.rooms[roomIndex].investorPipeline]:[]};
+  if(action==='upsert-investor'){
+    const investor=await first(context.env.DB,'SELECT id,name,category,region,funding_stage,valuation FROM projects WHERE tenant_id = ? AND id = ? LIMIT 1',[tenantId,String(body.item?.investorProjectId||'')]);
+    if(!investor)return error('Selected investor organisation was not found in this workspace',404);
+    if(!investorCategory(investor.category))return error('Selected organisation is not classified as an investor, fund or venture-capital profile',422);
+    const itemIndex=room.investorPipeline.findIndex(item=>item.id===body.item?.id||item.investorProjectId===investor.id); const existing=itemIndex>=0?room.investorPipeline[itemIndex]:{};
+    const item=sanitizeInvestorPipelineItem(body.item||{},existing,room,{...investor,investmentStages:[investor.funding_stage],geographies:[investor.region]});
+    if(itemIndex>=0)room.investorPipeline[itemIndex]=item;else room.investorPipeline.push(item); room.investorPipeline=room.investorPipeline.slice(0,1000); room.updatedAt=nowIso(); parsed.rooms[roomIndex]=room; parsed.flags.fundraisingCapitalRooms=parsed.rooms;
+    await persist(context.env.DB,auth,tenantId,parsed.flags,itemIndex>=0?'INVESTOR_PIPELINE_UPDATED':'INVESTOR_PIPELINE_CREATED',item.id,existing,item);
+    return json({updated:true,item,room,summary:investorPipelineSummary(room.investorPipeline)});
+  }
+  if(action==='remove-investor'){
+    const itemIndex=room.investorPipeline.findIndex(item=>item.id===String(body.itemId||'')); if(itemIndex<0)return error('Investor pipeline record was not found',404);
+    const [removed]=room.investorPipeline.splice(itemIndex,1); room.updatedAt=nowIso(); parsed.rooms[roomIndex]=room; parsed.flags.fundraisingCapitalRooms=parsed.rooms;
+    await persist(context.env.DB,auth,tenantId,parsed.flags,'INVESTOR_PIPELINE_REMOVED',removed.id,removed,{}); return json({updated:true,removed:true,room});
+  }
+  return error('Fundraising action is not supported',404);
+}catch(cause){return error(cause.message||'Fundraising action failed',Number(cause.status||500));}}
