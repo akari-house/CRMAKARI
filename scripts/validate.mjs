@@ -4,7 +4,8 @@ import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 
 const required = [
-  'public/index.html','public/assets/crm.css','public/assets/crm.js','public/assets/operations-v1.css','public/assets/operations-v1.js',
+  'public/index.html','public/uilib.html','public/assets/uilib.css','docs/uilib.md',
+  'public/assets/crm.css','public/assets/crm.js','public/assets/operations-v1.css','public/assets/operations-v1.js',
   'public/assets/lifecycle-v1.css','public/assets/lifecycle-v1.js','public/assets/identity-v1.js','public/sw.js',
   'functions/_middleware.js','functions/api/[[path]].js','functions/api/akari-leads/index.js','functions/api/contacts/index.js',
   'functions/api/imports/akari-leads/commit.js','functions/api/invoices/index.js','functions/api/invoices/[id].js',
@@ -36,6 +37,14 @@ for (const requirement of ['AKARI CRM','./assets/crm.css?v=','./assets/crm.js?v=
   if (!html.includes(requirement)) throw new Error(`The application shell is incomplete: missing ${requirement}`);
 }
 if (html.includes('./assets/app.js') || html.includes('./assets/interactive-import.js')) throw new Error('Legacy placeholder application scripts must not be loaded by the production entry point');
+const uiHtml = await readFile('public/uilib.html','utf8');
+for (const requirement of ['AKARI CRM UI Library','./assets/uilib.css','ak-node','ak-inspector','ak-btn--primary']) {
+  if (!uiHtml.includes(requirement)) throw new Error(`The UI library reference is incomplete: missing ${requirement}`);
+}
+const uiDoc = await readFile('docs/uilib.md','utf8');
+for (const requirement of ['Design principles','Workflow nodes','Referral attribution','Accessibility','Usage rules']) {
+  if (!uiDoc.includes(requirement)) throw new Error(`The UI library documentation is incomplete: missing ${requirement}`);
+}
 const serviceWorker = await readFile('public/sw.js','utf8');
 for (const requirement of ['./assets/crm.js?v=','./assets/operations-v1.js?v=','./assets/lifecycle-v1.js?v=','./assets/identity-v1.js?v=']) {
   if (!serviceWorker.includes(requirement)) throw new Error(`The service-worker shell is missing ${requirement}`);
