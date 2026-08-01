@@ -19,6 +19,7 @@ const APP_SHELL = [
   './assets/runtime-v8-final.js?v=13',
   './assets/crm-stabilization-m1.js?v=13',
   './assets/crm-stabilization-runtime-m1.js?v=13',
+  './assets/crm-stabilization-runtime-guard-m1.js?v=13',
   './assets/favicon.svg',
   './manifest.webmanifest?v=13',
 ];
