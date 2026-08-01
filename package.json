@@ -1,6 +1,6 @@
 {
   "name": "akari-crm",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "type": "module",
   "description": "AKARI CRM — tenant-isolated business development, marketing, fundraising and revenue operations platform",
@@ -8,10 +8,11 @@
     "dev": "wrangler pages dev public --local",
     "deploy": "wrangler pages deploy public --project-name crmakari",
     "test:ui": "playwright test",
+    "test:tenant": "node --test tests/tenant-isolation.test.mjs",
     "db:migrate:local": "wrangler d1 migrations apply akari-crm-local --local",
     "db:migrate:remote": "wrangler d1 migrations apply akari-crm-production --remote",
     "db:seed:local": "wrangler d1 execute akari-crm-local --local --file db/seed.sql",
-    "validate": "node scripts/validate.mjs"
+    "validate": "node scripts/validate.mjs && npm run test:tenant"
   },
   "devDependencies": {
     "@playwright/test": "1.54.2",

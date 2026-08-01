@@ -6,12 +6,15 @@ import path from 'node:path';
 const required = [
   'public/index.html','public/uilib.html','public/assets/uilib.css','docs/uilib.md',
   'public/assets/page-upgrades-v1.css','public/assets/page-upgrades-v1.js',
+  'public/assets/crm-stabilization-m1.css','public/assets/crm-stabilization-m1.js',
   'public/assets/crm.css','public/assets/crm.js','public/assets/operations-v1.css','public/assets/operations-v1.js',
   'public/assets/lifecycle-v1.css','public/assets/lifecycle-v1.js','public/assets/identity-v1.js','public/sw.js',
-  'functions/_middleware.js','functions/api/[[path]].js','functions/api/akari-leads/index.js','functions/api/contacts/index.js',
+  'functions/_middleware.js','functions/api/[[path]].js','functions/api/akari-leads/index.js','functions/api/akari-leads/[id].js',
+  'functions/api/contacts/index.js','functions/api/contacts/[id].js','functions/api/projects/[id]/timeline.js',
   'functions/api/imports/akari-leads/commit.js','functions/api/invoices/index.js','functions/api/invoices/[id].js',
   'functions/api/billing-profile/index.js','functions/api/team/index.js','functions/api/team/[id].js','functions/api/profile/index.js',
   'functions/api/projects/[id]/convert.js','db/migrations/0001_core.sql','README.md','playwright.config.js','tests/ui.spec.js',
+  'tests/stabilization-m1.spec.js','tests/tenant-isolation.test.mjs',
 ];
 for (const file of required) await access(file, constants.R_OK);
 async function findJavaScriptFiles(directory) {
@@ -24,7 +27,7 @@ async function findJavaScriptFiles(directory) {
   }
   return files;
 }
-const jsFiles = [...await findJavaScriptFiles('public/assets'),'public/sw.js',...await findJavaScriptFiles('functions'),'playwright.config.js','tests/ui.spec.js'];
+const jsFiles = [...await findJavaScriptFiles('public/assets'),'public/sw.js',...await findJavaScriptFiles('functions'),'playwright.config.js','tests/ui.spec.js','tests/stabilization-m1.spec.js'];
 for (const file of [...new Set(jsFiles)]) {
   const result = spawnSync(process.execPath, ['--check', file], { encoding:'utf8' });
   if (result.status !== 0) {
@@ -34,7 +37,7 @@ for (const file of [...new Set(jsFiles)]) {
   }
 }
 const html = await readFile('public/index.html','utf8');
-for (const requirement of ['AKARI CRM','./assets/crm.css?v=','./assets/crm.js?v=','./assets/operations-v1.js?v=','./assets/lifecycle-v1.js?v=','./assets/identity-v1.js?v=','./assets/uilib.css?v=','./assets/page-upgrades-v1.css?v=','./assets/page-upgrades-v1.js?v=','id="app"','id="modal-root"','id="toast-root"']) {
+for (const requirement of ['AKARI CRM','./assets/crm.css?v=','./assets/crm.js?v=','./assets/operations-v1.js?v=','./assets/lifecycle-v1.js?v=','./assets/identity-v1.js?v=','./assets/uilib.css?v=','./assets/page-upgrades-v1.css?v=','./assets/page-upgrades-v1.js?v=','./assets/crm-stabilization-m1.css?v=','./assets/crm-stabilization-m1.js?v=','id="app"','id="modal-root"','id="toast-root"']) {
   if (!html.includes(requirement)) throw new Error(`The application shell is incomplete: missing ${requirement}`);
 }
 if (html.includes('./assets/app.js') || html.includes('./assets/interactive-import.js')) throw new Error('Legacy placeholder application scripts must not be loaded by the production entry point');
@@ -50,19 +53,35 @@ const pageUpgrade = await readFile('public/assets/page-upgrades-v1.js','utf8');
 for (const requirement of ['Relationship command centre','Daily execution queue','lead-density','day-focus']) {
   if (!pageUpgrade.includes(requirement)) throw new Error(`Page upgrades are incomplete: missing ${requirement}`);
 }
+const stabilization = await readFile('public/assets/crm-stabilization-m1.js','utf8');
+for (const requirement of ['m1-lead-lifecycle','m1-lead-follow-up','m1-lead-identity','edit-contact-m1','Operational timeline','/timeline']) {
+  if (!stabilization.includes(requirement)) throw new Error(`CRM stabilization UI is incomplete: missing ${requirement}`);
+}
 const serviceWorker = await readFile('public/sw.js','utf8');
-for (const requirement of ['./assets/crm.js?v=','./assets/operations-v1.js?v=','./assets/lifecycle-v1.js?v=','./assets/identity-v1.js?v=','./assets/uilib.css?v=','./assets/page-upgrades-v1.js?v=']) {
+for (const requirement of ['./assets/crm.js?v=','./assets/operations-v1.js?v=','./assets/lifecycle-v1.js?v=','./assets/identity-v1.js?v=','./assets/uilib.css?v=','./assets/page-upgrades-v1.js?v=','./assets/crm-stabilization-m1.js?v=']) {
   if (!serviceWorker.includes(requirement)) throw new Error(`The service-worker shell is missing ${requirement}`);
 }
 const conversionApi = await readFile('functions/api/projects/[id]/convert.js','utf8');
 for (const requirement of ['referral_partner_id','referral_percentage','LEAD_CONVERTED','SERVICE_ENGAGEMENT_V1','contact_x','contact_telegram']) {
   if (!conversionApi.includes(requirement)) throw new Error(`Lead conversion is incomplete: missing ${requirement}`);
 }
-for (const file of ['functions/api/akari-leads/index.js','functions/api/contacts/index.js']) {
+for (const file of ['functions/api/akari-leads/index.js','functions/api/contacts/index.js','functions/api/contacts/[id].js']) {
   const content = await readFile(file,'utf8');
   for (const requirement of ['normalizeTelegram','normalizeX','X account','Telegram handle']) {
     if (!content.includes(requirement)) throw new Error(`Social identity enforcement is incomplete in ${file}: missing ${requirement}`);
   }
+}
+const leadApi = await readFile('functions/api/akari-leads/index.js','utf8');
+for (const requirement of ['PRIVATE_TENANT_IMPORT','followUp','identity','owner','orderBy','p.tenant_id = ?']) {
+  if (!leadApi.includes(requirement)) throw new Error(`Advanced lead operations are incomplete: missing ${requirement}`);
+}
+const contactPatch = await readFile('functions/api/contacts/[id].js','utf8');
+for (const requirement of ['WHERE tenant_id = ? AND id = ?','Referenced project does not belong to this workspace','CONTACT_UPDATED']) {
+  if (!contactPatch.includes(requirement)) throw new Error(`Tenant-safe contact editing is incomplete: missing ${requirement}`);
+}
+const timelineApi = await readFile('functions/api/projects/[id]/timeline.js','utf8');
+for (const requirement of ['al.tenant_id = ?','a.tenant_id = ? AND a.project_id = ?','auditVisible']) {
+  if (!timelineApi.includes(requirement)) throw new Error(`Tenant-safe project timeline is incomplete: missing ${requirement}`);
 }
 const repositoryTextFiles = [...required,...jsFiles];
 for (const file of [...new Set(repositoryTextFiles)]) {
