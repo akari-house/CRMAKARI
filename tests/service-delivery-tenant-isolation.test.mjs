@@ -75,6 +75,35 @@ test('non-finance members cannot change service profitability values', async () 
   assert.equal(db.calls.some((call) => /UPDATE campaigns/.test(call.sql)), false);
 });
 
+test('only the governed completion action can mark an engagement completed', async () => {
+  const db = new FakeDB((method, call, index) => {
+    if (method === 'first' && index === 0) return campaign;
+    if (method === 'run') throw new Error('Direct completion must not be written');
+    return [];
+  });
+  const response = await onRequestPatch(context({ db, body:{ action:'update-overview', status:'COMPLETED', ownerUserId:'user_a' } }));
+  assert.equal(response.status, 409);
+  assert.match((await payload(response)).error, /governed completion action/i);
+  assert.equal(db.calls.some((call) => /UPDATE campaigns/.test(call.sql)), false);
+});
+
+test('non-finance members cannot change creator rewards or payment status', async () => {
+  const db = new FakeDB((method, call, index) => {
+    if (method === 'first' && index === 0) return campaign;
+    if (method === 'run') throw new Error('Creator finance update must not be written');
+    return [];
+  });
+  const response = await onRequestPatch(context({
+    db,
+    role:'BD_MEMBER',
+    financeAccess:false,
+    body:{ action:'upsert-creator', item:{ id:'creator_a', name:'Creator A', paymentStatus:'PAID' } },
+  }));
+  assert.equal(response.status, 403);
+  assert.match((await payload(response)).error, /finance permission/i);
+  assert.equal(db.calls.some((call) => /UPDATE campaigns/.test(call.sql)), false);
+});
+
 test('engagement completion is blocked while required delivery work remains open', async () => {
   const blocked = {
     ...campaign,
