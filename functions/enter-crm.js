@@ -10,7 +10,3 @@ export async function onRequestGet(context){
   url.search='';
   return Response.redirect(url.toString(),302);
 }
-
-export async function onRequest(){
-  return json({error:'Method not allowed'},405);
-}
