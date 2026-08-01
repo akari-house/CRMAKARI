@@ -38,14 +38,17 @@
     }
   }
 
-  document.addEventListener('click', (event) => {
+  // The main revenue workspace deliberately stops document-level click
+  // propagation. Capture at window first so the canonical engagement values
+  // are already loading before that handler opens the edit form.
+  window.addEventListener('click', (event) => {
     const trigger = event.target.closest('[data-revenue-action="edit-engagement"][data-id]');
     if (!trigger) return;
     const sequence = ++requestSequence;
     loadEngagement(trigger.dataset.id, sequence);
   }, true);
 
-  document.addEventListener('click', (event) => {
+  window.addEventListener('click', (event) => {
     if (event.target.closest('[data-revenue-action="cancel-form"],[data-revenue-action="close"]')) requestSequence += 1;
   }, true);
 })();
