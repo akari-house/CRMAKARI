@@ -1,9 +1,18 @@
 import { test, expect } from '@playwright/test';
 
+const dashboardProjects = [
+  { id: 'prj_1', name: 'Project Alpha', category: 'Web3', lifecycle_status: 'LEAD' },
+  { id: 'prj_2', name: 'A long relationship name that must truncate cleanly', category: 'Agent Infrastructure', lifecycle_status: 'PROSPECT' },
+  { id: 'prj_3', name: 'Project Gamma', category: 'Gaming', lifecycle_status: 'CLIENT' },
+  { id: 'prj_4', name: 'Project Delta', category: 'AI', lifecycle_status: 'LEAD' },
+  { id: 'prj_5', name: 'Project Epsilon', category: 'Fintech', lifecycle_status: 'PARTNER' },
+];
+
 const responses = {
   '/api/me': { user: { userId: 'usr_test', tenantId: 'tenant_akari_house', tenantSlug: 'akari-house', email: 'owner@example.com', fullName: 'Muaz Test', role: 'OWNER', financeAccess: true } },
   '/api/dashboard': { currency: 'USD', metrics: { monthlyTarget: 25000, revenueBooked: 12500, revenueCollected: 9000, netRevenue: 6200, weightedPipeline: 32000, activeOpportunities: 2, yearToDateRevenue: 80000, activeCustomers: 3, activeCampaigns: 1, activePartners: 2, outstandingPayments: 3500, referralRewardsDue: 400 } },
   '/api/tasks?scope=mine': { items: [{ id: 'tsk_1', title: 'Follow up Project Alpha', status: 'TODO', priority: 'HIGH', due_at: '2030-01-01T12:00:00Z', project_name: 'Project Alpha' }], total: 1 },
+  '/api/projects?limit=5': { items: dashboardProjects, total: dashboardProjects.length },
   '/api/opportunities': { items: [{ id: 'opp_1', project_id: 'prj_1', project_name: 'Project Alpha', name: 'Creator campaign', stage: 'QUALIFIED', estimated_value: 10000, currency: 'USD', probability_percentage: 60, owner_name: 'Muaz Test', next_action: 'Send proposal' }], total: 1 },
   '/api/akari-leads?limit=8&offset=0': { items: [{ id: 'prj_1', name: 'Project Alpha', category: 'Web3', priority: 'HIGH', source_name: 'Referral', contact_count: 1 }], total: 1, categories: [{ category: 'Web3', count: 1 }], canWrite: true },
   '/api/campaigns': { items: [], total: 0 },
@@ -33,6 +42,31 @@ test.beforeEach(async ({ page }) => {
   await page.goto('http://127.0.0.1:4173/');
   await expect(page.getByRole('heading', { name: /Good evening, Muaz/i })).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('data-akari-interactive', 'ready');
+});
+
+test('dashboard cards and lead rows remain vertically structured', async ({ page }) => {
+  await expect(page.locator('#v8-dashboard-leads .record-row')).toHaveCount(5);
+
+  const firstCard = page.locator('.kpi').first();
+  const labelBox = await firstCard.locator('.kpi-label').boundingBox();
+  const valueBox = await firstCard.locator('.kpi-value').boundingBox();
+  const metaBox = await firstCard.locator('.kpi-meta').boundingBox();
+  expect(labelBox).not.toBeNull();
+  expect(valueBox).not.toBeNull();
+  expect(metaBox).not.toBeNull();
+  expect(labelBox.y + labelBox.height).toBeLessThanOrEqual(valueBox.y + 1);
+  expect(valueBox.y + valueBox.height).toBeLessThanOrEqual(metaBox.y + 1);
+
+  const rows = page.locator('#v8-dashboard-leads .record-row');
+  const firstRow = await rows.nth(0).boundingBox();
+  const secondRow = await rows.nth(1).boundingBox();
+  expect(firstRow).not.toBeNull();
+  expect(secondRow).not.toBeNull();
+  expect(secondRow.y).toBeGreaterThanOrEqual(firstRow.y + firstRow.height - 1);
+  expect(firstRow.width).toBeGreaterThan(300);
+
+  const overflow = await page.locator('#v8-dashboard-leads').evaluate((element) => element.scrollWidth - element.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
 });
 
 test('desktop navigation and forms are clickable', async ({ page }) => {
