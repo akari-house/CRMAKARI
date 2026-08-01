@@ -9,6 +9,8 @@ const required = [
   'public/assets/crm.js',
   'public/assets/operations-v1.css',
   'public/assets/operations-v1.js',
+  'public/assets/lifecycle-v1.css',
+  'public/assets/lifecycle-v1.js',
   'public/sw.js',
   'functions/_middleware.js',
   'functions/api/[[path]].js',
@@ -20,15 +22,14 @@ const required = [
   'functions/api/team/index.js',
   'functions/api/team/[id].js',
   'functions/api/profile/index.js',
+  'functions/api/projects/[id]/convert.js',
   'db/migrations/0001_core.sql',
   'README.md',
   'playwright.config.js',
   'tests/ui.spec.js',
 ];
 
-for (const file of required) {
-  await access(file, constants.R_OK);
-}
+for (const file of required) await access(file, constants.R_OK);
 
 async function findJavaScriptFiles(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -65,6 +66,8 @@ const shellRequirements = [
   './assets/crm.js?v=',
   './assets/operations-v1.css?v=',
   './assets/operations-v1.js?v=',
+  './assets/lifecycle-v1.css?v=',
+  './assets/lifecycle-v1.js?v=',
   'id="app"',
   'id="modal-root"',
   'id="toast-root"',
@@ -78,14 +81,16 @@ if (html.includes('./assets/app.js') || html.includes('./assets/interactive-impo
 }
 
 const serviceWorker = await readFile('public/sw.js', 'utf8');
-for (const requirement of ['./assets/crm.js?v=', './assets/crm.css?v=', './assets/operations-v1.js?v=', './assets/operations-v1.css?v=']) {
+for (const requirement of ['./assets/crm.js?v=', './assets/crm.css?v=', './assets/operations-v1.js?v=', './assets/operations-v1.css?v=', './assets/lifecycle-v1.js?v=', './assets/lifecycle-v1.css?v=']) {
   if (!serviceWorker.includes(requirement)) throw new Error(`The service-worker shell is missing ${requirement}`);
 }
 
-const repositoryTextFiles = [
-  ...required,
-  ...jsFiles,
-];
+const conversionApi = await readFile('functions/api/projects/[id]/convert.js', 'utf8');
+for (const requirement of ['referral_partner_id', 'referral_percentage', 'LEAD_CONVERTED', 'SERVICE_ENGAGEMENT_V1']) {
+  if (!conversionApi.includes(requirement)) throw new Error(`Lead conversion is incomplete: missing ${requirement}`);
+}
+
+const repositoryTextFiles = [...required, ...jsFiles];
 for (const file of [...new Set(repositoryTextFiles)]) {
   const content = await readFile(file, 'utf8');
   if (/AKARI_AppSheet_Ready_CRM\.xlsx/i.test(content) && !file.endsWith('crm.js')) {
