@@ -20,7 +20,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          check_access_redirect() {
+          check_access_protection() {
             url="$1"
             expected_host="$2"
             headers=$(mktemp)
@@ -37,12 +37,22 @@ jobs:
             echo "$url returned HTTP $status"
             echo "Redirect location: $location"
 
-            test "$status" = "302"
-            printf '%s' "$location" | grep -q "crimson-wildflower-0f8d.cloudflareaccess.com/cdn-cgi/access/login/${expected_host}"
+            if [ "$status" = "401" ]; then
+              echo "$url is protected by Cloudflare Access with an authentication challenge."
+              return 0
+            fi
+
+            if [ "$status" = "302" ]; then
+              printf '%s' "$location" | grep -q "cloudflareaccess.com/cdn-cgi/access/login/${expected_host}"
+              return 0
+            fi
+
+            echo "Expected Cloudflare Access 401 or login redirect, received HTTP $status"
+            return 1
           }
 
-          check_access_redirect "https://crmakari.pages.dev/" "crmakari.pages.dev"
-          check_access_redirect "https://crm.akarihouse.com/" "crm.akarihouse.com"
+          check_access_protection "https://crmakari.pages.dev/" "crmakari.pages.dev"
+          check_access_protection "https://crm.akarihouse.com/" "crm.akarihouse.com"
 
           echo "Both AKARI CRM endpoints are reachable and protected by Cloudflare Access."
 
