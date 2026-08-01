@@ -20,13 +20,14 @@ jobs:
         run: |
           set -euo pipefail
 
-          check_access_protection() {
+          check_access_redirect() {
             url="$1"
             expected_host="$2"
             headers=$(mktemp)
 
             status=$(curl --silent --show-error \
               --max-time 30 \
+              --header 'Accept: text/html' \
               --dump-header "$headers" \
               --output /dev/null \
               --write-out '%{http_code}' \
@@ -37,24 +38,14 @@ jobs:
             echo "$url returned HTTP $status"
             echo "Redirect location: $location"
 
-            if [ "$status" = "401" ]; then
-              echo "$url is protected by Cloudflare Access with an authentication challenge."
-              return 0
-            fi
-
-            if [ "$status" = "302" ]; then
-              printf '%s' "$location" | grep -q "cloudflareaccess.com/cdn-cgi/access/login/${expected_host}"
-              return 0
-            fi
-
-            echo "Expected Cloudflare Access 401 or login redirect, received HTTP $status"
-            return 1
+            test "$status" = "302"
+            printf '%s' "$location" | grep -q "cloudflareaccess.com/cdn-cgi/access/login/${expected_host}"
           }
 
-          check_access_protection "https://crmakari.pages.dev/" "crmakari.pages.dev"
-          check_access_protection "https://crm.akarihouse.com/" "crm.akarihouse.com"
+          check_access_redirect "https://crmakari.pages.dev/" "crmakari.pages.dev"
+          check_access_redirect "https://crm.akarihouse.com/" "crm.akarihouse.com"
 
-          echo "Both AKARI CRM endpoints are reachable and protected by Cloudflare Access."
+          echo "Both AKARI CRM browser endpoints redirect to Cloudflare Access."
 
       - name: Mark deployment smoke success
         if: success()
@@ -67,7 +58,7 @@ jobs:
             --header "Accept: application/vnd.github+json" \
             --header "X-GitHub-Api-Version: 2022-11-28" \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
-            --data '{"state":"success","context":"deployment/smoke","description":"AKARI CRM endpoints are live and Access-protected","target_url":"https://crm.akarihouse.com"}'
+            --data '{"state":"success","context":"deployment/smoke","description":"AKARI CRM browser login redirect is healthy","target_url":"https://crm.akarihouse.com"}'
 
       - name: Mark deployment smoke failure
         if: failure()
@@ -80,4 +71,4 @@ jobs:
             --header "Accept: application/vnd.github+json" \
             --header "X-GitHub-Api-Version: 2022-11-28" \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
-            --data '{"state":"failure","context":"deployment/smoke","description":"AKARI CRM endpoint smoke check failed","target_url":"https://crm.akarihouse.com"}'
+            --data '{"state":"failure","context":"deployment/smoke","description":"AKARI CRM browser login redirect failed","target_url":"https://crm.akarihouse.com"}'
