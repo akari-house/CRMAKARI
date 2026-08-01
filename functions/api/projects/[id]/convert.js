@@ -16,7 +16,6 @@ async function createOrLoadIntroducer(context, tenantId, auth, body, now) {
     if (!partner) throw Object.assign(new Error('Referral introducer was not found'), { status: 404 });
     return partner;
   }
-
   const name = text(body.introducerName, 300);
   if (!name) return null;
   const id = makeId('par');
@@ -47,29 +46,28 @@ export async function onRequestPost(context) {
     if (!context.env.DB) return json({ converted: true, demo: true }, 201);
 
     const project = await first(context.env.DB, `
-      SELECT p.*, c.full_name AS contact_name, c.email AS contact_email, c.telegram AS contact_telegram
+      SELECT p.*, c.full_name AS contact_name, c.email AS contact_email,
+        c.telegram AS contact_telegram, c.x_handle AS contact_x
       FROM projects p
       LEFT JOIN contacts c ON c.project_id = p.id AND c.tenant_id = p.tenant_id AND c.is_primary_contact = 1
       WHERE p.tenant_id = ? AND p.id = ?
       LIMIT 1
     `, [tenantId, projectId]);
     if (!project) return error('Lead was not found', 404);
+    if (!project.x_url || !project.telegram) return error('Add the lead X account and Telegram handle before conversion', 422);
+    if (!project.contact_name) return error('Add a primary contact before conversion', 422);
+    if (!project.contact_x || !project.contact_telegram) return error('The primary contact requires both an X account and Telegram handle before conversion', 422);
 
     const now = nowIso();
     const introducer = await createOrLoadIntroducer(context, tenantId, auth, body, now);
     const referralPercentage = percent(body.referralPercentage ?? introducer?.default_referral_percentage ?? 0);
-    const referralBasis = REFERRAL_BASES.has(String(body.referralBasis || '').toUpperCase())
-      ? String(body.referralBasis).toUpperCase()
-      : 'NET_REVENUE';
-
+    const referralBasis = REFERRAL_BASES.has(String(body.referralBasis || '').toUpperCase()) ? String(body.referralBasis).toUpperCase() : 'NET_REVENUE';
     let createdPartnerId = null;
     let serviceId = null;
     let referralId = null;
 
     if (conversionType === 'PARTNER' || conversionType === 'BOTH') {
-      const existingPartner = await first(context.env.DB, `
-        SELECT id FROM partners WHERE tenant_id = ? AND lower(name) = lower(?) LIMIT 1
-      `, [tenantId, project.name]);
+      const existingPartner = await first(context.env.DB, `SELECT id FROM partners WHERE tenant_id = ? AND lower(name) = lower(?) LIMIT 1`, [tenantId, project.name]);
       createdPartnerId = existingPartner?.id || makeId('par');
       if (existingPartner) {
         await run(context.env.DB, `
@@ -97,29 +95,15 @@ export async function onRequestPost(context) {
       const serviceName = text(body.serviceName, 300);
       const serviceType = text(body.serviceType, 200);
       if (!serviceName || !serviceType) return error('Service name and service type are required for client conversion', 422);
-      const billingModel = BILLING_MODELS.has(String(body.billingModel || '').toUpperCase())
-        ? String(body.billingModel).toUpperCase()
-        : 'ONE_TIME';
+      const billingModel = BILLING_MODELS.has(String(body.billingModel || '').toUpperCase()) ? String(body.billingModel).toUpperCase() : 'ONE_TIME';
       const contractValue = money(body.contractValue, 0);
       const directCost = money(body.directCost, 0);
       const creatorCost = money(body.creatorCost, 0);
       const otherCost = money(body.otherCost, 0);
       const netBasis = Math.max(0, contractValue - directCost - creatorCost - otherCost);
-      const referralAmount = referralBasis === 'FIXED'
-        ? money(body.fixedReferralAmount, 0)
-        : (referralBasis === 'GROSS_REVENUE' ? contractValue : netBasis) * referralPercentage / 100;
-
+      const referralAmount = referralBasis === 'FIXED' ? money(body.fixedReferralAmount, 0) : (referralBasis === 'GROSS_REVENUE' ? contractValue : netBasis) * referralPercentage / 100;
       serviceId = makeId('cmp');
-      const serviceMetadata = JSON.stringify({
-        recordType: 'SERVICE_ENGAGEMENT_V1',
-        billingModel,
-        serviceType,
-        durationMonths: money(body.durationMonths, 0),
-        renewalDate: text(body.renewalDate, 10),
-        deliverables: text(body.deliverables, 10000),
-        referralBasis,
-        introducerPartnerId: introducer?.id || null,
-      });
+      const serviceMetadata = JSON.stringify({ recordType: 'SERVICE_ENGAGEMENT_V1', billingModel, serviceType, durationMonths: money(body.durationMonths, 0), renewalDate: text(body.renewalDate, 10), deliverables: text(body.deliverables, 10000), referralBasis, introducerPartnerId: introducer?.id || null });
       await run(context.env.DB, `
         INSERT INTO campaigns (
           id, tenant_id, project_id, name, campaign_owner_id, status, region,
@@ -128,65 +112,36 @@ export async function onRequestPost(context) {
           referral_percentage, payment_status, next_action, notes,
           created_at, updated_at, created_by, updated_by
         ) VALUES (?, ?, ?, ?, ?, 'ONBOARDING', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'NOT_INVOICED', ?, ?, ?, ?, ?, ?)
-      `, [
-        serviceId, tenantId, projectId, serviceName, text(body.ownerUserId, 120) || auth.userId,
+      `, [serviceId, tenantId, projectId, serviceName, text(body.ownerUserId, 120) || auth.userId,
         text(body.region, 200) || project.region, text(body.startDate, 10), text(body.endDate, 10),
-        text(body.deliverables, 10000), contractValue, text(body.currency, 10) || 'USD',
-        directCost, creatorCost, otherCost, introducer?.id || null, referralPercentage,
-        text(body.nextAction, 1000), serviceMetadata, now, now, auth.userId, auth.userId,
-      ]);
-
+        text(body.deliverables, 10000), contractValue, text(body.currency, 10) || 'USD', directCost, creatorCost, otherCost,
+        introducer?.id || null, referralPercentage, text(body.nextAction, 1000), serviceMetadata, now, now, auth.userId, auth.userId]);
       if (introducer) {
         referralId = makeId('ref');
         await run(context.env.DB, `
-          INSERT INTO referrals (
-            id, tenant_id, partner_id, project_id, campaign_id, revenue_basis,
-            referral_percentage, referral_amount, currency, payment_status,
-            due_date, notes, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'ESTIMATED', ?, ?, ?, ?)
-        `, [
-          referralId, tenantId, introducer.id, projectId, serviceId,
+          INSERT INTO referrals (id, tenant_id, partner_id, project_id, campaign_id, revenue_basis, referral_percentage, referral_amount, currency, payment_status, due_date, notes, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'ESTIMATED', ?, ?, ?, ?)
+        `, [referralId, tenantId, introducer.id, projectId, serviceId,
           referralBasis === 'FIXED' ? contractValue : (referralBasis === 'GROSS_REVENUE' ? contractValue : netBasis),
-          referralPercentage, referralAmount, text(body.currency, 10) || 'USD',
-          text(body.referralDueDate, 10), text(body.referralNotes, 5000), now, now,
-        ]);
+          referralPercentage, referralAmount, text(body.currency, 10) || 'USD', text(body.referralDueDate, 10), text(body.referralNotes, 5000), now, now]);
       }
     }
 
     const lifecycle = conversionType === 'PARTNER' ? 'PARTNER' : 'CLIENT';
     await run(context.env.DB, `
       UPDATE projects SET lifecycle_status = ?, customer_since = CASE WHEN ? = 'CLIENT' THEN COALESCE(customer_since, ?) ELSE customer_since END,
-        referral_partner_id = COALESCE(?, referral_partner_id), next_follow_up_at = COALESCE(?, next_follow_up_at),
-        updated_at = ?, updated_by = ? WHERE tenant_id = ? AND id = ?
-    `, [lifecycle, lifecycle, text(body.startDate, 10) || now.slice(0, 10), introducer?.id || null,
-      text(body.nextFollowUpAt, 100), now, auth.userId, tenantId, projectId]);
-
+        referral_partner_id = COALESCE(?, referral_partner_id), next_follow_up_at = COALESCE(?, next_follow_up_at), updated_at = ?, updated_by = ?
+      WHERE tenant_id = ? AND id = ?
+    `, [lifecycle, lifecycle, text(body.startDate, 10) || now.slice(0, 10), introducer?.id || null, text(body.nextFollowUpAt, 100), now, auth.userId, tenantId, projectId]);
     await run(context.env.DB, `
-      INSERT INTO activities (
-        id, tenant_id, project_id, user_id, activity_type, subject, description, outcome, occurred_at, next_action, follow_up_at, created_at
-      ) VALUES (?, ?, ?, ?, 'LIFECYCLE_CONVERSION', ?, ?, ?, ?, ?, ?, ?)
-    `, [makeId('act'), tenantId, projectId, auth.userId, `Converted to ${conversionType}`,
-      text(body.conversionNotes, 10000), introducer ? `Introduced by ${introducer.name}; ${referralPercentage}% on ${referralBasis}` : 'No referral introducer recorded',
-      now, text(body.nextAction, 1000), text(body.nextFollowUpAt, 100), now]);
-
+      INSERT INTO activities (id, tenant_id, project_id, user_id, activity_type, subject, description, outcome, occurred_at, next_action, follow_up_at, created_at)
+      VALUES (?, ?, ?, ?, 'LIFECYCLE_CONVERSION', ?, ?, ?, ?, ?, ?, ?)
+    `, [makeId('act'), tenantId, projectId, auth.userId, `Converted to ${conversionType}`, text(body.conversionNotes, 10000), introducer ? `Introduced by ${introducer.name}; ${referralPercentage}% on ${referralBasis}` : 'No referral introducer recorded', now, text(body.nextAction, 1000), text(body.nextFollowUpAt, 100), now]);
     await run(context.env.DB, `
       INSERT INTO audit_logs (id, tenant_id, user_id, action, entity_type, entity_id, before_data, after_data, created_at)
       VALUES (?, ?, ?, 'LEAD_CONVERTED', 'PROJECT', ?, ?, ?, ?)
-    `, [makeId('aud'), tenantId, auth.userId, projectId,
-      JSON.stringify({ lifecycleStatus: project.lifecycle_status }),
-      JSON.stringify({ conversionType, lifecycle, createdPartnerId, serviceId, referralId, introducerPartnerId: introducer?.id || null, referralPercentage, referralBasis }), now]);
-
-    return json({
-      converted: true,
-      projectId,
-      lifecycle,
-      partnerId: createdPartnerId,
-      serviceId,
-      referralId,
-      introducer: introducer ? { id: introducer.id, name: introducer.name } : null,
-      referralPercentage,
-      referralBasis,
-    }, 201);
+    `, [makeId('aud'), tenantId, auth.userId, projectId, JSON.stringify({ lifecycleStatus: project.lifecycle_status }), JSON.stringify({ conversionType, lifecycle, createdPartnerId, serviceId, referralId, introducerPartnerId: introducer?.id || null, referralPercentage, referralBasis }), now]);
+    return json({ converted: true, projectId, lifecycle, partnerId: createdPartnerId, serviceId, referralId, introducer: introducer ? { id: introducer.id, name: introducer.name } : null, referralPercentage, referralBasis }, 201);
   } catch (cause) {
     console.error('AKARI lead conversion error', cause);
     return error(cause.message || 'Lead could not be converted', Number(cause.status || 500));

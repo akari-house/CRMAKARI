@@ -8,6 +8,18 @@ const text = (value, max = 5000) => {
   const normalized = String(value).trim();
   return normalized ? normalized.slice(0, max) : null;
 };
+const normalizeTelegram = (value) => {
+  const raw = text(value, 500);
+  if (!raw) return null;
+  const handle = raw.replace(/^https?:\/\/t\.me\//i, '').replace(/^@/, '').split(/[/?#]/)[0].trim();
+  return handle ? `@${handle}` : null;
+};
+const normalizeX = (value) => {
+  const raw = text(value, 1000);
+  if (!raw) return null;
+  const handle = raw.replace(/^https?:\/\/(www\.)?(x|twitter)\.com\//i, '').replace(/^@/, '').split(/[/?#]/)[0].trim();
+  return handle ? `https://x.com/${handle}` : null;
+};
 
 export async function onRequestGet(context) {
   try {
@@ -26,7 +38,14 @@ export async function onRequestGet(context) {
       ORDER BY c.is_primary_contact DESC, c.updated_at DESC
       LIMIT 250
     `, bindings);
-    return json({ items, total: items.length });
+    return json({
+      items: items.map((item) => ({
+        ...item,
+        identity_complete: Boolean(item.telegram && item.x_handle),
+        missing_identity_fields: [!item.x_handle ? 'X account' : null, !item.telegram ? 'Telegram handle' : null].filter(Boolean),
+      })),
+      total: items.length,
+    });
   } catch (cause) {
     console.error('Contacts GET error', cause);
     return error(cause.message || 'Contacts could not be loaded', Number(cause.status || 500));
@@ -41,7 +60,10 @@ export async function onRequestPost(context) {
     const body = await readJson(context.request);
     const projectId = text(body.projectId, 120);
     const fullName = text(body.fullName, 300);
+    const telegram = normalizeTelegram(body.telegram);
+    const xHandle = normalizeX(body.xHandle);
     if (!projectId || !fullName) return error('Project and full name are required', 422);
+    if (!telegram || !xHandle) return error('Every contact requires both an X account and Telegram handle', 422);
     if (!context.env.DB) return json({ id: makeId('con'), created: true, demo: true }, 201);
     const project = await first(context.env.DB, 'SELECT id FROM projects WHERE tenant_id = ? AND id = ?', [tenantId, projectId]);
     if (!project) return error('Project not found in this workspace', 404);
@@ -56,12 +78,12 @@ export async function onRequestPost(context) {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       id, tenantId, projectId, fullName, text(body.jobTitle, 500), text(body.contactRole, 500),
-      text(body.email, 500), text(body.telegram, 500), text(body.xHandle, 1000),
+      text(body.email, 500), telegram, xHandle,
       text(body.linkedinUrl, 1000), text(body.phone, 500), text(body.preferredChannel, 100),
       body.isDecisionMaker ? 1 : 0, body.isPrimaryContact ? 1 : 0, text(body.notes, 10000),
       now, now, auth.userId, auth.userId,
     ]);
-    await run(context.env.DB, `INSERT INTO audit_logs (id, tenant_id, user_id, action, entity_type, entity_id, after_data, created_at) VALUES (?, ?, ?, 'CONTACT_CREATED', 'CONTACT', ?, ?, ?)`, [makeId('aud'), tenantId, auth.userId, id, JSON.stringify({ projectId, fullName }), now]);
+    await run(context.env.DB, `INSERT INTO audit_logs (id, tenant_id, user_id, action, entity_type, entity_id, after_data, created_at) VALUES (?, ?, ?, 'CONTACT_CREATED', 'CONTACT', ?, ?, ?)`, [makeId('aud'), tenantId, auth.userId, id, JSON.stringify({ projectId, fullName, telegram, xHandle }), now]);
     return json({ id, created: true }, 201);
   } catch (cause) {
     console.error('Contacts POST error', cause);
