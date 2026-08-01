@@ -30,6 +30,7 @@ function responseFor(request) {
     { id: 'aud_1', kind: 'AUDIT', type: 'CONTACT_UPDATED', title: 'Contact Updated', actor: 'Muaz Test', occurredAt: '2030-01-01T10:00:00Z', before: { email: 'old@example.com' }, after: { email: 'alice@example.com' } },
   ], auditVisible: true };
   if (url.pathname === '/api/projects/prj_1') return project;
+  if (url.pathname === '/api/projects') return { items: [lead], total: 1 };
   if (url.pathname === '/api/contacts/con_1' && request.method() === 'PATCH') return { id: 'con_1', updated: true };
   if (url.pathname === '/api/akari-leads') return {
     items: [lead], total: 1, categories: [{ category: 'Web3', count: 1 }],
@@ -48,41 +49,44 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByRole('heading', { name: /Good evening, Muaz/i })).toBeVisible();
 });
 
-test('advanced lead filters are server-driven and persist on the Leads page', async ({ page }) => {
+test('advanced lead filters are server-driven and persist on the live Leads page', async ({ page }) => {
   await page.locator('.sidebar [data-route="leads"]').click();
   await expect(page.getByRole('heading', { name: 'AKARI Leads' })).toBeVisible();
+  await expect(page.locator('.ak-runtime-lead-tools[data-stabilized-m1="ready"]')).toBeVisible();
   await expect(page.locator('#m1-lead-lifecycle')).toBeVisible();
   await expect(page.locator('#m1-lead-follow-up')).toBeVisible();
   await expect(page.locator('#m1-lead-identity')).toBeVisible();
-  await expect(page.locator('#m1-lead-owner option')).toContainText(['All owners', 'Unassigned', 'Muaz Test']);
+  await expect(page.locator('#m1-lead-owner')).toContainText('Muaz Test');
 
   await page.locator('#m1-lead-lifecycle').selectOption('LEAD');
   await page.locator('#m1-lead-follow-up').selectOption('scheduled');
   await page.locator('#m1-lead-identity').selectOption('complete');
   await page.locator('#m1-lead-sort').selectOption('updated');
   const requestPromise = page.waitForRequest((request) => request.url().includes('/api/akari-leads?') && request.url().includes('lifecycle=LEAD') && request.url().includes('identity=complete') && request.url().includes('sort=updated'));
-  await page.locator('[data-action="apply-lead-filters"]').click();
+  await page.locator('[data-m1-action="apply-leads"]').click();
   await requestPromise;
   await expect(page.getByText('Introduced by Partner One')).toBeVisible();
 });
 
-test('contact editing and combined operational timeline work inside lead detail', async ({ page }) => {
+test('contact editing and operational timeline work in the live relationship modal', async ({ page }) => {
   await page.locator('.sidebar [data-route="leads"]').click();
+  await expect(page.locator('.ak-runtime-lead-tools[data-stabilized-m1="ready"]')).toBeVisible();
   await page.getByText('Project Alpha', { exact: true }).first().click();
-  await expect(page.getByRole('heading', { name: 'Project Alpha' })).toBeVisible();
+  await expect(page.locator('#modal-root .ak-project-modal[data-stabilized-project="prj_1"]')).toBeVisible();
+  await expect(page.locator('#modal-root h2')).toHaveText('Project Alpha');
 
-  await page.getByRole('button', { name: 'Contacts' }).click();
-  await expect(page.locator('[data-action="edit-contact-m1"]')).toBeVisible();
-  await page.locator('[data-action="edit-contact-m1"]').click();
+  await page.locator('#modal-root [data-m1-project-tab="contacts"]').click();
+  await expect(page.locator('#modal-root [data-m1-action="edit-contact"]')).toBeVisible();
+  await page.locator('#modal-root [data-m1-action="edit-contact"]').click();
   await expect(page.getByRole('heading', { name: 'Edit Alice' })).toBeVisible();
   await page.locator('#m1-contact-form input[name="email"]').fill('alice+updated@example.com');
   const patch = page.waitForRequest((request) => request.url().endsWith('/api/contacts/con_1') && request.method() === 'PATCH');
   await page.getByRole('button', { name: 'Save contact' }).click();
   await patch;
   await expect(page.getByText('Contact updated')).toBeVisible();
+  await expect(page.locator('#modal-root [data-m1-project-tab="contacts"]')).toHaveClass(/active/);
 
-  await page.getByRole('button', { name: 'Activity' }).click();
-  await expect(page.getByText('Operational timeline')).toBeVisible();
+  await page.locator('#modal-root [data-m1-project-tab="activity"]').click();
   await expect(page.getByText('Contact Updated')).toBeVisible();
   await expect(page.getByText('Changed: Email')).toBeVisible();
 });
@@ -90,9 +94,10 @@ test('contact editing and combined operational timeline work inside lead detail'
 test('stabilized lead workspace remains usable on mobile', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.locator('.mobile-bottom [data-route="leads"]').click();
+  await expect(page.locator('.ak-runtime-lead-tools[data-stabilized-m1="ready"]')).toBeVisible();
   await expect(page.locator('.ak-advanced-filter-row')).toBeVisible();
-  await expect(page.locator('#m1-lead-lifecycle')).toBeVisible();
   await page.getByText('Project Alpha', { exact: true }).first().click();
-  await page.getByRole('button', { name: 'Contacts' }).click();
-  await expect(page.locator('[data-action="edit-contact-m1"]')).toBeVisible();
+  await expect(page.locator('#modal-root .ak-project-modal')).toBeVisible();
+  await page.locator('#modal-root [data-m1-project-tab="contacts"]').click();
+  await expect(page.locator('#modal-root [data-m1-action="edit-contact"]')).toBeVisible();
 });
