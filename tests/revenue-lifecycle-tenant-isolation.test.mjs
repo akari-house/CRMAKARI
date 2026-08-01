@@ -49,8 +49,9 @@ test('won workflow rejects a referral partner from another tenant before creatin
   }));
   assert.equal(response.status, 422);
   assert.match((await responseBody(response)).error, /does not belong to this workspace/i);
-  assert.deepEqual(db.calls[1].bindings, ['tenant_a','partner_tenant_b','ARCHIVED']);
+  assert.deepEqual(db.calls[1].bindings, ['tenant_a','partner_tenant_b']);
   assert.match(db.calls[1].sql, /tenant_id = \? AND id = \?/);
+  assert.match(db.calls[1].sql, /status != 'ARCHIVED'/);
   assert.equal(db.calls.some((call) => /INSERT INTO campaigns/.test(call.sql)), false);
 });
 
