@@ -6,9 +6,9 @@ import {
   lifecyclePayload,
   moneyNumber,
   text,
-  parseJson,
   addDays,
 } from '../../../lib/revenue-lifecycle.js';
+import { parseInvoice, parseJson, roundMoney } from '../../../lib/commercial-hardening.js';
 
 function requireFinance(auth) {
   if (!canViewFinance(auth)) {
@@ -28,13 +28,19 @@ async function loadInvoice(db, tenantId, id) {
   `, [tenantId, id]);
 }
 
-async function loadReceipts(db, tenantId, invoice) {
-  return all(db, `
+async function loadRelated(db, tenantId, invoice) {
+  const rows = await all(db, `
     SELECT * FROM payments
-    WHERE tenant_id = ? AND project_id = ? AND payment_type = 'INVOICE_RECEIPT'
-      AND invoice_reference = ?
+    WHERE tenant_id = ? AND project_id = ? AND payment_type IN ('INVOICE_RECEIPT','CREDIT_NOTE')
     ORDER BY COALESCE(received_date, created_at) DESC
-  `, [tenantId, invoice.project_id, invoice.invoice_reference]);
+  `, [tenantId, invoice.project_id]);
+  const receipts = rows.filter((row) => row.payment_type === 'INVOICE_RECEIPT' && row.invoice_reference === invoice.invoice_reference);
+  const credits = rows.filter((row) => {
+    if (row.payment_type !== 'CREDIT_NOTE') return false;
+    const metadata = parseJson(row.notes, {});
+    return metadata.invoiceId === invoice.id || metadata.invoiceNumber === invoice.invoice_reference;
+  });
+  return { receipts, credits };
 }
 
 function publicReceipt(row) {
@@ -58,14 +64,12 @@ export async function onRequestGet(context) {
     const auth = context.data.auth;
     requireFinance(auth);
     const tenantId = requireTenant(auth);
-    if (!context.env.DB) return json({ items: [], total: 0, received: 0, outstanding: 0, demo: true });
+    if (!context.env.DB) return json({ items: [], total: 0, received: 0, credited:0, outstanding: 0, demo: true });
     const invoice = await loadInvoice(context.env.DB, tenantId, context.params.id);
     if (!invoice) return error('Invoice not found', 404);
-    const receipts = await loadReceipts(context.env.DB, tenantId, invoice);
-    const metadata = parseJson(invoice.notes, {});
-    const total = Number(metadata.total ?? invoice.amount ?? 0);
-    const received = receipts.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-    return json({ items: receipts.map(publicReceipt), total: receipts.length, received, outstanding: Math.max(0, total - received), invoiceTotal: total });
+    const { receipts, credits } = await loadRelated(context.env.DB, tenantId, invoice);
+    const parsed = parseInvoice(invoice, receipts, credits);
+    return json({ items: receipts.map(publicReceipt), total: receipts.length, received:parsed.received, credited:parsed.credited, outstanding:parsed.outstanding, invoiceTotal:parsed.total });
   } catch (cause) {
     return error(cause.message || 'Invoice receipts could not be loaded', Number(cause.status || 500));
   }
@@ -82,13 +86,12 @@ export async function onRequestPost(context) {
 
     const invoice = await loadInvoice(context.env.DB, tenantId, invoiceId);
     if (!invoice) return error('Invoice not found', 404);
-    if (['CANCELLED', 'DRAFT'].includes(invoice.status)) return error('This invoice cannot receive a payment yet', 409);
-    const metadata = parseJson(invoice.notes, {});
-    const invoiceTotal = Number(metadata.total ?? invoice.amount ?? 0);
-    const existingReceipts = await loadReceipts(context.env.DB, tenantId, invoice);
-    const alreadyReceived = existingReceipts.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    if (['CANCELLED', 'DRAFT', 'CREDITED'].includes(invoice.status)) return error('This invoice cannot receive a payment', 409);
+    const related = await loadRelated(context.env.DB, tenantId, invoice);
+    const parsed = parseInvoice(invoice, related.receipts, related.credits);
+    if (parsed.outstanding <= 0) return error('This invoice has no outstanding balance', 409);
     const amount = moneyNumber(body.amount, 'Payment amount', { min: 0.01 });
-    if (alreadyReceived + amount > invoiceTotal + 0.005) return error('Payment amount exceeds the invoice outstanding balance', 422);
+    if (amount > parsed.outstanding + 0.005) return error('Payment amount exceeds the invoice outstanding balance', 422);
 
     const receivedDate = text(body.receivedDate, 10) || new Date().toISOString().slice(0, 10);
     const now = nowIso();
@@ -107,32 +110,34 @@ export async function onRequestPost(context) {
       now, now,
     ]);
 
-    const totalReceived = Math.round((alreadyReceived + amount + Number.EPSILON) * 100) / 100;
-    const fullyPaid = totalReceived >= invoiceTotal - 0.005;
-    const invoiceStatus = fullyPaid ? 'PAID' : 'PARTIALLY_PAID';
+    const totalReceived = roundMoney(parsed.received + amount);
+    const outstanding = Math.max(0, roundMoney(parsed.total - totalReceived - parsed.credited));
+    const fullySettled = outstanding <= 0.005;
+    const invoiceStatus = fullySettled ? 'PAID' : parsed.credited > 0 ? 'PARTIALLY_CREDITED' : 'PARTIALLY_PAID';
     await run(context.env.DB, `
       UPDATE payments SET status = ?, received_date = CASE WHEN ? = 1 THEN ? ELSE received_date END,
         payment_method = COALESCE(?, payment_method), wallet_or_bank_reference = COALESCE(?, wallet_or_bank_reference),
         updated_at = ?
       WHERE tenant_id = ? AND id = ?
-    `, [invoiceStatus, fullyPaid ? 1 : 0, receivedDate, text(body.paymentMethod, 200), text(body.reference, 1000), now, tenantId, invoiceId]);
+    `, [invoiceStatus, fullySettled ? 1 : 0, receivedDate, text(body.paymentMethod, 200), text(body.reference, 1000), now, tenantId, invoiceId]);
 
     if (invoice.campaign_id) {
       const campaignTotals = await first(context.env.DB, `
         SELECT
-          COALESCE(SUM(CASE WHEN payment_type = 'INVOICE' THEN amount ELSE 0 END), 0) AS invoiced,
+          COALESCE(SUM(CASE WHEN payment_type = 'INVOICE' AND status NOT IN ('DRAFT','CANCELLED') THEN amount ELSE 0 END), 0) AS invoice_total,
+          COALESCE(SUM(CASE WHEN payment_type = 'CREDIT_NOTE' THEN amount ELSE 0 END), 0) AS credit_total,
           COALESCE(SUM(CASE WHEN payment_type = 'INVOICE_RECEIPT' THEN amount ELSE 0 END), 0) AS received
         FROM payments
         WHERE tenant_id = ? AND campaign_id = ?
       `, [tenantId, invoice.campaign_id]);
-      const invoiced = Number(campaignTotals?.invoiced || 0);
-      const received = Number(campaignTotals?.received || 0);
-      const paymentStatus = received <= 0 ? 'INVOICED' : received + 0.005 >= invoiced ? 'PAID' : 'PARTIALLY_PAID';
+      const invoiced = Math.max(0, roundMoney(Number(campaignTotals?.invoice_total || 0) - Number(campaignTotals?.credit_total || 0)));
+      const received = roundMoney(campaignTotals?.received || 0);
+      const paymentStatus = invoiced <= 0 ? 'NOT_INVOICED' : received <= 0 ? 'INVOICED' : received + 0.005 >= invoiced ? 'PAID' : 'PARTIALLY_PAID';
       await run(context.env.DB, `
         UPDATE campaigns SET amount_invoiced = ?, amount_received = ?, payment_status = ?, updated_at = ?, updated_by = ?
         WHERE tenant_id = ? AND id = ?
       `, [invoiced, received, paymentStatus, now, auth.userId, tenantId, invoice.campaign_id]);
-      if (fullyPaid) {
+      if (fullySettled) {
         const referralDueInDays = Math.min(Math.max(Number(body.referralDueInDays ?? 7), 0), 365);
         await run(context.env.DB, `
           UPDATE referrals SET payment_status = 'DUE', due_date = COALESCE(due_date, ?), updated_at = ?
@@ -147,12 +152,12 @@ export async function onRequestPost(context) {
       VALUES (?, ?, ?, 'INVOICE_PAYMENT_RECORDED', 'INVOICE', ?, ?, ?, ?)
     `, [
       makeId('aud'), tenantId, auth.userId, invoiceId,
-      JSON.stringify({ status: invoice.status, received: alreadyReceived }),
-      JSON.stringify({ status: invoiceStatus, received: totalReceived, receiptId, amount }),
+      JSON.stringify({ status: invoice.status, received: parsed.received, credited:parsed.credited }),
+      JSON.stringify({ status: invoiceStatus, received: totalReceived, credited:parsed.credited, receiptId, amount }),
       now,
     ]);
 
-    return json({ id: receiptId, invoiceId, invoiceStatus, amount, totalReceived, outstanding: Math.max(0, invoiceTotal - totalReceived), referralStatus: fullyPaid && invoice.campaign_id ? 'DUE' : null, created: true }, 201);
+    return json({ id: receiptId, invoiceId, invoiceStatus, amount, totalReceived, credited:parsed.credited, outstanding, referralStatus: fullySettled && invoice.campaign_id ? 'DUE' : null, created: true }, 201);
   } catch (cause) {
     console.error('Invoice payment allocation error', cause);
     return error(cause.message || 'Invoice payment could not be recorded', Number(cause.status || 500));
