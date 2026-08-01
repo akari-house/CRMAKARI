@@ -210,6 +210,135 @@ html[data-akari-ui="v1"] .stage .deal-card:only-child{
   cursor:default;
 }
 
+/* Desktop already has a persistent sidebar. The menu button is reserved for
+   layouts where that sidebar becomes an off-canvas navigation drawer. */
+html[data-akari-ui="v1"] .mobile-menu{
+  display:none!important;
+}
+
+/* Operational pages use the same restrained hierarchy as Home. The older
+   decorative hero cards created large empty centres on wide monitors. */
+body[data-akari-page="leads"] .content::before,
+body[data-akari-page="day"] .content::before{
+  display:none;
+}
+
+body[data-akari-page="leads"] .page-head,
+body[data-akari-page="day"] .page-head{
+  min-height:0;
+  align-items:center;
+  margin:0 0 14px;
+  padding:2px 0 8px;
+  border:0;
+  border-radius:0;
+  overflow:visible;
+  background:transparent;
+  box-shadow:none;
+}
+
+body[data-akari-page="leads"] .page-head::after,
+body[data-akari-page="day"] .page-head::after{
+  display:none;
+}
+
+body[data-akari-page="leads"] .page-head h1,
+body[data-akari-page="day"] .page-head h1{
+  margin-top:5px;
+  font-size:clamp(25px,2vw,32px);
+}
+
+body[data-akari-page="leads"] .page-head p,
+body[data-akari-page="day"] .page-head p{
+  max-width:680px;
+  margin-top:6px;
+  font-size:12px;
+}
+
+body[data-akari-page="leads"] .head-actions,
+body[data-akari-page="day"] .head-actions{
+  align-self:center;
+}
+
+/* Keep the lead filters information-rich without turning each control into a
+   full-width row. */
+body[data-akari-page="leads"] .toolbar{
+  display:grid;
+  grid-template-columns:minmax(300px,2.2fr) minmax(165px,.8fr) minmax(165px,.8fr) auto auto;
+  align-items:center;
+  gap:9px;
+  padding:10px;
+  margin:0 0 10px;
+}
+
+body[data-akari-page="leads"] .toolbar .grow,
+body[data-akari-page="leads"] .toolbar .field,
+body[data-akari-page="leads"] .toolbar .select{
+  width:100%;
+  min-width:0;
+}
+
+body[data-akari-page="leads"] .toolbar .grow{
+  flex:none;
+}
+
+body[data-akari-page="leads"] .toolbar .btn{
+  width:auto;
+}
+
+body[data-akari-page="leads"] .akari-command-strip,
+body[data-akari-page="day"] .akari-command-strip{
+  margin:10px 0 12px;
+}
+
+/* Do not stretch an empty task queue to match the height of two stacked side
+   panels. Empty workspaces should stay intentional, not look unfinished. */
+.akari-page-day .grid-main{
+  align-items:start;
+}
+
+.akari-page-day .grid-main > .panel{
+  height:auto;
+}
+
+.akari-page-day .grid-main .empty-state{
+  min-height:210px;
+}
+
+@media (max-width:1120px){
+  body[data-akari-page="leads"] .toolbar{
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto auto;
+  }
+  body[data-akari-page="leads"] .toolbar .grow{
+    grid-column:1/-1;
+  }
+}
+
+@media (max-width:940px){
+  html[data-akari-ui="v1"] .mobile-menu{
+    display:grid!important;
+  }
+}
+
+@media (max-width:700px){
+  body[data-akari-page="leads"] .page-head,
+  body[data-akari-page="day"] .page-head{
+    align-items:flex-start;
+    padding-bottom:4px;
+  }
+
+  body[data-akari-page="leads"] .toolbar{
+    grid-template-columns:1fr;
+  }
+
+  body[data-akari-page="leads"] .toolbar .grow{
+    grid-column:auto;
+  }
+
+  body[data-akari-page="leads"] .toolbar .btn{
+    width:100%;
+  }
+}
+
 @media (prefers-reduced-motion:reduce){
   html[data-akari-ui="v1"] *,html[data-akari-ui="v1"] *::before,html[data-akari-ui="v1"] *::after{
     scroll-behavior:auto!important;
