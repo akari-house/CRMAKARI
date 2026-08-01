@@ -1,14 +1,16 @@
-const CACHE_NAME = 'akari-crm-shell-v8';
+const CACHE_NAME = 'akari-crm-shell-v9';
 const APP_SHELL = [
-  './index.html?runtime=v8',
-  './assets/crm.css?v=8',
-  './assets/runtime-guard.css?v=8',
-  './assets/crm.js?v=8',
-  './assets/runtime-v8-compat.js?v=8',
-  './assets/runtime-v8.js?v=8',
-  './assets/runtime-v8-final.js?v=8',
+  './index.html?runtime=v9',
+  './assets/crm.css?v=9',
+  './assets/runtime-guard.css?v=9',
+  './assets/operations-v1.css?v=9',
+  './assets/crm.js?v=9',
+  './assets/operations-v1.js?v=9',
+  './assets/runtime-v8-compat.js?v=9',
+  './assets/runtime-v8.js?v=9',
+  './assets/runtime-v8-final.js?v=9',
   './assets/favicon.svg',
-  './manifest.webmanifest?v=8',
+  './manifest.webmanifest?v=9',
 ];
 
 self.addEventListener('install', (event) => {
@@ -32,5 +34,5 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(fetch(request, { cache: 'no-store' }).then((response) => {
     if (response.ok && url.origin === self.location.origin) caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()));
     return response;
-  }).catch(async () => (await caches.match(request)) || caches.match('./index.html?runtime=v8')));
+  }).catch(async () => (await caches.match(request)) || caches.match('./index.html?runtime=v9')));
 });

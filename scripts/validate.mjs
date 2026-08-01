@@ -7,11 +7,19 @@ const required = [
   'public/index.html',
   'public/assets/crm.css',
   'public/assets/crm.js',
+  'public/assets/operations-v1.css',
+  'public/assets/operations-v1.js',
   'public/sw.js',
   'functions/_middleware.js',
   'functions/api/[[path]].js',
   'functions/api/akari-leads/index.js',
   'functions/api/imports/akari-leads/commit.js',
+  'functions/api/invoices/index.js',
+  'functions/api/invoices/[id].js',
+  'functions/api/billing-profile/index.js',
+  'functions/api/team/index.js',
+  'functions/api/team/[id].js',
+  'functions/api/profile/index.js',
   'db/migrations/0001_core.sql',
   'README.md',
   'playwright.config.js',
@@ -55,6 +63,8 @@ const shellRequirements = [
   'AKARI CRM',
   './assets/crm.css?v=',
   './assets/crm.js?v=',
+  './assets/operations-v1.css?v=',
+  './assets/operations-v1.js?v=',
   'id="app"',
   'id="modal-root"',
   'id="toast-root"',
@@ -68,8 +78,8 @@ if (html.includes('./assets/app.js') || html.includes('./assets/interactive-impo
 }
 
 const serviceWorker = await readFile('public/sw.js', 'utf8');
-if (!serviceWorker.includes('./assets/crm.js?v=') || !serviceWorker.includes('./assets/crm.css?v=')) {
-  throw new Error('The service-worker shell does not include the production CRM application assets');
+for (const requirement of ['./assets/crm.js?v=', './assets/crm.css?v=', './assets/operations-v1.js?v=', './assets/operations-v1.css?v=']) {
+  if (!serviceWorker.includes(requirement)) throw new Error(`The service-worker shell is missing ${requirement}`);
 }
 
 const repositoryTextFiles = [
