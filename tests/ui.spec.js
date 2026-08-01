@@ -42,11 +42,16 @@ test.beforeEach(async ({ page }) => {
   await page.goto('http://127.0.0.1:4173/');
   await expect(page.getByRole('heading', { name: /Good evening, Muaz/i })).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('data-akari-interactive', 'ready');
+  await expect(page.locator('html')).toHaveAttribute('data-akari-ui', 'v1');
+  await expect(page.locator('body')).toHaveClass(/ak-ui/);
+  await expect(page.locator('.kpi').first()).toHaveClass(/ak-card/);
+  await expect(page.locator('.panel').first()).toHaveClass(/ak-panel/);
 });
 
 test('dashboard cards and lead rows remain vertically structured', async ({ page }) => {
   const dashboardLeads = page.locator('#v8-dashboard-leads');
   await expect(dashboardLeads.locator('.record-row').first()).toBeVisible();
+  await expect(dashboardLeads.locator('.record-row').first()).toHaveClass(/ak-card/);
 
   const firstCard = page.locator('.kpi').first();
   const labelBox = await firstCard.locator('.kpi-label').boundingBox();
