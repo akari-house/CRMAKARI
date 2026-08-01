@@ -4,9 +4,9 @@ import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 
 const required = [
-  'public/index.html','public/uilib.html','public/assets/uilib.css','docs/uilib.md',
+  'public/index.html','public/_redirects','public/uilib.html','public/assets/uilib.css','docs/uilib.md',
   'public/assets/page-upgrades-v1.css','public/assets/page-upgrades-v1.js',
-  'public/assets/crm-stabilization-m1.css','public/assets/crm-stabilization-m1.js',
+  'public/assets/crm-stabilization-m1.css','public/assets/crm-stabilization-m1.js','public/assets/global-flow-v1.js',
   'public/assets/crm.css','public/assets/crm.js','public/assets/operations-v1.css','public/assets/operations-v1.js',
   'public/assets/lifecycle-v1.css','public/assets/lifecycle-v1.js','public/assets/identity-v1.js','public/sw.js',
   'functions/_middleware.js','functions/api/[[path]].js','functions/api/akari-leads/index.js','functions/api/akari-leads/[id].js',
@@ -14,7 +14,7 @@ const required = [
   'functions/api/imports/akari-leads/commit.js','functions/api/invoices/index.js','functions/api/invoices/[id].js',
   'functions/api/billing-profile/index.js','functions/api/team/index.js','functions/api/team/[id].js','functions/api/profile/index.js',
   'functions/api/projects/[id]/convert.js','db/migrations/0001_core.sql','README.md','playwright.config.js','tests/ui.spec.js',
-  'tests/stabilization-m1.spec.js','tests/tenant-isolation.test.mjs',
+  'tests/stabilization-m1.spec.js','tests/global-flow.spec.js','tests/tenant-isolation.test.mjs',
 ];
 for (const file of required) await access(file, constants.R_OK);
 async function findJavaScriptFiles(directory) {
@@ -27,7 +27,7 @@ async function findJavaScriptFiles(directory) {
   }
   return files;
 }
-const jsFiles = [...await findJavaScriptFiles('public/assets'),'public/sw.js',...await findJavaScriptFiles('functions'),'playwright.config.js','tests/ui.spec.js','tests/stabilization-m1.spec.js'];
+const jsFiles = [...await findJavaScriptFiles('public/assets'),'public/sw.js',...await findJavaScriptFiles('functions'),'playwright.config.js','tests/ui.spec.js','tests/stabilization-m1.spec.js','tests/global-flow.spec.js'];
 for (const file of [...new Set(jsFiles)]) {
   const result = spawnSync(process.execPath, ['--check', file], { encoding:'utf8' });
   if (result.status !== 0) {
@@ -37,10 +37,21 @@ for (const file of [...new Set(jsFiles)]) {
   }
 }
 const html = await readFile('public/index.html','utf8');
-for (const requirement of ['AKARI CRM','./assets/crm.css?v=','./assets/crm.js?v=','./assets/operations-v1.js?v=','./assets/lifecycle-v1.js?v=','./assets/identity-v1.js?v=','./assets/uilib.css?v=','./assets/page-upgrades-v1.css?v=','./assets/page-upgrades-v1.js?v=','./assets/crm-stabilization-m1.css?v=','./assets/crm-stabilization-m1.js?v=','id="app"','id="modal-root"','id="toast-root"']) {
+for (const requirement of ['AKARI CRM','./assets/crm.css?v=','./assets/global-flow-v1.js?v=','./assets/crm.js?v=','./assets/operations-v1.js?v=','./assets/lifecycle-v1.js?v=','./assets/identity-v1.js?v=','./assets/uilib.css?v=','./assets/page-upgrades-v1.css?v=','./assets/page-upgrades-v1.js?v=','./assets/crm-stabilization-m1.css?v=','./assets/crm-stabilization-m1.js?v=','id="app"','id="modal-root"','id="toast-root"']) {
   if (!html.includes(requirement)) throw new Error(`The application shell is incomplete: missing ${requirement}`);
 }
 if (html.includes('./assets/app.js') || html.includes('./assets/interactive-import.js')) throw new Error('Legacy placeholder application scripts must not be loaded by the production entry point');
+for (const obsolete of ['runtime-v8.js','runtime-v8-final.js','runtime-v8-compat.js','crm-stabilization-runtime-m1.js','crm-stabilization-runtime-guard-m1.js']) {
+  if (html.includes(obsolete)) throw new Error(`Obsolete renderer reference returned: ${obsolete}`);
+}
+const globalFlow = await readFile('public/assets/global-flow-v1.js','utf8');
+for (const requirement of ['history.pushState','ROUTE_PATHS','modal-backdrop','command-backdrop','akariDismissGuard','prepareHistoryNavigation']) {
+  if (!globalFlow.includes(requirement)) throw new Error(`Global navigation and modal flow is incomplete: missing ${requirement}`);
+}
+const redirects = await readFile('public/_redirects','utf8');
+for (const route of ['/day','/leads','/contacts','/opportunities','/fundraising','/campaigns','/partners','/finance','/reports','/team','/settings']) {
+  if (!redirects.includes(`${route} /index.html 200`)) throw new Error(`Clean CRM route is missing its Pages rewrite: ${route}`);
+}
 const uiHtml = await readFile('public/uilib.html','utf8');
 for (const requirement of ['AKARI CRM UI Library','./assets/uilib.css','ak-node','ak-inspector','ak-btn--primary']) {
   if (!uiHtml.includes(requirement)) throw new Error(`The UI library reference is incomplete: missing ${requirement}`);
@@ -58,7 +69,7 @@ for (const requirement of ['m1-lead-lifecycle','m1-lead-follow-up','m1-lead-iden
   if (!stabilization.includes(requirement)) throw new Error(`CRM stabilization UI is incomplete: missing ${requirement}`);
 }
 const serviceWorker = await readFile('public/sw.js','utf8');
-for (const requirement of ['./assets/crm.js?v=','./assets/operations-v1.js?v=','./assets/lifecycle-v1.js?v=','./assets/identity-v1.js?v=','./assets/uilib.css?v=','./assets/page-upgrades-v1.js?v=','./assets/crm-stabilization-m1.js?v=']) {
+for (const requirement of ['./assets/global-flow-v1.js?v=','./assets/crm.js?v=','./assets/operations-v1.js?v=','./assets/lifecycle-v1.js?v=','./assets/identity-v1.js?v=','./assets/uilib.css?v=','./assets/page-upgrades-v1.js?v=','./assets/crm-stabilization-m1.js?v=']) {
   if (!serviceWorker.includes(requirement)) throw new Error(`The service-worker shell is missing ${requirement}`);
 }
 const conversionApi = await readFile('functions/api/projects/[id]/convert.js','utf8');
