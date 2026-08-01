@@ -6,7 +6,16 @@
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[char]));
   const title = (value) => String(value || '').toLowerCase().split('_').map((part) => part ? `${part[0].toUpperCase()}${part.slice(1)}` : '').join(' ');
   const date = (value) => value ? new Intl.DateTimeFormat('en-GB', { day:'numeric', month:'short', year:'numeric' }).format(new Date(`${String(value).slice(0,10)}T12:00:00`)) : '—';
-  const money = (value, currency = 'USD') => value === null || value === undefined ? 'Restricted' : new Intl.NumberFormat('en-US', { style:'currency', currency:currency || 'USD', maximumFractionDigits:2 }).format(Number(value || 0));
+  const money = (value, currency = 'USD') => {
+    if (value === null || value === undefined) return 'Restricted';
+    const amount = Number(value || 0);
+    const code = String(currency || 'USD').trim().toUpperCase();
+    try {
+      return new Intl.NumberFormat('en-US', { style:'currency', currency:code, maximumFractionDigits:2 }).format(amount);
+    } catch {
+      return `${new Intl.NumberFormat('en-US', { maximumFractionDigits:2 }).format(amount)} ${code}`;
+    }
+  };
   const isCampaignPage = () => $('#view-root .page-head h1')?.textContent?.trim() === 'Campaigns';
 
   function root() {
