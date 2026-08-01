@@ -18,6 +18,7 @@ const project = {
 function payloadFor(url, method) {
   const parsed=new URL(url); const path=`${parsed.pathname}${parsed.search}`;
   if(path==='/api/me') return me;
+  if(path==='/api/profile') return {user:{id:'usr_owner',fullName:'Muaz Test',email:'owner@example.com',jobTitle:'Owner',bio:'',status:'ACTIVE',lastLoginAt:null}};
   if(path==='/api/dashboard') return {currency:'USD',metrics:{monthlyTarget:0,revenueBooked:0,revenueCollected:0,netRevenue:0,weightedPipeline:0,activeOpportunities:0,yearToDateRevenue:0,activeCustomers:0,activeCampaigns:0,activePartners:0,outstandingPayments:0,referralRewardsDue:0}};
   if(path==='/api/tasks?scope=mine') return {items:[],total:0};
   if(path==='/api/tasks?scope=mine&includeCompleted=1') return {items:[],total:0};
@@ -25,6 +26,7 @@ function payloadFor(url, method) {
   if(path==='/api/opportunities') return {items:[],total:0};
   if(path==='/api/campaigns') return {items:[],total:0};
   if(path==='/api/payments') return {items:[],total:0};
+  if(path==='/api/invoices') return {items:[],total:0};
   if(path==='/api/partners') return {items:[{id:'par_1',name:'Referral Partner',status:'ACTIVE'}],total:1};
   if(path==='/api/team') return {items:[{userId:'usr_owner',fullName:'Muaz Test',role:'OWNER',status:'ACTIVE',financeAccess:true},{userId:'usr_bd',fullName:'BD Teammate',role:'BD_MEMBER',status:'ACTIVE',financeAccess:false}],total:2};
   if(path==='/api/billing-profile') return {tenant:{name:'AKARI House',baseCurrency:'USD'},billingProfile:{legalName:'AKARI House',addressLine1:'Example Street 1',country:'Germany',email:'billing@example.com',invoicePrefix:'AKARI',defaultTaxRate:0,defaultPaymentTermsDays:14}};
@@ -103,12 +105,15 @@ test('relationship drawer shows qualification and records a booked call',async({
   expect(sent.createPreparationTask).toBe(true);
 });
 
-test('billing profile and relationship invoice flow are connected',async({page})=>{
+test('canonical billing profile and relationship invoice flow are connected',async({page})=>{
   const captures=[];await boot(page,captures);
   await page.locator('[data-route="settings"]').first().click();
-  await expect(page.getByText('Billing and invoice profile',{exact:true})).toBeVisible();
-  await page.fill('[data-bd-form="billing-profile"] input[name="legalName"]','AKARI GmbH');
-  await page.locator('[data-bd-form="billing-profile"] button[type="submit"]').click();
+  await expect(page.getByRole('heading',{name:'Settings & Profile'})).toBeVisible();
+  await expect(page.getByText('Organisation billing',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Edit billing'}).click();
+  await expect(page.getByRole('heading',{name:'Organisation billing details'})).toBeVisible();
+  await page.fill('#ops-form input[name="legalName"]','AKARI GmbH');
+  await page.getByRole('button',{name:'Save billing details'}).click();
   await expect.poll(()=>captures.some((item)=>item.path==='/api/billing-profile'&&item.method==='PATCH')).toBeTruthy();
 
   await page.locator('[data-route="leads"]').first().click();
