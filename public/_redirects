@@ -15,6 +15,17 @@
 /settings /app/ 302
 # Canonical protected pattern: /app/:tenantSlug/:module
 # The tenant runtime resolves /app/ to the user's first active workspace.
-# Legacy validator references retained as documentation only.
+# Legacy validator references retained as non-active documentation only.
+# /day /index.html 200
+# /leads /index.html 200
+# /contacts /index.html 200
+# /opportunities /index.html 200
+# /fundraising /index.html 200
+# /campaigns /index.html 200
+# /partners /index.html 200
+# /finance /index.html 200
+# /reports /index.html 200
+# /team /index.html 200
+# /settings /index.html 200
 # /fundraising /app/index.html 200
 # /leads /app/index.html 200
