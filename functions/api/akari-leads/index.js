@@ -1,6 +1,7 @@
 import { json, error, readJson } from '../../lib/response.js';
 import { first, all, run, makeId, nowIso } from '../../lib/db.js';
 import { requireTenant } from '../../lib/permissions.js';
+import { buildBdProfile, readBdProfile, profileCompleteness } from '../../lib/bd-profile.js';
 
 const WRITE_ROLES = new Set(['OWNER', 'ADMIN', 'BD_MANAGER']);
 const LIFECYCLES = new Set(['LEAD','PROSPECT','ACTIVE_OPPORTUNITY','CLIENT','DORMANT_CLIENT','FORMER_CLIENT','PARTNER','ARCHIVED']);
@@ -41,6 +42,32 @@ function orderBy(sort, direction) {
   if (sort === 'created') return `p.created_at ${dir}, p.name COLLATE NOCASE ASC`;
   if (sort === 'pipeline') return `pipeline_value ${dir}, p.name COLLATE NOCASE ASC`;
   return `CASE p.priority WHEN 'URGENT' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MEDIUM' THEN 3 ELSE 4 END ${direction === 'desc' ? 'DESC' : 'ASC'}, COALESCE(p.next_follow_up_at,'9999-12-31') ASC, p.name COLLATE NOCASE ASC`;
+}
+
+async function validateOwner(db, tenantId, ownerUserId) {
+  if (!ownerUserId) return null;
+  const owner = await first(db, `
+    SELECT u.id FROM users u
+    JOIN tenant_memberships tm ON tm.user_id = u.id
+    WHERE tm.tenant_id = ? AND tm.status = 'ACTIVE' AND u.status = 'ACTIVE' AND u.id = ?
+  `, [tenantId, ownerUserId]);
+  if (!owner) {
+    const validationError = new Error('Selected owner is not an active member of this workspace');
+    validationError.status = 422;
+    throw validationError;
+  }
+  return ownerUserId;
+}
+
+async function validateReferralPartner(db, tenantId, partnerId) {
+  if (!partnerId) return null;
+  const partner = await first(db, 'SELECT id FROM partners WHERE tenant_id = ? AND id = ? AND status != ?', [tenantId, partnerId, 'ARCHIVED']);
+  if (!partner) {
+    const validationError = new Error('Selected referral partner does not belong to this workspace');
+    validationError.status = 422;
+    throw validationError;
+  }
+  return partnerId;
 }
 
 export async function onRequestGet(context) {
@@ -97,8 +124,10 @@ export async function onRequestGet(context) {
     const items = await all(context.env.DB, `
       SELECT p.id,p.name,p.category,p.lifecycle_status,p.priority,p.website,p.x_url,p.telegram,p.region,p.source_name,
         p.original_status,p.original_notes,p.last_activity_at,p.next_follow_up_at,p.created_at,p.updated_at,p.owner_user_id,
+        p.funding_status,p.funding_amount,p.valuation,p.legacy_import_data,
         u.full_name AS owner, rp.name AS referral_partner_name,
         (SELECT c.full_name FROM contacts c WHERE c.project_id=p.id AND c.tenant_id=p.tenant_id ORDER BY c.is_primary_contact DESC,c.created_at ASC LIMIT 1) AS primary_contact,
+        (SELECT c.job_title FROM contacts c WHERE c.project_id=p.id AND c.tenant_id=p.tenant_id ORDER BY c.is_primary_contact DESC,c.created_at ASC LIMIT 1) AS primary_contact_title,
         (SELECT c.email FROM contacts c WHERE c.project_id=p.id AND c.tenant_id=p.tenant_id ORDER BY c.is_primary_contact DESC,c.created_at ASC LIMIT 1) AS primary_contact_email,
         (SELECT c.telegram FROM contacts c WHERE c.project_id=p.id AND c.tenant_id=p.tenant_id ORDER BY c.is_primary_contact DESC,c.created_at ASC LIMIT 1) AS primary_contact_telegram,
         (SELECT c.x_handle FROM contacts c WHERE c.project_id=p.id AND c.tenant_id=p.tenant_id ORDER BY c.is_primary_contact DESC,c.created_at ASC LIMIT 1) AS primary_contact_x,
@@ -113,20 +142,37 @@ export async function onRequestGet(context) {
       LIMIT ? OFFSET ?
     `, [...bindings, limit, offset]);
 
-    const enriched = items.map((item) => ({
-      ...item,
-      identity_complete: Boolean(item.x_url && item.telegram),
-      contact_identity_complete: Number(item.contact_count || 0) > 0 && Boolean(item.primary_contact_x && item.primary_contact_telegram),
-      missing_identity_fields: [!item.x_url ? 'X account' : null, !item.telegram ? 'Telegram handle' : null].filter(Boolean),
-    }));
+    const enriched = items.map((item) => {
+      const bdProfile = readBdProfile(item.legacy_import_data, item);
+      const contacts = item.primary_contact ? [{
+        full_name: item.primary_contact,
+        job_title: item.primary_contact_title,
+        email: item.primary_contact_email,
+        telegram: item.primary_contact_telegram,
+        x_handle: item.primary_contact_x,
+        is_primary_contact: 1,
+      }] : [];
+      const result = {
+        ...item,
+        bdProfile,
+        profile_completeness: profileCompleteness(item, contacts, bdProfile),
+        entity_type: bdProfile.entityType,
+        bd_stage: bdProfile.qualification.bdStage,
+        meeting_status: bdProfile.meeting.status,
+        identity_complete: Boolean(item.x_url && item.telegram),
+        contact_identity_complete: Number(item.contact_count || 0) > 0 && Boolean(item.primary_contact_x && item.primary_contact_telegram),
+        missing_identity_fields: [!item.x_url ? 'X account' : null, !item.telegram ? 'Telegram handle' : null].filter(Boolean),
+      };
+      delete result.legacy_import_data;
+      return result;
+    });
     const count = await first(context.env.DB, `SELECT COUNT(*) AS total FROM projects p WHERE ${where}`, bindings);
-    const sourceScope = "tenant_id=? AND source_type IN ('AKARI_LEADS','PRIVATE_TENANT_IMPORT')";
-    const categories = await all(context.env.DB, `SELECT COALESCE(category,'Uncategorized') AS category,COUNT(*) AS count FROM projects WHERE ${sourceScope} GROUP BY COALESCE(category,'Uncategorized') ORDER BY count DESC,category ASC`, [tenantId]);
-    const lifecycles = await all(context.env.DB, `SELECT lifecycle_status AS lifecycle,COUNT(*) AS count FROM projects WHERE ${sourceScope} GROUP BY lifecycle_status ORDER BY count DESC,lifecycle_status ASC`, [tenantId]);
+    const categories = await all(context.env.DB, `SELECT COALESCE(category,'Uncategorized') AS category,COUNT(*) AS count FROM projects WHERE tenant_id=? AND source_type IN ('AKARI_LEADS','PRIVATE_TENANT_IMPORT') GROUP BY COALESCE(category,'Uncategorized') ORDER BY count DESC,category ASC`, [tenantId]);
+    const lifecycles = await all(context.env.DB, `SELECT lifecycle_status AS lifecycle,COUNT(*) AS count FROM projects WHERE tenant_id=? AND source_type IN ('AKARI_LEADS','PRIVATE_TENANT_IMPORT') GROUP BY lifecycle_status ORDER BY count DESC,lifecycle_status ASC`, [tenantId]);
     const owners = await all(context.env.DB, `
       SELECT DISTINCT u.id, u.full_name
       FROM projects p JOIN users u ON u.id=p.owner_user_id
-      WHERE p.${sourceScope.replace('tenant_id', 'tenant_id')}
+      WHERE p.tenant_id=? AND p.source_type IN ('AKARI_LEADS','PRIVATE_TENANT_IMPORT')
       ORDER BY u.full_name COLLATE NOCASE ASC
     `, [tenantId]);
 
@@ -160,14 +206,62 @@ export async function onRequestPost(context) {
     const telegram = normalizeTelegram(body.telegram);
     if (!name) return error('Project / organization name is required', 422);
     if (!xUrl || !telegram) return error('Every lead requires both an X account and Telegram handle', 422);
+
+    let ownerUserId = body.assignToMe === true ? auth.userId : text(body.ownerUserId, 120);
+    if (body.assignToMe === false && !body.ownerUserId) ownerUserId = null;
+    if (body.assignToMe === undefined && !body.ownerUserId) ownerUserId = auth.userId;
+    await validateOwner(context.env.DB, tenantId, ownerUserId);
+    const referralPartnerId = await validateReferralPartner(context.env.DB, tenantId, text(body.referralPartnerId, 120));
+
+    const contactName = text(body.contactFullName, 300);
+    const contactX = normalizeX(body.contactXHandle);
+    const contactTelegram = normalizeTelegram(body.contactTelegram);
+    const hasContactInput = Boolean(contactName || contactX || contactTelegram || text(body.contactEmail, 320) || text(body.contactJobTitle, 300));
+    if (hasContactInput && (!contactName || !contactX || !contactTelegram)) {
+      return error('A primary contact requires full name, X account and Telegram handle', 422);
+    }
+
+    const bd = buildBdProfile(null, body, {});
     const now = nowIso();
     const id = makeId('prj');
+    const contactId = hasContactInput ? makeId('con') : null;
     const slug = `${slugify(name)}-${id.slice(-8)}`;
-    await run(context.env.DB, `INSERT INTO projects (id,tenant_id,name,slug,lifecycle_status,website,x_url,telegram,category,region,description,priority,source_type,source_name,owner_user_id,next_follow_up_at,original_import_source,original_status,original_notes,legacy_import_data,created_at,updated_at,created_by,updated_by) VALUES (?,?,?,?,'LEAD',?,?,?,?,?,?,?,'AKARI_LEADS',?,?,?,?,?,?,?,?,?,?,?)`, [
-      id,tenantId,name,slug,text(body.website,1000),xUrl,telegram,text(body.category,300),text(body.region,300),text(body.description,5000),normalizePriority(body.priority),text(body.sourceName,500)||'Manual AKARI Lead',body.assignToMe===false?null:auth.userId,text(body.nextFollowUpAt,100),'Manual AKARI Lead','Manually created',text(body.notes,10000),JSON.stringify({collection:'AKARI Leads',createdManually:true}),now,now,auth.userId,auth.userId
-    ]);
-    await run(context.env.DB, `INSERT INTO audit_logs (id,tenant_id,user_id,action,entity_type,entity_id,after_data,ip_address,user_agent,created_at) VALUES (?,?,?,'AKARI_LEAD_CREATED','PROJECT',?,?,?,?,?)`, [makeId('aud'),tenantId,auth.userId,id,JSON.stringify({name,sourceType:'AKARI_LEADS',xUrl,telegram}),context.request.headers.get('cf-connecting-ip'),context.request.headers.get('user-agent'),now]);
-    return json({ id, created: true }, 201);
+    const projectStatement = context.env.DB.prepare(`
+      INSERT INTO projects (
+        id,tenant_id,name,slug,lifecycle_status,website,x_url,telegram,category,region,description,
+        funding_status,funding_amount,valuation,priority,source_type,source_name,referral_partner_id,
+        owner_user_id,next_follow_up_at,original_import_source,original_status,original_notes,legacy_import_data,
+        created_at,updated_at,created_by,updated_by
+      ) VALUES (?,?,?,?,'LEAD',?,?,?,?,?,?,?,?,?,?,'AKARI_LEADS',?,?,?,?,?,?,?,?,?,?,?,?)
+    `).bind(
+      id,tenantId,name,slug,text(body.website,1000),xUrl,telegram,text(body.category,300),text(body.region,300),text(body.description,5000),
+      bd.profile.funding.stage,bd.profile.funding.amountRaised,bd.profile.funding.valuation,normalizePriority(body.priority),text(body.sourceName,500)||'Manual AKARI Lead',referralPartnerId,
+      ownerUserId,text(body.nextFollowUpAt,100),'Manual AKARI Lead','Manually created',text(body.notes,10000),bd.serialized,now,now,auth.userId,auth.userId
+    );
+    const statements = [projectStatement];
+    if (hasContactInput) {
+      statements.push(context.env.DB.prepare(`
+        INSERT INTO contacts (
+          id,tenant_id,project_id,full_name,job_title,email,telegram,x_handle,phone,preferred_channel,
+          is_decision_maker,is_primary_contact,notes,created_at,updated_at,created_by,updated_by
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+      `).bind(
+        contactId,tenantId,id,contactName,text(body.contactJobTitle,300),text(body.contactEmail,320),contactTelegram,contactX,
+        text(body.contactPhone,100),text(body.contactPreferredChannel,100)||'TELEGRAM',body.contactIsDecisionMaker===false?0:1,1,
+        text(body.contactNotes,5000),now,now,auth.userId,auth.userId
+      ));
+    }
+    statements.push(context.env.DB.prepare(`
+      INSERT INTO audit_logs (id,tenant_id,user_id,action,entity_type,entity_id,after_data,ip_address,user_agent,created_at)
+      VALUES (?,?,?,'AKARI_LEAD_CREATED','PROJECT',?,?,?,?,?)
+    `).bind(
+      makeId('aud'),tenantId,auth.userId,id,JSON.stringify({
+        name,sourceType:'AKARI_LEADS',xUrl,telegram,ownerUserId,referralPartnerId,entityType:bd.profile.entityType,
+        bdStage:bd.profile.qualification.bdStage,primaryContactCreated:Boolean(contactId),
+      }),context.request.headers.get('cf-connecting-ip'),context.request.headers.get('user-agent'),now
+    ));
+    await context.env.DB.batch(statements);
+    return json({ id, contactId, created: true, bdProfile: bd.profile }, 201);
   } catch (cause) {
     console.error('AKARI Lead create error', cause);
     return error(cause.message || 'AKARI Lead could not be created', Number(cause.status || 500));
