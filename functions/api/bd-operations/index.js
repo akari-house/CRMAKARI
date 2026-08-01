@@ -280,8 +280,8 @@ export async function onRequestPost(context) {
     if (!context.env.DB) return error('D1 binding DB is not configured', 500);
     const body = await readJson(context.request);
     const action = String(body.action || '').toLowerCase();
-    if (action === 'bulk-update') return bulkUpdate(context, body);
-    if (action === 'update-member') return updateMember(context, body);
+    if (action === 'bulk-update') return await bulkUpdate(context, body);
+    if (action === 'update-member') return await updateMember(context, body);
     return error('BD operations action is not supported', 404);
   } catch (cause) {
     console.error('BD operations action error', cause);
