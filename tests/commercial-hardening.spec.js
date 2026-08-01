@@ -79,13 +79,13 @@ test('Finance exposes proposal, invoice, collection and referral controls', asyn
   });
 
   await page.locator('.sidebar [data-route="finance"]').click();
-  await expect(page.getByRole('heading', { name:'Finance' })).toBeVisible();
+  await expect(page.getByRole('heading', { name:'Invoices & Finance' })).toBeVisible();
   await expect(page.locator('#commercial-command-centre')).toBeVisible();
   await expect(page.getByText('Commercial operations')).toBeVisible();
   await expect(page.getByText('AKARI-2026-0001')).toBeVisible();
   await expect(page.getByText('Referral Partner')).toBeVisible();
 
-  await page.getByRole('button', { name:'Payment' }).click();
+  await page.locator('#commercial-command-centre').getByRole('button', { name:'Payment' }).click();
   await expect(page.locator('#commercial-modal-root .commercial-modal')).toBeVisible();
   await page.locator('#commercial-modal-root [name="amount"]').fill('800');
   await page.locator('#commercial-modal-root [name="reference"]').fill('BANK-REF-001');
@@ -97,7 +97,7 @@ test('Finance exposes proposal, invoice, collection and referral controls', asyn
 test('commercial forms do not destroy the revenue lifecycle workspace', async ({ page }) => {
   await page.locator('.sidebar [data-route="opportunities"]').click();
   await expect(page.getByRole('heading', { name:'Opportunity Pipeline' })).toBeVisible();
-  await page.getByRole('button', { name:'Manage lifecycle' }).click();
+  await page.locator('button[data-revenue-action="open"][data-id="opp_1"]:visible').click();
   await expect(page.locator('#modal-root .revenue-workspace')).toBeVisible();
   await expect(page.getByText('Commercial control')).toBeVisible();
 
@@ -117,7 +117,7 @@ test('proposal approval uses the governed status endpoint', async ({ page }) => 
   });
   await page.locator('.sidebar [data-route="finance"]').click();
   await expect(page.locator('#commercial-command-centre')).toBeVisible();
-  await page.getByRole('button', { name:'Approve' }).click();
+  await page.locator('#commercial-command-centre').getByRole('button', { name:'Approve' }).click();
   await expect.poll(() => approvalBody?.status).toBe('APPROVED');
   await expect(page.getByText('Proposal moved to Approved')).toBeVisible();
 });
