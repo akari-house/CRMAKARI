@@ -73,6 +73,7 @@ test('contact editing and operational timeline work in the live relationship mod
   await expect(page.locator('.ak-runtime-lead-tools[data-stabilized-m1="ready"]')).toBeVisible();
   await page.getByText('Project Alpha', { exact: true }).first().click();
   await expect(page.locator('#modal-root .ak-project-modal[data-stabilized-project="prj_1"]')).toBeVisible();
+  await expect(page.locator('#modal-root .modal-backdrop[data-m1-project-backdrop="protected"]')).toBeVisible();
   await expect(page.locator('#modal-root h2')).toHaveText('Project Alpha');
 
   await page.locator('#modal-root [data-m1-project-tab="contacts"]').click();
@@ -98,6 +99,7 @@ test('stabilized lead workspace remains usable on mobile', async ({ page }) => {
   await expect(page.locator('.ak-advanced-filter-row')).toBeVisible();
   await page.getByText('Project Alpha', { exact: true }).first().click();
   await expect(page.locator('#modal-root .ak-project-modal')).toBeVisible();
+  await expect(page.locator('#modal-root .modal-backdrop[data-m1-project-backdrop="protected"]')).toBeVisible();
   await page.locator('#modal-root [data-m1-project-tab="contacts"]').click();
   await expect(page.locator('#modal-root [data-m1-action="edit-contact"]')).toBeVisible();
 });
