@@ -14,7 +14,7 @@ const responses = {
   '/api/tasks?scope=mine': { items: [{ id: 'tsk_1', title: 'Follow up Project Alpha', status: 'TODO', priority: 'HIGH', due_at: '2030-01-01T12:00:00Z', project_name: 'Project Alpha' }], total: 1 },
   '/api/projects?limit=5': { items: dashboardProjects, total: dashboardProjects.length },
   '/api/opportunities': { items: [{ id: 'opp_1', project_id: 'prj_1', project_name: 'Project Alpha', name: 'Creator campaign', stage: 'QUALIFIED', estimated_value: 10000, currency: 'USD', probability_percentage: 60, owner_name: 'Muaz Test', next_action: 'Send proposal' }], total: 1 },
-  '/api/akari-leads?limit=8&offset=0': { items: [{ id: 'prj_1', name: 'Project Alpha', category: 'Web3', priority: 'HIGH', source_name: 'Referral', contact_count: 1 }], total: 1, categories: [{ category: 'Web3', count: 1 }], canWrite: true },
+  '/api/akari-leads?limit=8&offset=0': { items: dashboardProjects.map((project) => ({ ...project, priority: 'HIGH', source_name: 'Referral', contact_count: 1 })), total: dashboardProjects.length, categories: [{ category: 'Web3', count: 1 }], canWrite: true },
   '/api/campaigns': { items: [], total: 0 },
   '/api/payments': { items: [], total: 0 },
   '/api/akari-leads?limit=50&offset=0': { items: [{ id: 'prj_1', name: 'Project Alpha', category: 'Web3', lifecycle_status: 'LEAD', priority: 'HIGH', owner: 'Muaz Test', primary_contact: 'Alice', contact_count: 1, open_opportunities: 1, pipeline_value: 10000, source_name: 'Referral' }], total: 1, categories: [{ category: 'Web3', count: 1 }], canWrite: true },
