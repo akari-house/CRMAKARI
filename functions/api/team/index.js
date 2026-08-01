@@ -91,7 +91,12 @@ export async function onRequestPost(context) {
       WHERE tenant_id = ? AND status IN ('INVITED', 'ACTIVE', 'SUSPENDED')
     `, [tenantId]);
     const existingUser = await first(context.env.DB, 'SELECT id, status FROM users WHERE lower(email) = lower(?) LIMIT 1', [email]);
-    if (!existingUser && Number(activeCount?.value || 0) >= Number(tenant?.user_limit || 3)) {
+    const existingMembership = existingUser ? await first(context.env.DB, `
+      SELECT id, status FROM tenant_memberships WHERE tenant_id = ? AND user_id = ? LIMIT 1
+    `, [tenantId, existingUser.id]) : null;
+    if (existingMembership?.status === 'ACTIVE') return error('This user is already an active team member', 409);
+    const consumesNewSeat = !existingMembership || existingMembership.status === 'REVOKED';
+    if (consumesNewSeat && Number(activeCount?.value || 0) >= Number(tenant?.user_limit || 3)) {
       return error(`This workspace has reached its ${Number(tenant?.user_limit || 3)} user limit`, 409);
     }
 
@@ -108,10 +113,6 @@ export async function onRequestPost(context) {
       `, [userId, fullName, email, now, now]);
     }
 
-    const existingMembership = await first(context.env.DB, `
-      SELECT id, status FROM tenant_memberships WHERE tenant_id = ? AND user_id = ? LIMIT 1
-    `, [tenantId, userId]);
-    if (existingMembership?.status === 'ACTIVE') return error('This user is already an active team member', 409);
     const membershipId = existingMembership?.id || makeId('mem');
     await run(context.env.DB, `
       INSERT INTO tenant_memberships (
