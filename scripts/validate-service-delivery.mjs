@@ -1,48 +1,17 @@
 import { access, readFile } from 'node:fs/promises';
 import { constants } from 'node:fs';
-
-const required = [
-  'docs/CAMPAIGN_SERVICE_DELIVERY_R4.md',
-  'functions/lib/service-delivery.js',
-  'functions/api/service-delivery/index.js',
-  'functions/api/service-delivery/[id].js',
-  'functions/api/service-delivery/[id]/report.js',
-  'functions/api/service-delivery/templates.js',
-  'public/assets/service-delivery-v4.css',
-  'public/assets/service-delivery-v4.js',
-  'tests/service-delivery.spec.js',
-  'tests/service-delivery-tenant-isolation.test.mjs',
-];
-for (const file of required) await access(file, constants.R_OK);
-
-const domain = await readFile('functions/lib/service-delivery.js', 'utf8');
-for (const requirement of ['AKARI_SERVICE_DELIVERY_V1','SYSTEM_DELIVERY_TEMPLATES','completionBlockers','sanitizeCreator','instantiateTemplate']) {
-  if (!domain.includes(requirement)) throw new Error(`Service delivery domain is incomplete: missing ${requirement}`);
-}
-
-const api = await readFile('functions/api/service-delivery/[id].js', 'utf8');
-for (const requirement of ['c.tenant_id = ? AND c.id = ?','apply-template','upsert-onboarding','upsert-milestone','upsert-deliverable','upsert-creator','save-report','create-renewal','Finance permission is required','Engagement cannot be completed']) {
-  if (!api.includes(requirement)) throw new Error(`Service delivery API is incomplete: missing ${requirement}`);
-}
-
-const ui = await readFile('public/assets/service-delivery-v4.js', 'utf8');
-for (const requirement of ['Campaign and service delivery','Service delivery workspace','Apply service template','Client onboarding','Creator operations','Budget and profitability','/api/service-delivery']) {
-  if (!ui.includes(requirement)) throw new Error(`Service delivery UI is incomplete: missing ${requirement}`);
-}
-
-const report = await readFile('functions/api/service-delivery/[id]/report.js', 'utf8');
-for (const requirement of ['private, no-store','Print / Save as PDF','Client delivery report','canViewFinance']) {
-  if (!report.includes(requirement)) throw new Error(`Client delivery report is incomplete: missing ${requirement}`);
-}
-
-const html = await readFile('public/index.html', 'utf8');
-for (const requirement of ['./assets/service-delivery-v4.css?v=33','./assets/service-delivery-v4.js?v=33']) {
-  if (!html.includes(requirement)) throw new Error(`Production shell is missing ${requirement}`);
-}
-
-const worker = await readFile('public/sw.js', 'utf8');
-for (const requirement of ['akari-crm-shell-v33','./assets/service-delivery-v4.css?v=33','./assets/service-delivery-v4.js?v=33','index.html?runtime=v33']) {
-  if (!worker.includes(requirement)) throw new Error(`Service-worker shell is missing ${requirement}`);
-}
-
+const required=['docs/CAMPAIGN_SERVICE_DELIVERY_R4.md','functions/lib/service-delivery.js','functions/api/service-delivery/index.js','functions/api/service-delivery/[id].js','functions/api/service-delivery/[id]/report.js','functions/api/service-delivery/templates.js','public/assets/service-delivery-v4.css','public/assets/service-delivery-v4.js','tests/service-delivery.spec.js','tests/service-delivery-tenant-isolation.test.mjs'];
+for(const file of required)await access(file,constants.R_OK);
+const domain=await readFile('functions/lib/service-delivery.js','utf8');
+for(const requirement of ['AKARI_SERVICE_DELIVERY_V1','SYSTEM_DELIVERY_TEMPLATES','completionBlockers','sanitizeCreator','instantiateTemplate'])if(!domain.includes(requirement))throw new Error(`Service delivery domain is incomplete: missing ${requirement}`);
+const api=await readFile('functions/api/service-delivery/[id].js','utf8');
+for(const requirement of ['c.tenant_id = ? AND c.id = ?','apply-template','upsert-onboarding','upsert-milestone','upsert-deliverable','upsert-creator','save-report','create-renewal','Finance permission is required','Engagement cannot be completed'])if(!api.includes(requirement))throw new Error(`Service delivery API is incomplete: missing ${requirement}`);
+const ui=await readFile('public/assets/service-delivery-v4.js','utf8');
+for(const requirement of ['Campaign and service delivery','Service delivery workspace','Apply service template','Client onboarding','Creator operations','Budget and profitability','/api/service-delivery'])if(!ui.includes(requirement))throw new Error(`Service delivery UI is incomplete: missing ${requirement}`);
+const report=await readFile('functions/api/service-delivery/[id]/report.js','utf8');
+for(const requirement of ['private, no-store','Print / Save as PDF','Client delivery report','canViewFinance'])if(!report.includes(requirement))throw new Error(`Client delivery report is incomplete: missing ${requirement}`);
+const html=await readFile('public/app/index.html','utf8');
+for(const requirement of ['/assets/service-delivery-v4.css?v=33','/assets/service-delivery-v4.js?v=33'])if(!html.includes(requirement))throw new Error(`Protected application shell is missing ${requirement}`);
+const worker=await readFile('public/sw.js','utf8');
+for(const requirement of ['akari-crm-shell-v34','./assets/service-delivery-v4.css?v=33','./assets/service-delivery-v4.js?v=33','app/index.html?runtime=v34'])if(!worker.includes(requirement))throw new Error(`Service-worker shell is missing ${requirement}`);
 console.log('AKARI CRM Release 4 service-delivery validation passed.');
