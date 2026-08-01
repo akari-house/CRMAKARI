@@ -1,0 +1,286 @@
+/* AKARI CRM dashboard polish: final visual layer for the live runtime. */
+
+/* KPI cards must behave as vertical cards, not inline button text. */
+.kpi {
+  width: 100%;
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0;
+  padding: 18px 18px 17px 20px;
+  text-align: left;
+}
+
+.kpi-label,
+.kpi-value,
+.kpi-meta {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+}
+
+.kpi-label {
+  color: #8d95aa;
+  font-size: 9px;
+  line-height: 1.25;
+  letter-spacing: .1em;
+}
+
+.kpi-value {
+  margin-top: 11px;
+  color: #f8f9fc;
+  font-size: clamp(22px, 1.7vw, 28px);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.kpi-meta {
+  margin-top: 11px;
+  color: #8f97a9;
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.kpi-meta::after {
+  content: "  →";
+  color: var(--pink);
+}
+
+.mini-kpi {
+  width: 100%;
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 13px 15px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease, transform .15s ease;
+}
+
+.mini-kpi:hover {
+  transform: translateY(-1px);
+  border-color: var(--line-strong);
+  background: rgba(22,27,41,.92);
+}
+
+.mini-kpi span,
+.mini-kpi strong {
+  width: 100%;
+}
+
+.mini-kpi span {
+  color: #858da0;
+  font-size: 9px;
+  line-height: 1.3;
+}
+
+.mini-kpi strong {
+  margin-top: 7px;
+  color: #f4f6fa;
+  font-size: 16px;
+  line-height: 1.1;
+}
+
+/* Dashboard panels should feel balanced and intentional. */
+#v8-dashboard-tasks,
+#v8-dashboard-leads {
+  min-height: 220px;
+}
+
+#v8-dashboard-leads {
+  display: grid;
+  align-content: start;
+  gap: 0;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+#v8-dashboard-tasks > .empty-state,
+#v8-dashboard-leads > .empty-state {
+  min-height: 204px;
+}
+
+/* Runtime record rows were previously unstyled, causing records to collapse inline. */
+.record-row {
+  width: 100%;
+  min-width: 0;
+  min-height: 52px;
+  appearance: none;
+  display: grid;
+  grid-template-columns: 34px minmax(0,1fr) auto;
+  align-items: center;
+  gap: 11px;
+  margin: 0;
+  padding: 9px 7px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  color: #dce0e8;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background .14s ease, transform .14s ease;
+}
+
+.record-row:last-child {
+  border-bottom: 0;
+}
+
+.record-row:hover {
+  background: linear-gradient(90deg, rgba(240,79,135,.075), rgba(255,255,255,.018));
+  transform: translateX(2px);
+}
+
+.record-row:focus-visible {
+  outline: 2px solid rgba(240,79,135,.62);
+  outline-offset: -2px;
+  border-radius: 9px;
+}
+
+.record-avatar {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(240,79,135,.2);
+  border-radius: 10px;
+  color: #ff91b7;
+  background: linear-gradient(145deg, rgba(240,79,135,.16), rgba(255,211,61,.055));
+  font-size: 9px;
+  font-weight: 850;
+  line-height: 1;
+}
+
+.record-main {
+  min-width: 0;
+  display: block;
+}
+
+.record-main strong,
+.record-main small {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.record-main strong {
+  color: #f1f3f7;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.record-main small {
+  margin-top: 3px;
+  color: #7f8799;
+  font-size: 8px;
+  line-height: 1.35;
+}
+
+.record-row > :last-child {
+  justify-self: end;
+}
+
+/* Task rows share the same visual rhythm as relationship rows. */
+.task-item {
+  padding: 10px 7px;
+  border-bottom: 1px solid var(--line);
+}
+
+.task-item:last-child {
+  border-bottom: 0;
+}
+
+.task-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.task-top .task-copy {
+  min-width: 0;
+}
+
+.task-right {
+  flex: none;
+  color: var(--muted-2);
+  font-size: 9px;
+}
+
+/* Better dashboard spacing and hierarchy on wide screens. */
+#view-root > .kpi-grid + .mini-grid {
+  margin-top: 2px;
+}
+
+#view-root > .mini-grid + .grid-2 {
+  margin-top: 14px;
+}
+
+#view-root > .grid-2 .panel-head {
+  min-height: 58px;
+}
+
+#view-root > .grid-2 .panel-title strong {
+  font-size: 12px;
+}
+
+#view-root > .grid-2 .panel-title span {
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+@media (max-width: 1280px) {
+  .kpi-value {
+    font-size: 25px;
+  }
+}
+
+@media (max-width: 940px) {
+  #v8-dashboard-tasks,
+  #v8-dashboard-leads {
+    min-height: 190px;
+  }
+}
+
+@media (max-width: 650px) {
+  .kpi {
+    min-height: 112px;
+    padding: 15px 14px 14px 17px;
+  }
+
+  .kpi-label {
+    font-size: 8px;
+  }
+
+  .kpi-value {
+    font-size: 21px;
+  }
+
+  .kpi-meta {
+    font-size: 8px;
+  }
+
+  .mini-kpi {
+    min-height: 74px;
+    padding: 11px 12px;
+  }
+
+  .record-row {
+    grid-template-columns: 32px minmax(0,1fr) auto;
+    gap: 9px;
+    min-height: 50px;
+    padding-inline: 3px;
+  }
+
+  .record-avatar {
+    width: 32px;
+    height: 32px;
+  }
+}
