@@ -6,7 +6,7 @@ const tenantRuntime=await readFile('public/assets/tenant-routing-r6.js','utf8');
 const middleware=await readFile('functions/_middleware.js','utf8');
 const waitlist=await readFile('functions/api/waitlist.js','utf8');
 const redirects=await readFile('public/_redirects','utf8');
-for(const token of ['CRM by AKARI','Join the waitlist','What would your company be willing to pay monthly?','/app/','public-home-r6.css'])if(!publicHtml.includes(token))throw new Error(`Public homepage missing ${token}`);
+for(const token of ['CRM by AKARI','Join the waitlist','What would you be willing to pay monthly?','/app/','public-home-r6.css'])if(!publicHtml.includes(token))throw new Error(`Public homepage missing ${token}`);
 if(!publicJs.includes('/api/waitlist'))throw new Error('Public waitlist client is not connected to /api/waitlist');
 for(const token of ['/assets/crm.js?v=','/assets/fundraising-closing-r5.js?v=','tenant-routing-r6.js','id="app"','id="modal-root"','id="toast-root"'])if(!appHtml.includes(token))throw new Error(`Protected app shell missing ${token}`);
 if(appHtml.indexOf('tenant-routing-r6.js')>appHtml.indexOf('crm.js'))throw new Error('Tenant routing must load before the canonical CRM renderer');
