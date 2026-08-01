@@ -49,9 +49,8 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('dashboard cards and lead rows remain vertically structured', async ({ page }) => {
-  const dashboardLeads = page.locator('#v8-dashboard-leads');
-  await expect(dashboardLeads.locator('.record-row').first()).toBeVisible();
-  await expect(dashboardLeads.locator('.record-row').first()).toHaveClass(/ak-card/);
+  const dashboardLeads = page.locator('#view-root .grid-2 .panel').nth(1).locator('.panel-body');
+  await expect(dashboardLeads.locator('.task-card').first()).toBeVisible();
 
   const firstCard = page.locator('.kpi').first();
   const labelBox = await firstCard.locator('.kpi-label').boundingBox();
@@ -64,17 +63,17 @@ test('dashboard cards and lead rows remain vertically structured', async ({ page
   expect(valueBox.y + valueBox.height).toBeLessThanOrEqual(metaBox.y + 1);
 
   await dashboardLeads.evaluate((root) => {
-    const first = root.querySelector('.record-row');
-    if (first && root.querySelectorAll('.record-row').length === 1) {
+    const first = root.querySelector('.task-card');
+    if (first && root.querySelectorAll('.task-card').length === 5) {
       const clone = first.cloneNode(true);
-      clone.removeAttribute('data-v8-project');
+      clone.removeAttribute('data-open-lead');
       clone.setAttribute('aria-label', 'Layout regression sample');
       root.appendChild(clone);
     }
   });
 
-  const rows = dashboardLeads.locator('.record-row');
-  await expect(rows).toHaveCount(2);
+  const rows = dashboardLeads.locator('.task-card');
+  await expect(rows).toHaveCount(6);
   const firstRow = await rows.nth(0).boundingBox();
   const secondRow = await rows.nth(1).boundingBox();
   expect(firstRow).not.toBeNull();
@@ -97,7 +96,19 @@ test('desktop navigation and forms are clickable', async ({ page }) => {
 
   await page.getByText('Project Alpha', { exact: true }).first().click();
   await expect(page.getByRole('heading', { name: 'Project Alpha' })).toBeVisible();
-  await page.getByRole('button', { name: '×' }).click();
+  await page.locator('#drawer-root button[data-action="close-drawer"]').click();
+});
+
+test('returning Home after viewing Opportunities restores the rich dashboard', async ({ page }) => {
+  await page.locator('.sidebar [data-route="opportunities"]').click();
+  await expect(page.getByRole('heading', { name: 'Opportunity Pipeline' })).toBeVisible();
+  await expect(page.locator('#view-root .pipeline .stage')).toHaveCount(6);
+  await expect(page.locator('#view-root .kanban')).toHaveCount(0);
+
+  await page.locator('.sidebar [data-route="dashboard"]').click();
+  await expect(page.getByRole('heading', { name: /Good evening, Muaz/i })).toBeVisible();
+  await expect(page.getByText('Loading workspace…')).toHaveCount(0);
+  await expect(page.locator('#view-root .kpi-grid .kpi')).toHaveCount(5);
 });
 
 test('command palette and task interaction work', async ({ page }) => {

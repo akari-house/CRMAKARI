@@ -151,8 +151,7 @@ function shellHtml() {
     <div class="shell ${state.financeHidden ? 'finance-hidden' : ''}">
       <aside class="sidebar ${state.sidebarOpen ? 'open' : ''}" id="sidebar">
         <div class="brand">
-          <div class="brand-logo"><img src="./assets/logo.svg" width="24" height="24" alt="" /></div>
-          <div class="brand-copy"><strong>AKARI CRM</strong><span>Growth & Capital OS</span></div>
+          <img class="brand-lockup" src="./assets/brand/akari-crm-lockup.png" alt="AKARI CRM" />
         </div>
         <button class="workspace-button" data-action="workspace">
           <span class="workspace-main">
@@ -247,7 +246,9 @@ async function loadRoute(route, force = false) {
     else if (route === 'reports') await renderReports(force);
     else if (route === 'team') await renderTeam(force);
     else if (route === 'settings') await renderSettings(force);
+    document.documentElement.dataset.akariInteractive = 'ready';
   } catch (error) {
+    document.documentElement.dataset.akariInteractive = 'error';
     root.innerHTML = pageHead('WORKSPACE ERROR', ROUTES[route].label, 'The view could not be loaded.') + `
       <div class="panel"><div class="panel-body">${emptyState('Unable to load this view', error.message || 'Unknown error', `<button class="btn primary" data-action="refresh">Try again</button>`)}</div></div>`;
     toast(error.message || 'View failed to load', 'error');
@@ -603,7 +604,7 @@ function closeSidebar() { if (!state.sidebarOpen) return; state.sidebarOpen = fa
 
 function modal({ title, subtitle = '', body, submitText = '', submitClass = 'primary', onSubmit, wide = false, footerExtra = '' }) {
   const root = $('#modal-root');
-  root.innerHTML = `<div class="modal-backdrop" data-action="close-modal"><div class="modal ${wide ? 'wide' : ''}" role="dialog" aria-modal="true" onclick="event.stopPropagation()"><div class="modal-head"><div><h2>${escapeHtml(title)}</h2>${subtitle ? `<p>${escapeHtml(subtitle)}</p>` : ''}</div><button class="close" data-action="close-modal">×</button></div><form id="active-form"><div class="modal-body">${body}</div><div class="modal-foot">${footerExtra}<button type="button" class="btn" data-action="close-modal">Cancel</button>${submitText ? `<button type="submit" class="btn ${submitClass}">${escapeHtml(submitText)}</button>` : ''}</div></form></div></div>`;
+  root.innerHTML = `<div class="modal-backdrop" data-action="close-modal"><div class="modal ${wide ? 'wide' : ''}" role="dialog" aria-modal="true"><div class="modal-head"><div><h2>${escapeHtml(title)}</h2>${subtitle ? `<p>${escapeHtml(subtitle)}</p>` : ''}</div><button class="close" data-action="close-modal">×</button></div><form id="active-form"><div class="modal-body">${body}</div><div class="modal-foot">${footerExtra}<button type="button" class="btn" data-action="close-modal">Cancel</button>${submitText ? `<button type="submit" class="btn ${submitClass}">${escapeHtml(submitText)}</button>` : ''}</div></form></div></div>`;
   const form = $('#active-form');
   if (form && onSubmit) form.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -842,7 +843,7 @@ function openInviteUser() {
 
 function openCommand() {
   const root=$('#modal-root');
-  root.innerHTML=`<div class="command-backdrop" data-action="close-modal"><div class="command" onclick="event.stopPropagation()"><div class="command-search"><span>⌕</span><input id="command-input" placeholder="Search or run a command…" autofocus/><span class="pill">ESC</span></div><div class="command-list" id="command-list">${commandItems('')}</div></div></div>`;
+  root.innerHTML=`<div class="command-backdrop" data-action="close-modal"><div class="command"><div class="command-search"><span>⌕</span><input id="command-input" placeholder="Search or run a command…" autofocus/><span class="pill">ESC</span></div><div class="command-list" id="command-list">${commandItems('')}</div></div></div>`;
   const input=$('#command-input'); input.focus(); input.addEventListener('input',()=>{$('#command-list').innerHTML=commandItems(input.value);});
 }
 function commandItems(query) {
@@ -1053,7 +1054,7 @@ async function bootstrap() {
     if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('./sw.js').catch(()=>undefined);
   } catch(error) {
     $('#app').className='boot-screen';
-    $('#app').innerHTML=`<div class="boot-card"><img src="./assets/logo.svg" width="44" height="44" alt="AKARI"/><div><strong>AKARI CRM access issue</strong><span>${escapeHtml(error.status===403?'Your email passed Cloudflare Access but is not assigned to the AKARI House tenant.':error.message||'The workspace could not be opened.')}</span><button class="btn primary" style="margin-top:12px" onclick="location.reload()">Retry</button></div></div>`;
+    $('#app').innerHTML=`<div class="boot-card"><img src="./assets/brand/akari-icon.png" width="44" height="44" alt="AKARI"/><div><strong>AKARI CRM access issue</strong><span>${escapeHtml(error.status===403?'Your email passed Cloudflare Access but is not assigned to the AKARI House tenant.':error.message||'The workspace could not be opened.')}</span><button class="btn primary" style="margin-top:12px" onclick="location.reload()">Retry</button></div></div>`;
   }
 }
 

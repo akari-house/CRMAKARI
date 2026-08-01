@@ -8,9 +8,9 @@
   "theme_color": "#090B14",
   "icons": [
     {
-      "src": "./assets/logo.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "./assets/brand/akari-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ],

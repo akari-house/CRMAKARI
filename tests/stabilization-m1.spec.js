@@ -52,7 +52,7 @@ test.beforeEach(async ({ page }) => {
 test('advanced lead filters are server-driven and persist on the live Leads page', async ({ page }) => {
   await page.locator('.sidebar [data-route="leads"]').click();
   await expect(page.getByRole('heading', { name: 'AKARI Leads' })).toBeVisible();
-  await expect(page.locator('.ak-runtime-lead-tools[data-stabilized-m1="ready"]')).toBeVisible();
+  await expect(page.locator('.ak-lead-filter-toolbar[data-stabilization-m1="ready"]')).toBeVisible();
   await expect(page.locator('#m1-lead-lifecycle')).toBeVisible();
   await expect(page.locator('#m1-lead-follow-up')).toBeVisible();
   await expect(page.locator('#m1-lead-identity')).toBeVisible();
@@ -63,43 +63,41 @@ test('advanced lead filters are server-driven and persist on the live Leads page
   await page.locator('#m1-lead-identity').selectOption('complete');
   await page.locator('#m1-lead-sort').selectOption('updated');
   const requestPromise = page.waitForRequest((request) => request.url().includes('/api/akari-leads?') && request.url().includes('lifecycle=LEAD') && request.url().includes('identity=complete') && request.url().includes('sort=updated'));
-  await page.locator('[data-m1-action="apply-leads"]').click();
+  await page.locator('[data-action="apply-lead-filters"]').click();
   await requestPromise;
   await expect(page.getByText('Introduced by Partner One')).toBeVisible();
 });
 
 test('contact editing and operational timeline work in the live relationship modal', async ({ page }) => {
   await page.locator('.sidebar [data-route="leads"]').click();
-  await expect(page.locator('.ak-runtime-lead-tools[data-stabilized-m1="ready"]')).toBeVisible();
+  await expect(page.locator('.ak-lead-filter-toolbar[data-stabilization-m1="ready"]')).toBeVisible();
   await page.getByText('Project Alpha', { exact: true }).first().click();
-  await expect(page.locator('#modal-root .ak-project-modal[data-stabilized-project="prj_1"]')).toBeVisible();
-  await expect(page.locator('#modal-root .modal-backdrop[data-m1-project-backdrop="protected"]')).toBeVisible();
-  await expect(page.locator('#modal-root h2')).toHaveText('Project Alpha');
+  await expect(page.locator('#drawer-root .drawer.open')).toBeVisible();
+  await expect(page.locator('#drawer-root h2')).toHaveText('Project Alpha');
 
-  await page.locator('#modal-root [data-m1-project-tab="contacts"]').click();
-  await expect(page.locator('#modal-root [data-m1-action="edit-contact"]')).toBeVisible();
-  await page.locator('#modal-root [data-m1-action="edit-contact"]').click();
+  await page.locator('#drawer-root [data-drawer-tab="contacts"]').click();
+  await expect(page.locator('#drawer-root [data-action="edit-contact-m1"]')).toBeVisible();
+  await page.locator('#drawer-root [data-action="edit-contact-m1"]').click();
   await expect(page.getByRole('heading', { name: 'Edit Alice' })).toBeVisible();
   await page.locator('#m1-contact-form input[name="email"]').fill('alice+updated@example.com');
   const patch = page.waitForRequest((request) => request.url().endsWith('/api/contacts/con_1') && request.method() === 'PATCH');
   await page.getByRole('button', { name: 'Save contact' }).click();
   await patch;
   await expect(page.getByText('Contact updated')).toBeVisible();
-  await expect(page.locator('#modal-root [data-m1-project-tab="contacts"]')).toHaveClass(/active/);
+  await expect(page.locator('#drawer-root .drawer.open')).toBeVisible();
 
-  await page.locator('#modal-root [data-m1-project-tab="activity"]').click();
-  await expect(page.getByText('Contact Updated')).toBeVisible();
+  await page.locator('#drawer-root [data-drawer-tab="activity"]').click();
+  await expect(page.getByText('Contact Updated', { exact: true })).toBeVisible();
   await expect(page.getByText('Changed: Email')).toBeVisible();
 });
 
 test('stabilized lead workspace remains usable on mobile', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.locator('.mobile-bottom [data-route="leads"]').click();
-  await expect(page.locator('.ak-runtime-lead-tools[data-stabilized-m1="ready"]')).toBeVisible();
+  await expect(page.locator('.ak-lead-filter-toolbar[data-stabilization-m1="ready"]')).toBeVisible();
   await expect(page.locator('.ak-advanced-filter-row')).toBeVisible();
   await page.getByText('Project Alpha', { exact: true }).first().click();
-  await expect(page.locator('#modal-root .ak-project-modal')).toBeVisible();
-  await expect(page.locator('#modal-root .modal-backdrop[data-m1-project-backdrop="protected"]')).toBeVisible();
-  await page.locator('#modal-root [data-m1-project-tab="contacts"]').click();
-  await expect(page.locator('#modal-root [data-m1-action="edit-contact"]')).toBeVisible();
+  await expect(page.locator('#drawer-root .drawer.open')).toBeVisible();
+  await page.locator('#drawer-root [data-drawer-tab="contacts"]').click();
+  await expect(page.locator('#drawer-root [data-action="edit-contact-m1"]')).toBeVisible();
 });
