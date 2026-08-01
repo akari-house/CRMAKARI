@@ -10,6 +10,7 @@ export function sanitizeCapitalRoom(input={},existing={}){
   if(!FUNDRAISING_STAGES.includes(stage)) throw Object.assign(new Error('Fundraising stage is invalid'),{status:422});
   const target=number(input.targetAmount??existing.targetAmount);
   const committed=Math.min(number(input.committedAmount??existing.committedAmount),target||Number.MAX_SAFE_INTEGER);
+  const readinessSource=input.readinessScore??existing.readinessScore??0;
   return {
     id:text(existing.id||input.id||`raise_${crypto.randomUUID()}`,120), projectId:text(input.projectId||existing.projectId,120),
     projectName:text(input.projectName||existing.projectName,500), ownerUserId:text(input.ownerUserId||existing.ownerUserId,120),
@@ -19,7 +20,7 @@ export function sanitizeCapitalRoom(input={},existing={}){
     committedAmount:committed, valuation:number(input.valuation??existing.valuation), minimumTicket:number(input.minimumTicket??existing.minimumTicket),
     leadInvestor:text(input.leadInvestor||existing.leadInvestor,300), launchDate:text(input.launchDate||existing.launchDate,30),
     targetCloseDate:text(input.targetCloseDate||existing.targetCloseDate,30), nextAction:text(input.nextAction||existing.nextAction,2000),
-    thesis:text(input.thesis||existing.thesis,8000), readinessScore:Math.min(100,Math.max(0,Number(input.readinessScore??existing.readinessScore||0))),
+    thesis:text(input.thesis||existing.thesis,8000), readinessScore:Math.min(100,Math.max(0,Number(readinessSource))),
     deckUrl:text(input.deckUrl||existing.deckUrl,2000), dataRoomUrl:text(input.dataRoomUrl||existing.dataRoomUrl,2000),
     updatedAt:new Date().toISOString(), createdAt:existing.createdAt||new Date().toISOString(),
   };
