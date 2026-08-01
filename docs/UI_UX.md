@@ -38,3 +38,8 @@ The CRM is a quiet operational room inside AKARI House: premium, private, fast a
 - No duplicate lead/client records
 - Finance remains permission-controlled
 
+# Current interaction modules
+
+- `Outreach Flows` is the canonical AKARI call and follow-up canvas. Its draft template is explicitly owner-assisted; it must not imply that telephony or email delivery is automated before integrations exist.
+- `My Day` is a four-section task board. Desktop users drag cards between statuses; keyboard and mobile users use the status selector on each card. Every status change is written through the tenant-scoped task API.
+- New modules must use the canonical renderer in `public/assets/crm.js` and the AKARI dark orange/amber brand layer. Do not restore deleted legacy runtimes or introduce a second renderer.

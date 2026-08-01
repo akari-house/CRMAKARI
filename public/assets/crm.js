@@ -1,4 +1,5 @@
 const ROUTES = {
+  flows: { label: 'Outreach Flows', section: 'WORKSPACE', icon: '⇢' },
   dashboard: { label: 'Home', section: 'WORKSPACE', icon: '⌂' },
   day: { label: 'My Day', section: 'WORKSPACE', icon: '✓' },
   leads: { label: 'AKARI Leads', section: 'RELATIONSHIPS', icon: '◇' },
@@ -17,6 +18,27 @@ const STAGES = ['NEW','RESEARCH','CONTACTED','REPLIED','DISCOVERY','QUALIFIED','
 const PIPELINE_STAGES = ['CONTACTED','REPLIED','DISCOVERY','QUALIFIED','PROPOSAL','NEGOTIATION'];
 const CAMPAIGN_STATUSES = ['CONFIRMED','ONBOARDING','PLANNING','CREATOR_SELECTION','LIVE','REPORTING','COMPLETED','PAUSED','CANCELLED'];
 const PRIORITIES = ['URGENT','HIGH','MEDIUM','LOW'];
+const TASK_STATUSES = ['TODO','IN_PROGRESS','WAITING','DONE'];
+const FLOW_NODES = [
+  { id:'source', type:'SOURCE', title:'Qualified lead', detail:'Enters the AKARI outreach playbook', x:38, y:285, tone:'source' },
+  { id:'call-1', type:'CALL', title:'First call', detail:'Personal introduction and qualification', x:300, y:90, tone:'active' },
+  { id:'meeting-1', type:'SUCCESS', title:'Meeting booked', detail:'Create discovery task and calendar event', x:585, y:28, tone:'success' },
+  { id:'wait-1', type:'WAIT', title:'Wait 1 business day', detail:'Pause after no answer', x:300, y:280, tone:'waiting' },
+  { id:'call-2', type:'CALL', title:'Second call', detail:'Retry with project context', x:585, y:240, tone:'active' },
+  { id:'meeting-2', type:'SUCCESS', title:'Meeting booked', detail:'Create discovery task and calendar event', x:870, y:178, tone:'success' },
+  { id:'email-1', type:'EMAIL', title:'First follow-up email', detail:'Draft a concise value-led message', x:585, y:450, tone:'message' },
+  { id:'meeting-3', type:'SUCCESS', title:'Meeting booked', detail:'Record email conversion', x:870, y:388, tone:'success' },
+  { id:'wait-2', type:'WAIT', title:'Wait 3 business days', detail:'Pause while awaiting a reply', x:585, y:630, tone:'waiting' },
+  { id:'email-2', type:'EMAIL', title:'Second follow-up email', detail:'Send final helpful follow-up', x:870, y:590, tone:'message' },
+  { id:'meeting-4', type:'SUCCESS', title:'Meeting booked', detail:'Record follow-up conversion', x:1145, y:510, tone:'success' },
+  { id:'exit', type:'EXIT', title:'Manual review', detail:'Return lead to owner or close sequence', x:1145, y:690, tone:'failed' },
+];
+const FLOW_LINKS = [
+  ['source','call-1','Start','neutral'], ['call-1','meeting-1','Answered','success'], ['call-1','wait-1','No answer','failed'],
+  ['wait-1','call-2','After 1 day','waiting'], ['call-2','meeting-2','Answered','success'], ['call-2','email-1','Missed','failed'],
+  ['email-1','meeting-3','Replied','success'], ['email-1','wait-2','No reply','failed'], ['wait-2','email-2','After 3 days','waiting'],
+  ['email-2','meeting-4','Replied','success'], ['email-2','exit','No reply','failed'],
+];
 const SHEETJS_MODULE = 'https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs';
 
 const state = {
@@ -35,6 +57,7 @@ const state = {
   payments: [],
   reports: null,
   import: null,
+  selectedFlowNode: 'call-1',
 };
 
 const $ = (selector, root = document) => root.querySelector(selector);
@@ -127,7 +150,8 @@ function setRoute(route, options = {}) {
 
 function navGroups() {
   const order = ['WORKSPACE','RELATIONSHIPS','BUSINESS','DELIVERY','COMMERCIAL','ADMIN'];
-  return order.map((section) => ({ section, items: Object.entries(ROUTES).filter(([, config]) => config.section === section) }));
+  const routeOrder=['dashboard','day','flows','leads','contacts','opportunities','fundraising','campaigns','partners','finance','reports','team','settings'];
+  return order.map((section) => ({ section, items: Object.entries(ROUTES).filter(([, config]) => config.section === section).sort(([a],[b])=>routeOrder.indexOf(a)-routeOrder.indexOf(b)) }));
 }
 
 function shellHtml() {
@@ -234,7 +258,8 @@ async function loadRoute(route, force = false) {
   if (!root) return;
   root.innerHTML = loadingView();
   try {
-    if (route === 'dashboard') await renderDashboard(force);
+    if (route === 'flows') await renderFlows();
+    else if (route === 'dashboard') await renderDashboard(force);
     else if (route === 'day') await renderMyDay(force);
     else if (route === 'leads') await renderLeads(force);
     else if (route === 'contacts') await renderContacts(force);
@@ -378,29 +403,56 @@ function taskHtml(task) {
   </div></div>`;
 }
 
+function taskBoardCardHtml(task) {
+  const overdue = task.status !== 'DONE' && isOverdue(task.due_at);
+  return `<article class="task-board-card" draggable="true" data-task-card="${escapeHtml(task.id)}" data-task-status="${escapeHtml(task.status)}" tabindex="0">
+    <div class="task-board-card__grip" aria-hidden="true">⋮⋮</div>
+    <div class="task-board-card__copy"><strong>${escapeHtml(task.title)}</strong><span>${escapeHtml(task.project_name || task.opportunity_name || task.campaign_name || task.description || 'AKARI House')}</span></div>
+    <div class="task-board-card__meta">${priorityPill(task.priority)}<span class="task-due ${overdue ? 'overdue' : ''}">${escapeHtml(dateLabel(task.due_at, true))}</span></div>
+    <label class="task-board-card__status"><span class="sr-only">Move ${escapeHtml(task.title)} to</span><select data-action="change-task-status" data-id="${escapeHtml(task.id)}" aria-label="Status for ${escapeHtml(task.title)}">${TASK_STATUSES.map((status)=>`<option value="${status}" ${task.status===status?'selected':''}>${titleCase(status)}</option>`).join('')}</select></label>
+  </article>`;
+}
+
+function taskBoardHtml(items) {
+  const columns = [
+    { status:'TODO', label:'To do', hint:'Ready to start' },
+    { status:'IN_PROGRESS', label:'In progress', hint:'Work underway' },
+    { status:'WAITING', label:'Waiting', hint:'Awaiting a reply' },
+    { status:'DONE', label:'Done', hint:'Recently completed' },
+  ];
+  return `<div class="task-board" aria-label="Task status board">${columns.map((column)=>{
+    const cards=items.filter((task)=>task.status===column.status);
+    return `<section class="task-board-column" data-task-column="${column.status}" aria-label="${column.label} tasks">
+      <header><div><strong>${column.label}</strong><span>${column.hint}</span></div><b>${cards.length}</b></header>
+      <div class="task-board-dropzone">${cards.length?cards.map(taskBoardCardHtml).join(''):`<div class="task-board-empty">Drop a card here</div>`}</div>
+    </section>`;
+  }).join('')}</div>`;
+}
+
 function recentLeadsHtml(items) {
   if (!items.length) return emptyState('No AKARI leads yet', 'Use the protected workbook importer to load the approved AKARI lead database.', `<button class="btn yellow" data-action="open-import">Import workbook</button>`);
   return `<div class="task-list">${items.map((lead) => `<div class="task-card" data-open-lead="${escapeHtml(lead.id)}"><div class="task-row"><div class="record-logo">${initials(lead.name)}</div><div class="task-copy"><strong>${escapeHtml(lead.name)}</strong><span>${escapeHtml(lead.category || 'Uncategorized')} · ${escapeHtml(lead.source_name || 'AKARI Leads')}</span></div>${priorityPill(lead.priority)}</div></div>`).join('')}</div>`;
 }
 
 async function renderMyDay(force = false) {
-  const payload = await cached('tasks', () => api('/api/tasks?scope=mine'), force);
+  const payload = await cached('tasks:board', () => api('/api/tasks?scope=mine&includeCompleted=1'), force);
   state.tasks = payload.items || [];
-  const overdue = state.tasks.filter((task) => isOverdue(task.due_at)).length;
-  const today = state.tasks.filter((task) => task.due_at && new Date(task.due_at).toDateString() === new Date().toDateString()).length;
+  const openTasks = state.tasks.filter((task) => task.status !== 'DONE');
+  const overdue = openTasks.filter((task) => isOverdue(task.due_at)).length;
+  const today = openTasks.filter((task) => task.due_at && new Date(task.due_at).toDateString() === new Date().toDateString()).length;
   $('#view-root').innerHTML = `
-    ${pageHead('DAILY OPERATING VIEW', 'My Day', `${state.tasks.length} open tasks · ${overdue} overdue · ${today} due today`, `<button class="btn primary" data-action="new-task">＋ Add task</button>`)}
-    <div class="grid-main">
-      <div class="panel">
-        <div class="panel-head"><div class="panel-title"><strong>Priority queue</strong><span>Complete work directly from this screen</span></div><div class="segmented"><button class="active" data-task-filter="all">All</button><button data-task-filter="overdue">Overdue</button><button data-task-filter="today">Today</button></div></div>
-        <div class="panel-body" id="task-list-root">${tasksHtml(state.tasks)}</div>
-      </div>
+    ${pageHead('DAILY OPERATING VIEW', 'My Day', `${openTasks.length} open tasks · ${overdue} overdue · ${today} due today`, `<button class="btn primary" data-action="new-task">＋ Add task</button>`)}
+    <div class="panel task-board-panel">
+      <div class="panel-head"><div class="panel-title"><strong>Task board</strong><span>Drag cards between sections; every move is saved to this AKARI workspace</span></div><div class="segmented"><button class="active" data-task-filter="all">All</button><button data-task-filter="overdue">Overdue</button><button data-task-filter="today">Today</button></div></div>
+      <div class="panel-body" id="task-list-root">${taskBoardHtml(state.tasks)}</div>
+    </div>
+    <div class="grid-main my-day-support">
       <div>
         <div class="panel" style="margin-bottom:13px"><div class="panel-head"><div class="panel-title"><strong>Daily scorecard</strong><span>Activity completion</span></div>${pill(state.tasks.length ? `${Math.max(0,100 - overdue * 10)}%` : '100%', overdue ? 'yellow' : 'green')}</div><div class="panel-body">
-          ${scoreRow('Open tasks', state.tasks.length, 10)}
+          ${scoreRow('Open tasks', openTasks.length, 10)}
           ${scoreRow('Overdue', overdue, 0, overdue ? 'red' : 'green')}
           ${scoreRow('Due today', today, 5)}
-          ${scoreRow('High priority', state.tasks.filter((t) => ['URGENT','HIGH'].includes(t.priority)).length, 5)}
+          ${scoreRow('High priority', openTasks.filter((t) => ['URGENT','HIGH'].includes(t.priority)).length, 5)}
         </div></div>
         <div class="panel"><div class="panel-head"><div class="panel-title"><strong>Quick actions</strong><span>Keep relationship records current</span></div></div><div class="panel-body"><div class="task-list">
           <button class="btn" data-action="new-lead">＋ Add lead</button>
@@ -409,8 +461,44 @@ async function renderMyDay(force = false) {
           <button class="btn yellow" data-action="open-import">⇧ Import AKARI workbook</button>
         </div></div></div>
       </div>
+      <div class="panel"><div class="panel-head"><div class="panel-title"><strong>Outreach playbook</strong><span>Calls, waits, emails and meeting outcomes</span></div><button class="btn small" data-route="flows">Open flow</button></div><div class="panel-body"><p class="support-copy">Use the visual follow-up flow to keep every lead moving through a consistent AKARI relationship journey.</p><button class="btn yellow" data-route="flows">View outreach flow →</button></div></div>
     </div>`;
   updateNavBadges();
+}
+
+function flowNodeHtml(node) {
+  const selected = node.id === state.selectedFlowNode;
+  return `<button class="flow-node flow-node--${node.tone} ${selected?'is-selected':''}" style="left:${node.x}px;top:${node.y}px" data-action="select-flow-node" data-id="${node.id}" aria-pressed="${selected}">
+    <span class="flow-node__type">${escapeHtml(node.type)}</span><strong>${escapeHtml(node.title)}</strong><span>${escapeHtml(node.detail)}</span><i aria-hidden="true"></i>
+  </button>`;
+}
+
+function flowPath(link) {
+  const [fromId,toId,label,tone] = link;
+  const from = FLOW_NODES.find((node)=>node.id===fromId); const to = FLOW_NODES.find((node)=>node.id===toId);
+  const x1=from.x+210, y1=from.y+48, x2=to.x, y2=to.y+48, bend=Math.max(55,Math.abs(x2-x1)*.45);
+  const d=`M ${x1} ${y1} C ${x1+bend} ${y1}, ${x2-bend} ${y2}, ${x2} ${y2}`;
+  const lx=(x1+x2)/2, ly=(y1+y2)/2-7;
+  return `<path class="flow-link flow-link--${tone}" d="${d}"/><text class="flow-link-label flow-link-label--${tone}" x="${lx}" y="${ly}" text-anchor="middle">${escapeHtml(label)}</text>`;
+}
+
+function flowInspectorHtml(node) {
+  const branchLinks=FLOW_LINKS.filter(([from])=>from===node.id);
+  return `<aside class="flow-inspector"><div class="flow-inspector__eyebrow">SELECTED STEP</div><h2>${escapeHtml(node.title)}</h2><p>${escapeHtml(node.detail)}</p>
+    <dl><div><dt>Step type</dt><dd>${escapeHtml(titleCase(node.type))}</dd></div><div><dt>Mode</dt><dd>Owner-assisted</dd></div><div><dt>Workspace</dt><dd>AKARI House</dd></div></dl>
+    <div class="flow-inspector__section"><strong>Next outcomes</strong>${branchLinks.length?branchLinks.map(([,to,label,tone])=>{const target=FLOW_NODES.find((item)=>item.id===to);return `<button data-action="select-flow-node" data-id="${to}"><span class="flow-outcome flow-outcome--${tone}">${escapeHtml(label)}</span><b>${escapeHtml(target.title)}</b></button>`;}).join(''):'<span class="flow-inspector__empty">End of this sequence</span>'}</div>
+    <div class="live-banner">This is the approved AKARI playbook template. It visualises the follow-up sequence; external calling and email delivery remain owner-controlled until integrations are enabled.</div>
+  </aside>`;
+}
+
+async function renderFlows() {
+  const selected=FLOW_NODES.find((node)=>node.id===state.selectedFlowNode)||FLOW_NODES[0];
+  $('#view-root').innerHTML=`${pageHead('AKARI OUTREACH PLAYBOOK','Outreach Flows','A visual owner-assisted sequence from first call to meeting or manual review.',`<span class="pill yellow">Template · Draft</span>`)}
+    <div class="flow-workspace">
+      <section class="flow-canvas-panel"><div class="flow-canvas-toolbar"><div><strong>AKARI relationship sequence</strong><span>Choose any step to inspect its outcomes</span></div><div class="flow-legend"><span><i class="success"></i>Positive</span><span><i class="waiting"></i>Wait</span><span><i class="failed"></i>No response</span></div></div>
+        <div class="flow-canvas-scroll"><div class="flow-canvas" role="group" aria-label="AKARI outreach workflow"><svg width="1395" height="810" viewBox="0 0 1395 810" aria-hidden="true">${FLOW_LINKS.map(flowPath).join('')}</svg>${FLOW_NODES.map(flowNodeHtml).join('')}</div></div>
+      </section>${flowInspectorHtml(selected)}
+    </div>`;
 }
 
 function scoreRow(label, value, target, tone = '') {
@@ -961,6 +1049,23 @@ async function toggleTask(id) {
   invalidate('tasks','dashboard'); toast(task.status==='DONE'?'Task restored':'Task completed'); loadRoute(state.route,true);
 }
 
+async function updateTaskStatus(id,status) {
+  if (!TASK_STATUSES.includes(status)) return;
+  const task=state.tasks.find((item)=>item.id===id); if(!task||task.status===status)return;
+  const previous=task.status;
+  task.status=status;
+  const root=$('#task-list-root'); if(root)root.innerHTML=taskBoardHtml(state.tasks);
+  try {
+    await api(`/api/tasks/${encodeURIComponent(id)}`,{method:'PATCH',body:JSON.stringify({status})});
+    invalidate('tasks','tasks:board','dashboard');
+    toast(`Task moved to ${titleCase(status)}`);
+  } catch(error) {
+    task.status=previous;
+    if(root)root.innerHTML=taskBoardHtml(state.tasks);
+    toast(error.message||'Task move failed','error');
+  }
+}
+
 async function changeOpportunityStage(id,stage) {
   await api(`/api/opportunities/${encodeURIComponent(id)}`,{method:'PATCH',body:JSON.stringify({stage})}); invalidate('opportunities','dashboard','reports'); toast(`Opportunity moved to ${titleCase(stage)}`); renderOpportunities(true);
 }
@@ -972,7 +1077,7 @@ function applyTaskFilter(filter) {
   let items=state.tasks;
   if(filter==='overdue')items=items.filter((item)=>isOverdue(item.due_at));
   if(filter==='today')items=items.filter((item)=>item.due_at&&new Date(item.due_at).toDateString()===new Date().toDateString());
-  $('#task-list-root').innerHTML=tasksHtml(items);
+  $('#task-list-root').innerHTML=taskBoardHtml(items);
 }
 
 function toggleFinance() { state.financeHidden=!state.financeHidden; renderShell(); loadRoute(state.route); toast(state.financeHidden?'Screen-share privacy enabled':'Financial values visible'); }
@@ -1001,6 +1106,8 @@ async function handleAction(action, element) {
   else if(action==='lead-next'){state.leads.page+=1;renderLeads(true);}
   else if(action==='apply-contact-search'){state.contacts.search=$('#contact-search').value.trim();renderContacts(true);}
   else if(action==='toggle-task')await toggleTask(element.dataset.id);
+  else if(action==='change-task-status')await updateTaskStatus(element.dataset.id,element.value);
+  else if(action==='select-flow-node'){state.selectedFlowNode=element.dataset.id;renderFlows();}
   else if(action==='change-stage')await changeOpportunityStage(element.dataset.id,element.value);
   else if(action==='change-campaign-status')await changeCampaignStatus(element.dataset.id,element.value);
   else if(action==='mark-payment-paid')await markPaymentPaid(element.dataset.id);
@@ -1033,7 +1140,26 @@ function bindGlobalEvents() {
   });
   document.addEventListener('change',async(event)=>{
     const action=event.target.dataset.action;
-    if(action==='change-stage'||action==='change-campaign-status'){try{await handleAction(action,event.target);}catch(error){toast(error.message || 'Update failed','error');}}
+    if(action==='change-stage'||action==='change-campaign-status'||action==='change-task-status'){try{await handleAction(action,event.target);}catch(error){toast(error.message || 'Update failed','error');}}
+  });
+  document.addEventListener('dragstart',(event)=>{
+    const card=event.target.closest('[data-task-card]'); if(!card)return;
+    card.classList.add('is-dragging'); event.dataTransfer.effectAllowed='move'; event.dataTransfer.setData('text/plain',card.dataset.taskCard);
+  });
+  document.addEventListener('dragover',(event)=>{
+    const column=event.target.closest('[data-task-column]'); if(!column)return;
+    event.preventDefault(); event.dataTransfer.dropEffect='move';
+    $$('[data-task-column]').forEach((item)=>item.classList.toggle('is-drop-target',item===column));
+  });
+  document.addEventListener('drop',async(event)=>{
+    const column=event.target.closest('[data-task-column]'); if(!column)return;
+    event.preventDefault(); const id=event.dataTransfer.getData('text/plain');
+    $$('[data-task-column]').forEach((item)=>item.classList.remove('is-drop-target'));
+    try{await updateTaskStatus(id,column.dataset.taskColumn);}catch(error){toast(error.message||'Task move failed','error');}
+  });
+  document.addEventListener('dragend',(event)=>{
+    event.target.closest('[data-task-card]')?.classList.remove('is-dragging');
+    $$('[data-task-column]').forEach((item)=>item.classList.remove('is-drop-target'));
   });
   document.addEventListener('click',(event)=>{const filter=event.target.closest('[data-task-filter]')?.dataset.taskFilter;if(filter)applyTaskFilter(filter);});
   document.addEventListener('keydown',(event)=>{

@@ -4,6 +4,7 @@
   const ROUTE_PATHS = Object.freeze({
     dashboard: '/',
     day: '/day',
+    flows: '/flows',
     leads: '/leads',
     contacts: '/contacts',
     opportunities: '/opportunities',

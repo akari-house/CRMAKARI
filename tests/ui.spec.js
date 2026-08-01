@@ -12,6 +12,11 @@ const responses = {
   '/api/me': { user: { userId: 'usr_test', tenantId: 'tenant_akari_house', tenantSlug: 'akari-house', email: 'owner@example.com', fullName: 'Muaz Test', role: 'OWNER', financeAccess: true } },
   '/api/dashboard': { currency: 'USD', metrics: { monthlyTarget: 25000, revenueBooked: 12500, revenueCollected: 9000, netRevenue: 6200, weightedPipeline: 32000, activeOpportunities: 2, yearToDateRevenue: 80000, activeCustomers: 3, activeCampaigns: 1, activePartners: 2, outstandingPayments: 3500, referralRewardsDue: 400 } },
   '/api/tasks?scope=mine': { items: [{ id: 'tsk_1', title: 'Follow up Project Alpha', status: 'TODO', priority: 'HIGH', due_at: '2030-01-01T12:00:00Z', project_name: 'Project Alpha' }], total: 1 },
+  '/api/tasks?scope=mine&includeCompleted=1': { items: [
+    { id: 'tsk_1', title: 'Follow up Project Alpha', status: 'TODO', priority: 'HIGH', due_at: '2030-01-01T12:00:00Z', project_name: 'Project Alpha' },
+    { id: 'tsk_2', title: 'Prepare discovery notes', status: 'IN_PROGRESS', priority: 'MEDIUM', due_at: '2030-01-02T12:00:00Z', project_name: 'Project Beta' },
+    { id: 'tsk_3', title: 'Await partner reply', status: 'WAITING', priority: 'LOW', due_at: '2030-01-03T12:00:00Z', project_name: 'Project Gamma' },
+  ], total: 3 },
   '/api/projects?limit=5': { items: dashboardProjects, total: dashboardProjects.length },
   '/api/opportunities': { items: [{ id: 'opp_1', project_id: 'prj_1', project_name: 'Project Alpha', name: 'Creator campaign', stage: 'QUALIFIED', estimated_value: 10000, currency: 'USD', probability_percentage: 60, owner_name: 'Muaz Test', next_action: 'Send proposal' }], total: 1 },
   '/api/akari-leads?limit=8&offset=0': { items: dashboardProjects.map((project) => ({ ...project, priority: 'HIGH', source_name: 'Referral', contact_count: 1 })), total: dashboardProjects.length, categories: [{ category: 'Web3', count: 1 }], canWrite: true },
@@ -119,8 +124,23 @@ test('command palette and task interaction work', async ({ page }) => {
 
   await page.locator('.sidebar [data-route="day"]').click();
   await expect(page.getByRole('heading', { name: 'My Day' })).toBeVisible();
-  await page.locator('[data-action="toggle-task"]').first().click();
-  await expect(page.getByText('Task completed')).toBeVisible();
+  const todoCard=page.locator('[data-task-card="tsk_1"]');
+  await expect(todoCard).toBeVisible();
+  await todoCard.dragTo(page.locator('[data-task-column="IN_PROGRESS"] .task-board-dropzone'));
+  await expect(page.locator('[data-task-column="IN_PROGRESS"] [data-task-card="tsk_1"]')).toBeVisible();
+  await expect(page.getByText('Task moved to In Progress')).toBeVisible();
+});
+
+test('outreach flow exposes the full call and follow-up sequence', async ({ page }) => {
+  await page.locator('.sidebar [data-route="flows"]').click();
+  await expect(page.getByRole('heading', { name: 'Outreach Flows' })).toBeVisible();
+  await expect(page.locator('.flow-node')).toHaveCount(12);
+  await expect(page.getByText('First call', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('Second follow-up email', { exact: true })).toBeVisible();
+  await page.locator('[data-action="select-flow-node"][data-id="email-1"]').first().click();
+  await expect(page.locator('.flow-inspector').getByRole('heading', { name: 'First follow-up email' })).toBeVisible();
+  await expect(page.locator('.flow-inspector').getByText('Replied')).toBeVisible();
+  await expect(page.locator('.flow-inspector').getByText('No reply')).toBeVisible();
 });
 
 test('mobile navigation remains interactive', async ({ page }) => {

@@ -23,6 +23,8 @@ A project exists once. Client status is a lifecycle change, not a duplicate clie
 - Track campaign delivery, revenue, costs and referral rewards
 - Track payment schedules and outstanding balances
 - Show monthly targets, daily scorecards and business attention alerts
+- Operate a visual owner-assisted outreach playbook covering calls, waits, follow-up emails, meeting outcomes and manual review
+- Move task cards between To do, In progress, Waiting and Done with tenant-scoped persistence
 
 ## Future platform workflow
 

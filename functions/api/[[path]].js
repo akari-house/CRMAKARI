@@ -208,7 +208,9 @@ async function getTasks(context) {
   const auth = context.data.auth;
   const url = new URL(context.request.url);
   const scope = url.searchParams.get('scope') || 'mine';
+  const includeCompleted = url.searchParams.get('includeCompleted') === '1';
   const mine = scope === 'mine' ? 'AND t.owner_user_id = ?' : '';
+  const visibleStatuses = includeCompleted ? "AND t.status NOT IN ('CANCELLED', 'ARCHIVED')" : "AND t.status NOT IN ('CANCELLED', 'ARCHIVED', 'DONE')";
   const bindings = scope === 'mine' ? [tenantId, auth.userId] : [tenantId];
   const items = await all(context.env.DB, `
     SELECT t.*, p.name AS project_name, o.name AS opportunity_name, c.name AS campaign_name, u.full_name AS owner_name
@@ -217,8 +219,9 @@ async function getTasks(context) {
     LEFT JOIN opportunities o ON o.id = t.opportunity_id AND o.tenant_id = t.tenant_id
     LEFT JOIN campaigns c ON c.id = t.campaign_id AND c.tenant_id = t.tenant_id
     LEFT JOIN users u ON u.id = t.owner_user_id
-    WHERE t.tenant_id = ? ${mine} AND t.status NOT IN ('CANCELLED', 'ARCHIVED', 'DONE')
+    WHERE t.tenant_id = ? ${mine} ${visibleStatuses}
     ORDER BY CASE t.status WHEN 'TODO' THEN 1 WHEN 'IN_PROGRESS' THEN 2 ELSE 3 END, t.due_at ASC
+    LIMIT 200
   `, bindings);
   return json({ items, total: items.length });
 }
@@ -240,6 +243,7 @@ async function createTask(context) {
 
 async function updateTask(context, id) {
   const body = await readJson(context.request);
+  if (body.status && !['TODO','IN_PROGRESS','WAITING','DONE','CANCELLED','ARCHIVED'].includes(body.status)) return error('Invalid task status', 422);
   if (inDemo(context)) return json({ id, ...body, updatedAt: nowIso() });
   const auth = context.data.auth;
   const tenantId = requireTenant(auth);
