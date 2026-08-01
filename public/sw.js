@@ -1,6 +1,6 @@
-const CACHE_NAME = 'akari-crm-shell-v18';
+const CACHE_NAME = 'akari-crm-shell-v19';
 const APP_SHELL = [
-  './index.html?runtime=v18',
+  './index.html?runtime=v19',
   './assets/crm.css?v=15',
   './assets/runtime-guard.css?v=15',
   './assets/operations-v1.css?v=15',
@@ -10,7 +10,7 @@ const APP_SHELL = [
   './assets/crm-stabilization-m1.css?v=15',
   './assets/dashboard-polish-v1.css?v=15',
   './assets/akari-app-v1.css?v=15',
-  './assets/akari-brand-v2.css?v=18',
+  './assets/akari-brand-v2.css?v=19',
   './assets/crm.js?v=18',
   './assets/operations-v1.js?v=15',
   './assets/lifecycle-v1.js?v=15',
@@ -24,4 +24,4 @@ const APP_SHELL = [
 ];
 self.addEventListener('install',(event)=>{event.waitUntil(caches.open(CACHE_NAME).then(async(cache)=>{for(const asset of APP_SHELL){try{await cache.add(asset);}catch(error){console.warn('AKARI CRM asset was not pre-cached',asset,error);}}}));self.skipWaiting();});
 self.addEventListener('activate',(event)=>{event.waitUntil(caches.keys().then((keys)=>Promise.all(keys.filter((key)=>key!==CACHE_NAME).map((key)=>caches.delete(key)))));self.clients.claim();});
-self.addEventListener('fetch',(event)=>{const request=event.request;const url=new URL(request.url);if(request.method!=='GET'||url.pathname.startsWith('/api/'))return;event.respondWith(fetch(request,{cache:'no-store'}).then((response)=>{if(response.ok&&url.origin===self.location.origin)caches.open(CACHE_NAME).then((cache)=>cache.put(request,response.clone()));return response;}).catch(async()=>(await caches.match(request))||caches.match('./index.html?runtime=v18')));});
+self.addEventListener('fetch',(event)=>{const request=event.request;const url=new URL(request.url);if(request.method!=='GET'||url.pathname.startsWith('/api/'))return;event.respondWith(fetch(request,{cache:'no-store'}).then((response)=>{if(response.ok&&url.origin===self.location.origin)caches.open(CACHE_NAME).then((cache)=>cache.put(request,response.clone()));return response;}).catch(async()=>(await caches.match(request))||caches.match('./index.html?runtime=v19')));});
