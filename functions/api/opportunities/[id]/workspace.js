@@ -10,29 +10,9 @@ import {
   qualificationComplete,
   parseJson,
 } from '../../../lib/revenue-lifecycle.js';
+import { parseInvoice } from '../../../lib/commercial-hardening.js';
 
 const WRITE_ROLES = new Set(['OWNER', 'ADMIN', 'BD_MANAGER', 'BD_MEMBER']);
-
-function publicInvoice(row, receipts = []) {
-  const metadata = parseJson(row.notes, {});
-  const received = receipts
-    .filter((item) => item.invoice_reference === row.invoice_reference)
-    .reduce((sum, item) => sum + Number(item.amount || 0), 0);
-  return {
-    id: row.id,
-    invoiceNumber: row.invoice_reference,
-    invoiceDate: metadata.invoiceDate || row.created_at?.slice(0, 10),
-    dueDate: row.due_date,
-    status: row.status,
-    currency: row.currency || 'USD',
-    total: Number(metadata.total ?? row.amount ?? 0),
-    received,
-    outstanding: Math.max(0, Number(metadata.total ?? row.amount ?? 0) - received),
-    recipient: metadata.recipient || { name: row.project_name },
-    engagementId: row.campaign_id,
-    createdAt: row.created_at,
-  };
-}
 
 export async function onRequestGet(context) {
   try {
@@ -82,7 +62,7 @@ export async function onRequestGet(context) {
 
     let finance = null;
     if (canViewFinance(auth)) {
-      const [invoiceRows, receiptRows, referralRows] = await Promise.all([
+      const [invoiceRows, relatedRows, referralRows] = await Promise.all([
         all(context.env.DB, `
           SELECT pay.*, p.name AS project_name
           FROM payments pay
@@ -95,7 +75,7 @@ export async function onRequestGet(context) {
         `, [tenantId, opportunity.project_id, tenantId, opportunityId, `%\"opportunityId\":\"${opportunityId}\"%`]),
         all(context.env.DB, `
           SELECT * FROM payments
-          WHERE tenant_id = ? AND project_id = ? AND payment_type = 'INVOICE_RECEIPT'
+          WHERE tenant_id = ? AND project_id = ? AND payment_type IN ('INVOICE_RECEIPT','CREDIT_NOTE')
           ORDER BY COALESCE(received_date, created_at) DESC
         `, [tenantId, opportunity.project_id]),
         all(context.env.DB, `
@@ -106,9 +86,11 @@ export async function onRequestGet(context) {
           ORDER BY r.created_at DESC
         `, [tenantId, opportunityId]),
       ]);
+      const receipts = relatedRows.filter((row) => row.payment_type === 'INVOICE_RECEIPT');
+      const credits = relatedRows.filter((row) => row.payment_type === 'CREDIT_NOTE');
       finance = {
-        invoices: invoiceRows.map((row) => publicInvoice(row, receiptRows)),
-        receipts: receiptRows.map((row) => ({
+        invoices: invoiceRows.map((row) => parseInvoice(row, receipts, credits)),
+        receipts: receipts.map((row) => ({
           id: row.id,
           invoiceNumber: row.invoice_reference,
           amount: Number(row.amount || 0),
@@ -118,6 +100,19 @@ export async function onRequestGet(context) {
           reference: row.wallet_or_bank_reference,
           createdAt: row.created_at,
         })),
+        credits: credits.map((row) => {
+          const metadata = parseJson(row.notes, {});
+          return {
+            id:row.id,
+            invoiceId:metadata.invoiceId,
+            invoiceNumber:metadata.invoiceNumber,
+            creditNumber:row.invoice_reference,
+            amount:Number(row.amount || 0),
+            currency:row.currency || 'USD',
+            reason:metadata.reason || null,
+            issuedAt:metadata.issuedAt || row.created_at,
+          };
+        }),
         referrals: referralRows.map((row) => ({
           id: row.id,
           partnerId: row.partner_id,
@@ -148,6 +143,7 @@ export async function onRequestGet(context) {
       permissions: {
         canWrite: WRITE_ROLES.has(auth?.role),
         canFinance: canViewFinance(auth),
+        canApproveProposal: ['OWNER','ADMIN','BD_MANAGER'].includes(auth?.role),
       },
     });
   } catch (cause) {
