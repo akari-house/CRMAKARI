@@ -3,12 +3,21 @@
 
   const state = { currentOpportunityId:'', workspace:null, overview:null, templates:null, financeLoading:false };
   const $ = (selector, root = document) => root.querySelector(selector);
-  const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[char]));
   const title = (value) => String(value || '').toLowerCase().split('_').map((part) => part ? `${part[0].toUpperCase()}${part.slice(1)}` : '').join(' ');
   const money = (value, currency = 'USD') => new Intl.NumberFormat('en-US', { style:'currency', currency:currency || 'USD', maximumFractionDigits:2 }).format(Number(value || 0));
   const date = (value) => value ? new Intl.DateTimeFormat('en-GB', { day:'numeric', month:'short', year:'numeric' }).format(new Date(`${String(value).slice(0,10)}T12:00:00`)) : '—';
   const heading = (name) => $('#view-root .page-head h1')?.textContent?.trim() === name;
+
+  function commercialRoot() {
+    let root = $('#commercial-modal-root');
+    if (!root) {
+      root = document.createElement('div');
+      root.id = 'commercial-modal-root';
+      document.body.appendChild(root);
+    }
+    return root;
+  }
 
   async function request(path, options = {}) {
     const response = await fetch(path, { credentials:'same-origin', ...options, headers:{ 'content-type':'application/json', ...(options.headers || {}) } });
@@ -36,11 +45,11 @@
     return '';
   }
 
-  function closeModal() { const root = $('#modal-root'); if (root) root.innerHTML = ''; }
+  function closeModal() { commercialRoot().innerHTML = ''; }
   function modal(titleText, subtitle, body, submitText, onSubmit, wide = false) {
-    const root = $('#modal-root');
+    const root = commercialRoot();
     root.innerHTML = `<div class="commercial-modal-backdrop" data-commercial-action="modal-backdrop"><section class="commercial-modal ${wide ? 'wide' : ''}" role="dialog" aria-modal="true"><header><div><h2>${esc(titleText)}</h2><p>${esc(subtitle || '')}</p></div><button type="button" class="close" data-commercial-action="close-modal">×</button></header><form id="commercial-active-form"><div class="commercial-modal-body">${body}</div><footer><button type="button" class="btn" data-commercial-action="close-modal">Cancel</button>${submitText ? `<button type="submit" class="btn primary">${esc(submitText)}</button>` : ''}</footer></form></section></div>`;
-    const form = $('#commercial-active-form');
+    const form = $('#commercial-active-form', root);
     if (form && onSubmit) form.addEventListener('submit', async (event) => {
       event.preventDefault();
       const button = form.querySelector('[type="submit"]');
@@ -155,7 +164,7 @@
     const w = state.workspace;
     if (!w?.opportunity) return;
     modal('New proposal from template',`${w.opportunity.project_name} · ${w.opportunity.name}`,`<div class="commercial-form-grid">${select('templateId','Template',[['','No template'],...templates.map((item)=>[item.id,item.name])],'')}${field('title','Proposal title',`${w.opportunity.name} proposal`,'text',{required:true})}${field('amount','Amount',w.opportunity.estimated_value || 0,'number',{required:true,min:0,step:'0.01'})}${select('currency','Currency',[['USD','USD'],['EUR','EUR'],['USDT','USDT'],['GBP','GBP']],w.opportunity.currency || 'USD')}${select('status','Initial status',[['DRAFT','Draft'],['INTERNAL_REVIEW','Submit for internal review']],'INTERNAL_REVIEW')}${field('validityDate','Valid until','', 'date')}${textarea('scope','Scope','',{required:true})}${textarea('deliverables','Deliverables','',{required:true})}${textarea('timeline','Timeline')}${textarea('paymentTerms','Payment terms')}${textarea('assumptions','Assumptions')}${field('nextAction','Next action','Review and approve proposal','text',{full:true})}</div>`,'Create proposal',async(form)=>{ const data=formData(form); await request(`/api/opportunities/${encodeURIComponent(w.opportunity.id)}/proposal`,{method:'POST',body:JSON.stringify(data)}); closeModal(); notify('Proposal version created'); await refreshWorkspace(); },true);
-    const form=$('#commercial-active-form');
+    const form=$('#commercial-active-form', commercialRoot());
     form.elements.templateId.addEventListener('change',()=>{ const item=templates.find((entry)=>entry.id===form.elements.templateId.value); if(!item)return; ['scope','deliverables','timeline','paymentTerms','assumptions'].forEach((key)=>{ if(form.elements[key]) form.elements[key].value=item[key]||''; }); });
   }
 
@@ -225,7 +234,7 @@
     event.preventDefault(); event.stopImmediatePropagation();
     try{await action(element.dataset.commercialAction,element);}catch(cause){notify(cause.message||'Commercial action failed','error');}
   },true);
-  document.addEventListener('keydown',(event)=>{if(event.key==='Escape'&&$('#modal-root .commercial-modal'))closeModal();});
+  document.addEventListener('keydown',(event)=>{if(event.key==='Escape'&&$('#commercial-modal-root .commercial-modal'))closeModal();});
 
   const observer=new MutationObserver(()=>{renderFinance();enhanceWorkspace();});
   observer.observe(document.documentElement,{childList:true,subtree:true});
