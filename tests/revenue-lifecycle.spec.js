@@ -64,12 +64,13 @@ async function boot(page, mode, captures) {
 test('qualified opportunity opens the unified lifecycle and updates qualification', async ({page}) => {
   const captures=[]; await boot(page,'qualified',captures);
   await page.getByRole('button',{name:'Manage lifecycle'}).click();
-  await expect(page.getByRole('heading',{name:'GTM Partnership'})).toBeVisible();
-  await expect(page.getByText('Qualified lead',{exact:true})).toBeVisible();
-  await expect(page.getByText('Referral reward',{exact:true})).toBeVisible();
-  await page.getByRole('button',{name:'Qualification'}).click();
+  const workspace = page.getByLabel('Revenue lifecycle workspace');
+  await expect(workspace.getByRole('heading',{name:'GTM Partnership'})).toBeVisible();
+  await expect(workspace.locator('.revenue-step').filter({hasText:'Qualified lead'})).toBeVisible();
+  await expect(workspace.locator('.revenue-step').filter({hasText:'Referral reward'})).toBeVisible();
+  await workspace.getByRole('button',{name:'Qualification'}).click();
   await expect(page.getByRole('heading',{name:'Qualification checklist'})).toBeVisible();
-  await page.getByRole('button',{name:'Update qualification'}).click();
+  await page.locator('#revenue-active-form').getByRole('button',{name:'Update qualification'}).click();
   await expect.poll(() => captures.some((item) => item.path === '/api/opportunities/opp_1/qualification' && item.method === 'PATCH')).toBeTruthy();
   const sent = captures.find((item) => item.path === '/api/opportunities/opp_1/qualification').body;
   expect(sent.needConfirmed).toBe(true);
@@ -80,28 +81,29 @@ test('qualified opportunity opens the unified lifecycle and updates qualificatio
 test('won lifecycle connects engagement invoice payment and referral payout', async ({page}) => {
   const captures=[]; await boot(page,'won',captures);
   await page.getByRole('button',{name:'Manage lifecycle'}).click();
-  await expect(page.getByText('Project Alpha · GTM Partnership',{exact:true})).toBeVisible();
-  await page.getByRole('button',{name:'Create invoice'}).click();
+  const workspace = page.getByLabel('Revenue lifecycle workspace');
+  await expect(workspace.getByText('Project Alpha · GTM Partnership',{exact:true})).toBeVisible();
+  await workspace.locator('[data-revenue-action="invoice"]').click();
   await expect(page.getByRole('heading',{name:'Create engagement invoice'})).toBeVisible();
   await page.fill('input[name="recipientAddressLine1"]','Client Street 2');
   await page.fill('input[name="recipientCountry"]','Germany');
-  await page.getByRole('button',{name:'Create invoice'}).click();
+  await page.locator('#revenue-active-form').getByRole('button',{name:'Create invoice'}).click();
   await expect.poll(() => captures.some((item) => item.path === '/api/invoices' && item.method === 'POST')).toBeTruthy();
   const invoice = captures.find((item) => item.path === '/api/invoices').body;
   expect(invoice.projectId).toBe('prj_1');
   expect(invoice.campaignId).toBe('eng_1');
   expect(invoice.opportunityId).toBe('opp_1');
 
-  await page.getByRole('button',{name:'Record payment'}).click();
+  await workspace.getByRole('button',{name:'Record payment'}).click();
   await expect(page.getByRole('heading',{name:'Record client payment'})).toBeVisible();
   await page.fill('input[name="reference"]','BANK-REF-001');
-  await page.getByRole('button',{name:'Record payment'}).click();
+  await page.locator('#revenue-active-form').getByRole('button',{name:'Record payment'}).click();
   await expect.poll(() => captures.some((item) => item.path === '/api/invoices/inv_1/receipts' && item.method === 'POST')).toBeTruthy();
 
-  await page.getByRole('button',{name:'Record payout'}).click();
+  await workspace.getByRole('button',{name:'Record payout'}).click();
   await expect(page.getByRole('heading',{name:'Record referral payout'})).toBeVisible();
   await page.fill('input[name="transactionReference"]','0xreferral');
-  await page.getByRole('button',{name:'Mark referral paid'}).click();
+  await page.locator('#revenue-active-form').getByRole('button',{name:'Mark referral paid'}).click();
   await expect.poll(() => captures.some((item) => item.path === '/api/referrals/ref_1' && item.method === 'PATCH')).toBeTruthy();
   const payout = captures.find((item) => item.path === '/api/referrals/ref_1').body;
   expect(payout.status).toBe('PAID');
