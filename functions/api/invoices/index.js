@@ -1,11 +1,14 @@
 import { json, error, readJson } from '../../lib/response.js';
 import { all, first, run, makeId, nowIso } from '../../lib/db.js';
 import { requireTenant, canViewFinance } from '../../lib/permissions.js';
-
-const INVOICE_MARKER = 'INVOICE_V1';
-const ALLOWED_STATUSES = new Set(['DRAFT', 'INVOICED', 'PARTIALLY_PAID', 'PAID', 'OVERDUE', 'CANCELLED']);
-const text = (value, max = 5000) => value === null || value === undefined ? null : (String(value).trim().slice(0, max) || null);
-const roundMoney = (value) => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
+import { text } from '../../lib/revenue-lifecycle.js';
+import {
+  INVOICE_MARKER,
+  INVOICE_STATUSES,
+  parseInvoice,
+  roundMoney,
+  sanitizePaymentSchedule,
+} from '../../lib/commercial-hardening.js';
 
 function requireFinance(auth) {
   if (!canViewFinance(auth)) {
@@ -13,45 +16,6 @@ function requireFinance(auth) {
     permissionError.status = 403;
     throw permissionError;
   }
-}
-
-function parseInvoiceNotes(value) {
-  if (!value) return null;
-  try {
-    const parsed = JSON.parse(value);
-    return parsed?.recordType === INVOICE_MARKER ? parsed : null;
-  } catch {
-    return null;
-  }
-}
-
-function publicInvoice(row) {
-  const metadata = parseInvoiceNotes(row.notes) || {};
-  return {
-    id: row.id,
-    projectId: row.project_id,
-    projectName: row.project_name,
-    engagementId: metadata.engagementId || row.campaign_id || null,
-    opportunityId: metadata.opportunityId || null,
-    invoiceNumber: row.invoice_reference,
-    invoiceDate: metadata.invoiceDate || row.created_at?.slice(0, 10),
-    dueDate: row.due_date,
-    receivedDate: row.received_date,
-    status: row.status,
-    currency: row.currency || 'USD',
-    subtotal: Number(metadata.subtotal ?? row.amount ?? 0),
-    taxRate: Number(metadata.taxRate || 0),
-    taxAmount: Number(metadata.taxAmount || 0),
-    total: Number(metadata.total ?? row.amount ?? 0),
-    recipient: metadata.recipient || { name: row.project_name },
-    issuer: metadata.issuer || {},
-    lineItems: metadata.lineItems || [],
-    taxLabel: metadata.taxLabel || null,
-    notes: metadata.notes || null,
-    paymentInstructions: metadata.paymentInstructions || null,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  };
 }
 
 function sanitizeLineItems(input) {
@@ -119,16 +83,32 @@ export async function onRequestGet(context) {
     requireFinance(auth);
     const tenantId = requireTenant(auth);
     if (!context.env.DB) return json({ items: [], total: 0, demo: true });
-    const items = await all(context.env.DB, `
-      SELECT pay.*, p.name AS project_name
-      FROM payments pay
-      JOIN projects p ON p.id = pay.project_id AND p.tenant_id = pay.tenant_id
-      WHERE pay.tenant_id = ?
-        AND (pay.payment_type = 'INVOICE' OR pay.notes LIKE '%\"recordType\":\"INVOICE_V1\"%')
-      ORDER BY pay.created_at DESC
-      LIMIT 250
-    `, [tenantId]);
-    const invoices = items.map(publicInvoice);
+    const [invoiceRows, relatedRows] = await Promise.all([
+      all(context.env.DB, `
+        SELECT pay.*, p.name AS project_name
+        FROM payments pay
+        JOIN projects p ON p.id = pay.project_id AND p.tenant_id = pay.tenant_id
+        WHERE pay.tenant_id = ?
+          AND pay.payment_type = 'INVOICE'
+          AND pay.notes LIKE '%\"recordType\":\"INVOICE_V1\"%'
+        ORDER BY pay.created_at DESC
+        LIMIT 250
+      `, [tenantId]),
+      all(context.env.DB, `
+        SELECT * FROM payments
+        WHERE tenant_id = ? AND payment_type IN ('INVOICE_RECEIPT','CREDIT_NOTE')
+        ORDER BY created_at DESC
+        LIMIT 1000
+      `, [tenantId]),
+    ]);
+    const receipts = relatedRows.filter((row) => row.payment_type === 'INVOICE_RECEIPT');
+    const credits = relatedRows.filter((row) => row.payment_type === 'CREDIT_NOTE');
+    const today = new Date().toISOString().slice(0, 10);
+    const invoices = invoiceRows.map((row) => {
+      const item = parseInvoice(row, receipts, credits);
+      if (item.outstanding > 0 && item.dueDate && item.dueDate < today && ['INVOICED','PARTIALLY_PAID','PARTIALLY_CREDITED'].includes(item.status)) item.status = 'OVERDUE';
+      return item;
+    });
     return json({ items: invoices, total: invoices.length });
   } catch (cause) {
     return error(cause.message || 'Invoices could not be loaded', Number(cause.status || 500));
@@ -147,15 +127,17 @@ export async function onRequestPost(context) {
     const invoiceDate = text(body.invoiceDate, 10) || new Date().toISOString().slice(0, 10);
     const dueDate = text(body.dueDate, 10);
     const currency = (text(body.currency, 10) || 'USD').toUpperCase();
-    const status = String(body.status || 'INVOICED').toUpperCase();
+    const status = String(body.status || 'DRAFT').toUpperCase();
     const taxRate = Number(body.taxRate || 0);
     if (!projectId) return error('Client project is required', 422);
-    if (!ALLOWED_STATUSES.has(status)) return error('Invoice status is invalid', 422);
+    if (!INVOICE_STATUSES.has(status) || ['CANCELLED','CREDITED','PARTIALLY_CREDITED','OVERDUE'].includes(status)) return error('Invoice creation status is invalid', 422);
+    if (status === 'INVOICED' && !dueDate) return error('Due date is required for an issued invoice', 422);
     if (!Number.isFinite(taxRate) || taxRate < 0 || taxRate > 100) return error('Tax rate must be between 0 and 100', 422);
     const lineItems = sanitizeLineItems(body.lineItems);
     const subtotal = roundMoney(lineItems.reduce((sum, item) => sum + item.amount, 0));
     const taxAmount = roundMoney(subtotal * taxRate / 100);
     const total = roundMoney(subtotal + taxAmount);
+    const paymentSchedule = sanitizePaymentSchedule(body.paymentSchedule, total);
     if (!context.env.DB) return json({ id: makeId('inv'), invoiceNumber: 'DEMO-0001', total, created: true, demo: true }, 201);
 
     const project = await first(context.env.DB, `
@@ -241,6 +223,7 @@ export async function onRequestPost(context) {
       issuer,
       recipient,
       lineItems,
+      paymentSchedule,
       subtotal,
       taxRate: roundMoney(taxRate),
       taxAmount,
@@ -263,11 +246,11 @@ export async function onRequestPost(context) {
       text(body.paymentMethod, 200), text(body.reference, 1000), JSON.stringify(metadata), now, now,
     ]);
 
-    if (campaignId) {
+    if (campaignId && status !== 'DRAFT') {
       const totals = await first(context.env.DB, `
-        SELECT COALESCE(SUM(amount), 0) AS value
+        SELECT COALESCE(SUM(CASE WHEN payment_type = 'INVOICE' AND status NOT IN ('DRAFT','CANCELLED') THEN amount ELSE 0 END), 0) AS value
         FROM payments
-        WHERE tenant_id = ? AND campaign_id = ? AND payment_type = 'INVOICE'
+        WHERE tenant_id = ? AND campaign_id = ?
       `, [tenantId, campaignId]);
       await run(context.env.DB, `
         UPDATE campaigns SET amount_invoiced = ?, payment_status = CASE WHEN amount_received > 0 THEN 'PARTIALLY_PAID' ELSE 'INVOICED' END,
@@ -279,8 +262,8 @@ export async function onRequestPost(context) {
     await run(context.env.DB, `
       INSERT INTO audit_logs (id, tenant_id, user_id, action, entity_type, entity_id, after_data, created_at)
       VALUES (?, ?, ?, 'INVOICE_CREATED', 'INVOICE', ?, ?, ?)
-    `, [makeId('aud'), tenantId, auth.userId, id, JSON.stringify({ invoiceNumber, projectId, campaignId, opportunityId, total, currency, status }), now]);
-    return json({ id, invoiceNumber, engagementId: campaignId, opportunityId, total, status, created: true }, 201);
+    `, [makeId('aud'), tenantId, auth.userId, id, JSON.stringify({ invoiceNumber, projectId, campaignId, opportunityId, total, currency, status, scheduleItems:paymentSchedule.length }), now]);
+    return json({ id, invoiceNumber, engagementId: campaignId, opportunityId, total, status, paymentSchedule, created: true }, 201);
   } catch (cause) {
     console.error('AKARI invoice creation error', cause);
     return error(cause.message || 'Invoice could not be created', Number(cause.status || 500));
