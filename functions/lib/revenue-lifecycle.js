@@ -54,6 +54,9 @@ export function parseLifecycleActivity(row) {
 
 export function parseEngagement(row) {
   const metadata = parseJson(row?.notes, {});
+  const campaignCost = Number(row.campaign_cost || 0);
+  const creatorCost = Number(row.creator_cost || 0);
+  const otherCost = Number(row.other_cost || 0);
   return {
     id: row.id,
     projectId: row.project_id,
@@ -67,7 +70,10 @@ export function parseEngagement(row) {
     deliverables: row.deliverables_summary,
     grossRevenue: Number(row.gross_revenue || 0),
     currency: row.currency || 'USD',
-    directCosts: Number(row.campaign_cost || 0) + Number(row.creator_cost || 0) + Number(row.other_cost || 0),
+    campaignCost,
+    creatorCost,
+    otherCost,
+    directCosts: campaignCost + creatorCost + otherCost,
     marginBeforeReferral: Number(row.margin_before_referral || 0),
     referralPartnerId: row.referral_partner_id,
     referralPercentage: Number(row.referral_percentage || 0),
