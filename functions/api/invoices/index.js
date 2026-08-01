@@ -31,6 +31,8 @@ function publicInvoice(row) {
     id: row.id,
     projectId: row.project_id,
     projectName: row.project_name,
+    engagementId: metadata.engagementId || row.campaign_id || null,
+    opportunityId: metadata.opportunityId || null,
     invoiceNumber: row.invoice_reference,
     invoiceDate: metadata.invoiceDate || row.created_at?.slice(0, 10),
     dueDate: row.due_date,
@@ -140,6 +142,8 @@ export async function onRequestPost(context) {
     const tenantId = requireTenant(auth);
     const body = await readJson(context.request);
     const projectId = text(body.projectId, 120);
+    const campaignId = text(body.campaignId, 120);
+    const requestedOpportunityId = text(body.opportunityId, 120);
     const invoiceDate = text(body.invoiceDate, 10) || new Date().toISOString().slice(0, 10);
     const dueDate = text(body.dueDate, 10);
     const currency = (text(body.currency, 10) || 'USD').toUpperCase();
@@ -163,6 +167,28 @@ export async function onRequestPost(context) {
       LIMIT 1
     `, [tenantId, projectId]);
     if (!project) return error('Client project was not found', 404);
+
+    let opportunityId = requestedOpportunityId;
+    if (campaignId) {
+      const campaign = await first(context.env.DB, `
+        SELECT id, opportunity_id
+        FROM campaigns
+        WHERE tenant_id = ? AND id = ? AND project_id = ?
+        LIMIT 1
+      `, [tenantId, campaignId, projectId]);
+      if (!campaign) return error('Selected engagement does not belong to this client and workspace', 422);
+      if (opportunityId && campaign.opportunity_id && opportunityId !== campaign.opportunity_id) {
+        return error('Selected opportunity does not match the engagement', 422);
+      }
+      opportunityId = campaign.opportunity_id || opportunityId;
+    } else if (opportunityId) {
+      const opportunity = await first(context.env.DB, `
+        SELECT id FROM opportunities
+        WHERE tenant_id = ? AND id = ? AND project_id = ?
+        LIMIT 1
+      `, [tenantId, opportunityId, projectId]);
+      if (!opportunity) return error('Selected opportunity does not belong to this client and workspace', 422);
+    }
 
     const tenant = await loadBillingProfile(context.env.DB, tenantId);
     const billingProfile = tenant.billingProfile || {};
@@ -201,12 +227,7 @@ export async function onRequestPost(context) {
     if (!recipient.name) return error('Client billing name is required', 422);
 
     const requestedNumber = text(body.invoiceNumber, 80);
-    const invoiceNumber = requestedNumber || await nextInvoiceNumber(
-      context.env.DB,
-      tenantId,
-      billingProfile.invoicePrefix || 'AKARI',
-      invoiceDate,
-    );
+    const invoiceNumber = requestedNumber || await nextInvoiceNumber(context.env.DB, tenantId, billingProfile.invoicePrefix || 'AKARI', invoiceDate);
     const duplicate = await first(context.env.DB, 'SELECT id FROM payments WHERE tenant_id = ? AND invoice_reference = ? LIMIT 1', [tenantId, invoiceNumber]);
     if (duplicate) return error('This invoice number already exists', 409);
 
@@ -215,6 +236,8 @@ export async function onRequestPost(context) {
     const metadata = {
       recordType: INVOICE_MARKER,
       invoiceDate,
+      engagementId: campaignId,
+      opportunityId,
       issuer,
       recipient,
       lineItems,
@@ -235,15 +258,29 @@ export async function onRequestPost(context) {
         payment_method, wallet_or_bank_reference, notes, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, 'INVOICE', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
-      id, tenantId, projectId, text(body.campaignId, 120), invoiceNumber,
+      id, tenantId, projectId, campaignId, invoiceNumber,
       total, currency, total, dueDate, receivedDate, status,
       text(body.paymentMethod, 200), text(body.reference, 1000), JSON.stringify(metadata), now, now,
     ]);
+
+    if (campaignId) {
+      const totals = await first(context.env.DB, `
+        SELECT COALESCE(SUM(amount), 0) AS value
+        FROM payments
+        WHERE tenant_id = ? AND campaign_id = ? AND payment_type = 'INVOICE'
+      `, [tenantId, campaignId]);
+      await run(context.env.DB, `
+        UPDATE campaigns SET amount_invoiced = ?, payment_status = CASE WHEN amount_received > 0 THEN 'PARTIALLY_PAID' ELSE 'INVOICED' END,
+          updated_at = ?, updated_by = ?
+        WHERE tenant_id = ? AND id = ?
+      `, [Number(totals?.value || total), now, auth.userId, tenantId, campaignId]);
+    }
+
     await run(context.env.DB, `
       INSERT INTO audit_logs (id, tenant_id, user_id, action, entity_type, entity_id, after_data, created_at)
       VALUES (?, ?, ?, 'INVOICE_CREATED', 'INVOICE', ?, ?, ?)
-    `, [makeId('aud'), tenantId, auth.userId, id, JSON.stringify({ invoiceNumber, projectId, total, currency, status }), now]);
-    return json({ id, invoiceNumber, total, status, created: true }, 201);
+    `, [makeId('aud'), tenantId, auth.userId, id, JSON.stringify({ invoiceNumber, projectId, campaignId, opportunityId, total, currency, status }), now]);
+    return json({ id, invoiceNumber, engagementId: campaignId, opportunityId, total, status, created: true }, 201);
   } catch (cause) {
     console.error('AKARI invoice creation error', cause);
     return error(cause.message || 'Invoice could not be created', Number(cause.status || 500));
