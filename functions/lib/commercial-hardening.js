@@ -1,5 +1,6 @@
 import { parseJson, text } from './revenue-lifecycle.js';
 
+export { parseJson };
 export const INVOICE_MARKER = 'INVOICE_V1';
 export const CREDIT_NOTE_MARKER = 'AKARI_CREDIT_NOTE_V1';
 export const PROPOSAL_STATUSES = new Set(['DRAFT', 'INTERNAL_REVIEW', 'APPROVED', 'SENT', 'ACCEPTED', 'REJECTED', 'EXPIRED', 'SUPERSEDED']);
