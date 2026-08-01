@@ -88,7 +88,13 @@
   function stabilizeDismissLayer(layer) {
     if (!(layer instanceof HTMLElement) || layer.dataset.akariDismissGuard === 'ready') return;
     layer.dataset.akariDismissGuard = 'ready';
+    // Some compatibility modals historically placed their close marker on the
+    // entire backdrop. Document-level capture handlers then interpreted every
+    // click inside the form as a close request. Remove backdrop close markers
+    // and own true outside-click dismissal here; explicit X/Cancel controls keep
+    // their own close attributes.
     if (layer.dataset.action === 'close-modal') layer.removeAttribute('data-action');
+    if (layer.hasAttribute('data-ops-close')) layer.removeAttribute('data-ops-close');
     layer.addEventListener('click', (event) => {
       if (event.target !== layer) return;
       event.preventDefault();

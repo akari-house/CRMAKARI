@@ -1,0 +1,38 @@
+/* Structured BD qualification, meeting booking and invoice controls.
+   This layer extends the canonical AKARI components without owning the shell. */
+.bd-lead-modal{width:min(980px,calc(100vw - 28px));max-height:min(92vh,980px)}
+.bd-lead-modal .modal-body,.bd-owned-backdrop .modal-body{padding:16px;background:linear-gradient(180deg,rgba(255,255,255,.012),transparent)}
+.bd-form-sections{display:grid;gap:13px}
+.bd-form-section{display:grid;gap:12px;padding:14px;border:1px solid rgba(255,255,255,.075);border-radius:14px;background:rgba(7,10,15,.54);box-shadow:inset 0 1px 0 rgba(255,255,255,.025)}
+.bd-form-section[hidden]{display:none!important}
+.bd-form-section>header{display:flex;align-items:flex-start;justify-content:space-between;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.065)}
+.bd-form-section>header strong,.bd-form-section>header span{display:block}.bd-form-section>header strong{font-size:11px;color:var(--ak-app-text)}.bd-form-section>header span{margin-top:4px;color:var(--ak-app-muted);font-size:9px;line-height:1.5}
+.bd-field-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px 12px;align-items:start}
+.bd-field{display:grid;gap:6px;min-width:0}.bd-field.full,.bd-check-row.full{grid-column:1/-1}.bd-field>span{font-size:9px;font-weight:700;color:var(--ak-app-muted)}
+.bd-field input,.bd-field select,.bd-field textarea{width:100%;min-width:0;border:1px solid var(--ak-app-line);border-radius:10px;background:#090d14;color:var(--ak-app-text);font:inherit;outline:none;transition:border-color .14s ease,box-shadow .14s ease,background .14s ease}
+.bd-field input,.bd-field select{height:42px;padding:0 12px}.bd-field textarea{min-height:92px;padding:11px 12px;resize:vertical;line-height:1.5}
+.bd-field input:focus,.bd-field select:focus,.bd-field textarea:focus{border-color:rgba(255,122,24,.55);box-shadow:0 0 0 3px rgba(255,122,24,.10);background:#0b1018}
+.bd-field input:disabled,.bd-field select:disabled,.bd-field textarea:disabled{cursor:not-allowed;opacity:.58}
+.bd-field small{color:var(--ak-app-muted);font-size:8px;line-height:1.45}
+.bd-check-row{display:flex;align-items:flex-start;gap:10px;min-height:42px;padding:10px 11px;border:1px solid var(--ak-app-line);border-radius:10px;background:#090d14;cursor:pointer}
+.bd-check-row input{flex:0 0 auto;width:16px!important;height:16px!important;margin:1px 0 0;accent-color:var(--ak-brand)}
+.bd-check-row span,.bd-check-row strong,.bd-check-row small{display:block}.bd-check-row strong{color:var(--ak-app-text);font-size:10px}.bd-check-row small{margin-top:3px;color:var(--ak-app-muted);font-size:8px;line-height:1.4}
+.bd-check-row:focus-within{border-color:rgba(255,122,24,.55);box-shadow:0 0 0 3px rgba(255,122,24,.09)}
+.bd-identity-banner{display:flex;align-items:center;gap:10px;padding:11px 12px;border:1px solid rgba(38,201,128,.26);border-radius:11px;background:rgba(38,201,128,.09);color:#9ff4c9;font-size:9px;line-height:1.45}
+.bd-identity-banner strong{white-space:nowrap;color:#baf8d8}.bd-identity-banner.warning{border-color:rgba(255,176,32,.28);background:rgba(255,176,32,.085);color:#f6d79d}.bd-identity-banner.warning strong{color:#ffd17a}.bd-identity-banner.error{flex-wrap:wrap;border-color:rgba(242,92,110,.3);background:rgba(242,92,110,.08);color:#ffb4c0}.bd-identity-banner.error strong{color:#ffd0d7}.bd-identity-banner .btn{margin-left:auto}
+.bd-profile-panel{border-color:rgba(255,122,24,.16)!important;background:linear-gradient(155deg,rgba(255,122,24,.055),rgba(10,14,21,.76))!important}
+.bd-profile-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px}.bd-profile-heading h3,.bd-profile-heading span{display:block}.bd-profile-heading h3{margin:0}.bd-profile-heading>div>span{margin-top:4px;color:#ffae68;font-size:9px}.bd-completeness{padding:5px 8px;border:1px solid rgba(255,122,24,.22);border-radius:999px;background:rgba(255,122,24,.075);color:#ffbd83;font-size:8px;font-weight:800}
+.bd-profile-progress{height:4px;margin-bottom:13px;overflow:hidden;border-radius:999px;background:rgba(255,255,255,.055)}.bd-profile-progress i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--ak-brand),var(--ak-brand-2));box-shadow:0 0 16px rgba(255,122,24,.24)}
+.bd-profile-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.bd-profile-property{display:grid;gap:4px;min-height:58px;padding:9px 10px;border:1px solid rgba(255,255,255,.06);border-radius:10px;background:rgba(6,9,14,.52)}.bd-profile-property>span{color:var(--ak-app-muted);font-size:8px;text-transform:uppercase;letter-spacing:.06em}.bd-profile-property>strong{overflow-wrap:anywhere;color:var(--ak-app-text);font-size:10px;line-height:1.4}.bd-profile-property small{display:block;margin-top:3px;color:var(--ak-app-muted);font-size:8px;font-weight:500}
+.bd-owned-backdrop .modal{width:min(880px,calc(100vw - 28px));max-height:92vh}
+.bd-settings-actions{display:flex;justify-content:flex-end;margin-top:14px}.bd-billing-panel{grid-column:1/-1;margin-top:13px}
+
+@media(max-width:700px){
+  .bd-lead-modal,.bd-owned-backdrop .modal{width:calc(100vw - 16px);max-height:94vh}
+  .bd-field-grid,.bd-profile-grid{grid-template-columns:1fr}
+  .bd-field.full,.bd-check-row.full{grid-column:auto}
+  .bd-identity-banner{align-items:flex-start;flex-direction:column}.bd-identity-banner .btn{margin-left:0}
+  .bd-profile-heading{align-items:flex-start;flex-direction:column}
+}
+
+@media(prefers-reduced-motion:reduce){.bd-field input,.bd-field select,.bd-field textarea{transition:none}}

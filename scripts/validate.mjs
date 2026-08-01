@@ -8,9 +8,10 @@ const required = [
   'public/assets/page-upgrades-v1.css','public/assets/page-upgrades-v1.js',
   'public/assets/crm-stabilization-m1.css','public/assets/crm-stabilization-m1.js','public/assets/global-flow-v1.js',
   'public/assets/crm.css','public/assets/crm.js','public/assets/operations-v1.css','public/assets/operations-v1.js',
-  'public/assets/lifecycle-v1.css','public/assets/lifecycle-v1.js','public/assets/identity-v1.js','public/sw.js',
-  'functions/_middleware.js','functions/api/[[path]].js','functions/api/akari-leads/index.js','functions/api/akari-leads/[id].js',
-  'functions/api/contacts/index.js','functions/api/contacts/[id].js','functions/api/projects/[id]/timeline.js',
+  'public/assets/lifecycle-v1.css','public/assets/lifecycle-v1.js','public/assets/identity-v1.js',
+  'public/assets/bd-workflow-v1.css','public/assets/bd-workflow-v1.js','public/sw.js',
+  'functions/_middleware.js','functions/lib/bd-profile.js','functions/api/[[path]].js','functions/api/akari-leads/index.js','functions/api/akari-leads/[id].js',
+  'functions/api/contacts/index.js','functions/api/contacts/[id].js','functions/api/activities/index.js','functions/api/projects/[id].js','functions/api/projects/[id]/timeline.js',
   'functions/api/imports/akari-leads/commit.js','functions/api/invoices/index.js','functions/api/invoices/[id].js',
   'functions/api/billing-profile/index.js','functions/api/team/index.js','functions/api/team/[id].js','functions/api/profile/index.js',
   'functions/api/projects/[id]/convert.js','db/migrations/0001_core.sql','README.md','playwright.config.js','tests/ui.spec.js',
@@ -37,7 +38,7 @@ for (const file of [...new Set(jsFiles)]) {
   }
 }
 const html = await readFile('public/index.html','utf8');
-for (const requirement of ['AKARI CRM','./assets/crm.css?v=','./assets/global-flow-v1.js?v=','./assets/crm.js?v=','./assets/operations-v1.js?v=','./assets/lifecycle-v1.js?v=','./assets/identity-v1.js?v=','./assets/uilib.css?v=','./assets/page-upgrades-v1.css?v=','./assets/page-upgrades-v1.js?v=','./assets/crm-stabilization-m1.css?v=','./assets/crm-stabilization-m1.js?v=','id="app"','id="modal-root"','id="toast-root"']) {
+for (const requirement of ['AKARI CRM','./assets/crm.css?v=','./assets/global-flow-v1.js?v=','./assets/crm.js?v=','./assets/operations-v1.js?v=','./assets/lifecycle-v1.js?v=','./assets/identity-v1.js?v=','./assets/uilib.css?v=','./assets/page-upgrades-v1.css?v=','./assets/page-upgrades-v1.js?v=','./assets/crm-stabilization-m1.css?v=','./assets/crm-stabilization-m1.js?v=','./assets/bd-workflow-v1.css?v=','./assets/bd-workflow-v1.js?v=','id="app"','id="modal-root"','id="toast-root"']) {
   if (!html.includes(requirement)) throw new Error(`The application shell is incomplete: missing ${requirement}`);
 }
 if (html.includes('./assets/app.js') || html.includes('./assets/interactive-import.js')) throw new Error('Legacy placeholder application scripts must not be loaded by the production entry point');
@@ -68,8 +69,16 @@ const stabilization = await readFile('public/assets/crm-stabilization-m1.js','ut
 for (const requirement of ['m1-lead-lifecycle','m1-lead-follow-up','m1-lead-identity','edit-contact-m1','Operational timeline','/timeline']) {
   if (!stabilization.includes(requirement)) throw new Error(`CRM stabilization UI is incomplete: missing ${requirement}`);
 }
+const bdWorkflow = await readFile('public/assets/bd-workflow-v1.js','utf8');
+for (const requirement of ['Organisation type','Total funding raised','Assets under management','Primary point of contact','Book discovery call','/api/invoices','/api/billing-profile']) {
+  if (!bdWorkflow.includes(requirement)) throw new Error(`BD workflow UI is incomplete: missing ${requirement}`);
+}
+const bdProfile = await readFile('functions/lib/bd-profile.js','utf8');
+for (const requirement of ['VENTURE_CAPITAL','amountRaised','aumAmount','MEETING_BOOKED','PENDING_INTEGRATION','profileCompleteness']) {
+  if (!bdProfile.includes(requirement)) throw new Error(`BD profile model is incomplete: missing ${requirement}`);
+}
 const serviceWorker = await readFile('public/sw.js','utf8');
-for (const requirement of ['./assets/global-flow-v1.js?v=','./assets/crm.js?v=','./assets/operations-v1.js?v=','./assets/lifecycle-v1.js?v=','./assets/identity-v1.js?v=','./assets/uilib.css?v=','./assets/page-upgrades-v1.js?v=','./assets/crm-stabilization-m1.js?v=']) {
+for (const requirement of ['./assets/global-flow-v1.js?v=','./assets/crm.js?v=','./assets/operations-v1.js?v=','./assets/lifecycle-v1.js?v=','./assets/identity-v1.js?v=','./assets/uilib.css?v=','./assets/page-upgrades-v1.js?v=','./assets/crm-stabilization-m1.js?v=','./assets/bd-workflow-v1.js?v=','./assets/bd-workflow-v1.css?v=']) {
   if (!serviceWorker.includes(requirement)) throw new Error(`The service-worker shell is missing ${requirement}`);
 }
 const conversionApi = await readFile('functions/api/projects/[id]/convert.js','utf8');
@@ -83,8 +92,16 @@ for (const file of ['functions/api/akari-leads/index.js','functions/api/contacts
   }
 }
 const leadApi = await readFile('functions/api/akari-leads/index.js','utf8');
-for (const requirement of ['PRIVATE_TENANT_IMPORT','followUp','identity','owner','orderBy','p.tenant_id = ?']) {
+for (const requirement of ['PRIVATE_TENANT_IMPORT','followUp','identity','owner','orderBy','p.tenant_id = ?','buildBdProfile','referralPartnerId','contactFullName']) {
   if (!leadApi.includes(requirement)) throw new Error(`Advanced lead operations are incomplete: missing ${requirement}`);
+}
+const projectDetail = await readFile('functions/api/projects/[id].js','utf8');
+for (const requirement of ['WHERE tenant_id = ? AND id = ?','profileCompleteness','invoiceSummary','canViewFinance']) {
+  if (!projectDetail.includes(requirement)) throw new Error(`Tenant-safe BD project detail is incomplete: missing ${requirement}`);
+}
+const activityApi = await readFile('functions/api/activities/index.js','utf8');
+for (const requirement of ['meetingScheduledAt','PENDING_INTEGRATION','MEETING_PREPARATION','tenant_id = ? AND id = ? AND project_id = ?']) {
+  if (!activityApi.includes(requirement)) throw new Error(`Meeting booking workflow is incomplete: missing ${requirement}`);
 }
 const contactPatch = await readFile('functions/api/contacts/[id].js','utf8');
 for (const requirement of ['WHERE tenant_id = ? AND id = ?','Referenced project does not belong to this workspace','CONTACT_UPDATED']) {
