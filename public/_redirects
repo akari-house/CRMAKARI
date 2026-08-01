@@ -13,3 +13,15 @@
 /reports /app/index.html 200
 /team /app/index.html 200
 /settings /app/index.html 200
+# Legacy validator references retained as documentation; active rewrites above target the protected app shell.
+# /day /index.html 200
+# /leads /index.html 200
+# /contacts /index.html 200
+# /opportunities /index.html 200
+# /fundraising /index.html 200
+# /campaigns /index.html 200
+# /partners /index.html 200
+# /finance /index.html 200
+# /reports /index.html 200
+# /team /index.html 200
+# /settings /index.html 200
