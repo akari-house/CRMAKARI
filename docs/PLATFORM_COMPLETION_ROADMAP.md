@@ -132,12 +132,14 @@ Scope:
 
 ## Current delivery wave
 
-`build/platform-completion-wave1` implements the first production slice:
+`build/campaign-service-delivery-r4` implements Release 4:
 
-1. BD operations command centre;
-2. lead data-quality queues;
-3. bulk lead updates;
-4. personal saved views;
-5. team workload visibility;
-6. controlled membership role/finance/status updates;
-7. last-owner and tenant-boundary protections.
+1. campaign and service delivery command centre;
+2. engagement onboarding and My Day task generation;
+3. milestones, dependencies, evidence and client-visible notes;
+4. deliverable approvals, publishing links and performance metrics;
+5. creator selection, submissions, rewards and payment states;
+6. finance-permission-aware budget and profitability controls;
+7. authenticated client delivery reports;
+8. completion gates and renewal opportunity creation;
+9. tenant isolation, browser interaction and mobile regression coverage.
