@@ -267,6 +267,7 @@ export async function onRequestPatch(context) {
     } else if (action === 'update-overview') {
       const status = String(body.status || row.status).toUpperCase();
       if (!DELIVERY_STAGES.includes(status)) return error('Engagement status is invalid', 422);
+      if (status === 'COMPLETED') return error('Use the governed completion action to complete an engagement', 409);
       const ownerUserId = await validateOwner(context.env.DB, tenantId, text(body.ownerUserId, 120) || delivery.deliveryOwnerId || row.campaign_owner_id || auth.userId);
       const financialKeys = ['grossRevenue','campaignCost','creatorCost','otherCost'];
       if (financialKeys.some((key) => hasOwn(body, key)) && !canViewFinance(auth)) return error('Finance permission is required to update commercial values', 403);
@@ -305,8 +306,9 @@ export async function onRequestPatch(context) {
     } else if (action === 'upsert-creator') {
       const list = Array.isArray(delivery.creators) ? [...delivery.creators] : [];
       const index = body.item?.id ? list.findIndex((item) => item.id === body.item.id) : -1;
+      const financeKeys = ['reward','currency','paymentStatus'];
+      if (financeKeys.some((key) => hasOwn(body.item || {}, key)) && !canViewFinance(auth)) return error('Finance permission is required to update creator rewards or payment status', 403);
       const item = sanitizeCreator(body.item || {}, index >= 0 ? list[index] : {});
-      if (hasOwn(body.item || {}, 'reward') && !canViewFinance(auth)) return error('Finance permission is required to update creator rewards', 403);
       if (index >= 0) list[index] = item;
       else list.push(item);
       delivery.creators = list.slice(0, 500);
