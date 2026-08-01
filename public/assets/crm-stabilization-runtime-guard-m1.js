@@ -2,9 +2,17 @@
   function protectProjectModal() {
     const modal = document.querySelector('#modal-root .ak-project-modal');
     const backdrop = modal?.closest('.modal-backdrop');
-    if (!backdrop || backdrop.dataset.m1ProjectBackdrop === 'protected') return;
-    backdrop.removeAttribute('data-v8-close');
-    backdrop.dataset.m1ProjectBackdrop = 'protected';
+    if (!modal || !backdrop) return;
+
+    // The legacy runtime stops click propagation from every modal. The
+    // stabilized relationship workspace owns its own tab and form events, so
+    // remove that inherited blocker while retaining an explicit close button.
+    modal.removeAttribute('onclick');
+
+    if (backdrop.dataset.m1ProjectBackdrop !== 'protected') {
+      backdrop.removeAttribute('data-v8-close');
+      backdrop.dataset.m1ProjectBackdrop = 'protected';
+    }
   }
 
   document.addEventListener('click', (event) => {
