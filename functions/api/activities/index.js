@@ -74,7 +74,7 @@ export async function onRequestPost(context) {
           INSERT INTO tasks (
             id,tenant_id,title,description,owner_user_id,created_by,status,priority,due_at,project_id,
             contact_id,opportunity_id,activity_type,show_on_home,created_at,updated_at
-          ) VALUES (?,?,?,?,?,?,'TODO','HIGH',?,?,?,?,?,'MEETING_PREPARATION',1,?,?)
+          ) VALUES (?,?,?,?,?,?,'TODO','HIGH',?,?,?,?,'MEETING_PREPARATION',1,?,?)
         `).bind(
           makeId('tsk'),tenantId,`Prepare for ${project.name} discovery call`,
           text(body.preparationNotes,5000)||'Review the relationship profile, objectives, decision-makers and agreed agenda before the call.',
