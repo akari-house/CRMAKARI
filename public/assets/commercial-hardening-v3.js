@@ -7,7 +7,8 @@
   const title = (value) => String(value || '').toLowerCase().split('_').map((part) => part ? `${part[0].toUpperCase()}${part.slice(1)}` : '').join(' ');
   const money = (value, currency = 'USD') => new Intl.NumberFormat('en-US', { style:'currency', currency:currency || 'USD', maximumFractionDigits:2 }).format(Number(value || 0));
   const date = (value) => value ? new Intl.DateTimeFormat('en-GB', { day:'numeric', month:'short', year:'numeric' }).format(new Date(`${String(value).slice(0,10)}T12:00:00`)) : '—';
-  const heading = (name) => $('#view-root .page-head h1')?.textContent?.trim() === name;
+  const pageHeading = () => $('#view-root .page-head h1')?.textContent?.trim() || '';
+  const isFinancePage = () => ['Finance', 'Invoices & Finance'].includes(pageHeading());
 
   function commercialRoot() {
     let root = $('#commercial-modal-root');
@@ -81,14 +82,14 @@
   }
 
   async function renderFinance(force = false) {
-    if (!heading('Finance') || state.financeLoading) return;
+    if (!isFinancePage() || state.financeLoading) return;
     const existing = $('#commercial-command-centre');
     if (existing && !force) return;
     state.financeLoading = true;
     try {
       const payload = await request('/api/commercial/overview');
       state.overview = payload;
-      if (!heading('Finance')) return;
+      if (!isFinancePage()) return;
       existing?.remove();
       const invoices = payload.invoices || [];
       const referrals = payload.referrals || [];
@@ -111,7 +112,7 @@
         </div>`;
       $('#view-root .page-head')?.insertAdjacentElement('afterend', root);
     } catch (cause) {
-      if (heading('Finance')) notify(cause.message || 'Commercial controls could not be loaded', 'error');
+      if (isFinancePage()) notify(cause.message || 'Commercial controls could not be loaded', 'error');
     } finally { state.financeLoading = false; }
   }
 
@@ -156,7 +157,7 @@
 
   async function openTemplates() {
     const templates = await loadTemplates(true);
-    modal('Proposal templates','Reusable tenant-owned scope, deliverables and terms.',`<div class="commercial-template-list">${templates.length ? templates.map((item) => `<article><div><strong>${esc(item.name)}</strong><span>${esc(title(item.serviceType))} · ${esc(title(item.commercialModel))}</span></div><button type="button" class="btn small" data-commercial-action="archive-template" data-id="${esc(item.id)}">Archive</button></article>`).join('') : '<div class="commercial-empty">No templates yet.</div>'}</div><div class="commercial-form-grid">${field('name','Template name','', 'text',{required:true})}${field('serviceType','Service type','MARKETING_CAMPAIGN')}${select('commercialModel','Commercial model',[['FIXED_FEE','Fixed fee'],['RETAINER','Retainer'],['PERFORMANCE','Performance'],['HYBRID','Hybrid']],'FIXED_FEE')}${field('defaultValidityDays','Validity days',14,'number',{min:1,max:365})}${textarea('scope','Scope','',{required:true})}${textarea('deliverables','Deliverables','',{required:true})}${textarea('timeline','Timeline')}${textarea('paymentTerms','Payment terms')}${textarea('assumptions','Assumptions')}</div>`,'Save template',async(form)=>{ const data=formData(form); await request('/api/commercial/templates',{method:'POST',body:JSON.stringify(data)}); state.templates=null; closeModal(); notify('Proposal template saved'); if(heading('Finance')) renderFinance(true); },true);
+    modal('Proposal templates','Reusable tenant-owned scope, deliverables and terms.',`<div class="commercial-template-list">${templates.length ? templates.map((item) => `<article><div><strong>${esc(item.name)}</strong><span>${esc(title(item.serviceType))} · ${esc(title(item.commercialModel))}</span></div><button type="button" class="btn small" data-commercial-action="archive-template" data-id="${esc(item.id)}">Archive</button></article>`).join('') : '<div class="commercial-empty">No templates yet.</div>'}</div><div class="commercial-form-grid">${field('name','Template name','', 'text',{required:true})}${field('serviceType','Service type','MARKETING_CAMPAIGN')}${select('commercialModel','Commercial model',[['FIXED_FEE','Fixed fee'],['RETAINER','Retainer'],['PERFORMANCE','Performance'],['HYBRID','Hybrid']],'FIXED_FEE')}${field('defaultValidityDays','Validity days',14,'number',{min:1,max:365})}${textarea('scope','Scope','',{required:true})}${textarea('deliverables','Deliverables','',{required:true})}${textarea('timeline','Timeline')}${textarea('paymentTerms','Payment terms')}${textarea('assumptions','Assumptions')}</div>`,'Save template',async(form)=>{ const data=formData(form); await request('/api/commercial/templates',{method:'POST',body:JSON.stringify(data)}); state.templates=null; closeModal(); notify('Proposal template saved'); if(isFinancePage()) renderFinance(true); },true);
   }
 
   async function newProposal() {
@@ -170,7 +171,7 @@
 
   function parseSchedule(value) {
     if (!String(value || '').trim()) return [];
-    return String(value).split('\n').map((line,index)=>{ const [label,dueDate,amount]=line.split('|').map((part)=>part.trim()); if(!label||!dueDate||!amount) throw new Error(`Payment schedule line ${index+1} must be Label | YYYY-MM-DD | Amount`); return {label,dueDate,amount:Number(amount)}; });
+    return String(value).split(String.fromCharCode(10)).map((line,index)=>{ const [label,dueDate,amount]=line.split('|').map((part)=>part.trim()); if(!label||!dueDate||!amount) throw new Error(`Payment schedule line ${index+1} must be Label | YYYY-MM-DD | Amount`); return {label,dueDate,amount:Number(amount)}; });
   }
 
   async function newInvoice() {
@@ -178,7 +179,7 @@
     const engagement=w?.engagements?.[0];
     if(!w?.opportunity||!engagement)return notify('A won service engagement is required.','error');
     const today=new Date().toISOString().slice(0,10); const due=new Date(); due.setDate(due.getDate()+14);
-    modal('Create scheduled invoice',`${w.opportunity.project_name} · ${engagement.name}`,`<div class="commercial-form-grid">${select('status','Invoice state',[['DRAFT','Draft'],['INVOICED','Issue now']],'DRAFT')}${field('invoiceDate','Invoice date',today,'date',{required:true})}${field('dueDate','Due date',due.toISOString().slice(0,10),'date')}${select('currency','Currency',[['USD','USD'],['EUR','EUR'],['USDT','USDT'],['GBP','GBP']],engagement.currency || 'USD')}${field('recipientName','Client billing name',w.opportunity.project_name,'text',{required:true})}${field('recipientEmail','Billing email',w.opportunity.primary_contact_email || '','email')}${field('recipientAddressLine1','Client address','','text',{required:true})}${field('recipientCountry','Client country','','text',{required:true})}${field('description','Invoice item',engagement.name,'text',{required:true})}${field('amount','Amount',engagement.grossRevenue || 0,'number',{required:true,min:0,step:'0.01'})}${field('taxRate','Tax rate %',0,'number',{min:0,max:100,step:'0.01'})}${textarea('taxLabel','Tax note')}${textarea('paymentSchedule','Payment schedule','',{placeholder:'Deposit | 2026-08-15 | 5000\nFinal payment | 2026-09-15 | 5000'})}${textarea('notes','Invoice notes')}</div>`,'Create invoice',async(form)=>{ const data=formData(form); const schedule=parseSchedule(data.paymentSchedule); await request('/api/invoices',{method:'POST',body:JSON.stringify({projectId:w.opportunity.project_id,campaignId:engagement.id,opportunityId:w.opportunity.id,status:data.status,invoiceDate:data.invoiceDate,dueDate:data.dueDate,currency:data.currency,taxRate:Number(data.taxRate||0),taxLabel:data.taxLabel,notes:data.notes,paymentSchedule:schedule,recipient:{name:data.recipientName,email:data.recipientEmail,addressLine1:data.recipientAddressLine1,country:data.recipientCountry},lineItems:[{description:data.description,quantity:1,unitPrice:Number(data.amount||0)}]})}); closeModal(); notify('Invoice created'); await refreshWorkspace(); },true);
+    modal('Create scheduled invoice',`${w.opportunity.project_name} · ${engagement.name}`,`<div class="commercial-form-grid">${select('status','Invoice state',[['DRAFT','Draft'],['INVOICED','Issue now']],'DRAFT')}${field('invoiceDate','Invoice date',today,'date',{required:true})}${field('dueDate','Due date',due.toISOString().slice(0,10),'date')}${select('currency','Currency',[['USD','USD'],['EUR','EUR'],['USDT','USDT'],['GBP','GBP']],engagement.currency || 'USD')}${field('recipientName','Client billing name',w.opportunity.project_name,'text',{required:true})}${field('recipientEmail','Billing email',w.opportunity.primary_contact_email || '','email')}${field('recipientAddressLine1','Client address','','text',{required:true})}${field('recipientCountry','Client country','','text',{required:true})}${field('description','Invoice item',engagement.name,'text',{required:true})}${field('amount','Amount',engagement.grossRevenue || 0,'number',{required:true,min:0,step:'0.01'})}${field('taxRate','Tax rate %',0,'number',{min:0,max:100,step:'0.01'})}${textarea('taxLabel','Tax note')}${textarea('paymentSchedule','Payment schedule','',{placeholder:'One milestone per line: Deposit | YYYY-MM-DD | Amount'})}${textarea('notes','Invoice notes')}</div>`,'Create invoice',async(form)=>{ const data=formData(form); const schedule=parseSchedule(data.paymentSchedule); await request('/api/invoices',{method:'POST',body:JSON.stringify({projectId:w.opportunity.project_id,campaignId:engagement.id,opportunityId:w.opportunity.id,status:data.status,invoiceDate:data.invoiceDate,dueDate:data.dueDate,currency:data.currency,taxRate:Number(data.taxRate||0),taxLabel:data.taxLabel,notes:data.notes,paymentSchedule:schedule,recipient:{name:data.recipientName,email:data.recipientEmail,addressLine1:data.recipientAddressLine1,country:data.recipientCountry},lineItems:[{description:data.description,quantity:1,unitPrice:Number(data.amount||0)}]})}); closeModal(); notify('Invoice created'); await refreshWorkspace(); },true);
   }
 
   async function invoiceDetail(id) { return request(`/api/invoices/${encodeURIComponent(id)}`); }
@@ -208,7 +209,7 @@
   async function refreshWorkspace() {
     const panel=$('[data-commercial-workspace]'); panel?.remove(); const workspace=$('#modal-root .revenue-workspace'); if(workspace) workspace.dataset.commercialHardening=''; await enhanceWorkspace();
   }
-  async function refreshAll() { state.overview=null; if(heading('Finance')) await renderFinance(true); if($('#modal-root .revenue-workspace')) await refreshWorkspace(); }
+  async function refreshAll() { state.overview=null; if(isFinancePage()) await renderFinance(true); if($('#modal-root .revenue-workspace')) await refreshWorkspace(); }
 
   async function action(name, element) {
     if(name==='close-modal'||name==='modal-backdrop')return closeModal();
