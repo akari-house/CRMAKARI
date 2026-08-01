@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AKARI CRM UI Library</title>
+  <link rel="stylesheet" href="./assets/uilib.css?v=1" />
+  <style>
+    body{margin:0}.gallery{min-height:100vh;padding:28px}.hero{display:flex;justify-content:space-between;gap:24px;align-items:flex-start;margin-bottom:24px}.hero h1{margin:0;font-size:28px}.hero p{max-width:680px;color:var(--ak-muted);line-height:1.6}.layout{display:grid;grid-template-columns:260px minmax(0,1fr) 300px;min-height:720px;overflow:hidden}.sidebar,.inspector{padding:18px}.sidebar{border-right:1px solid var(--ak-border)}.brand{display:flex;align-items:center;gap:10px;font-weight:850}.mark{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(135deg,var(--ak-pink),var(--ak-yellow));color:#14050a}.nav{display:grid;gap:8px;margin-top:24px}.nav button{width:100%;justify-content:flex-start}.canvas{position:relative;padding:28px;overflow:auto}.flow{min-width:760px;display:grid;grid-template-columns:repeat(3,220px);grid-template-rows:repeat(3,auto);gap:54px 42px;align-items:center}.flow .line{position:absolute;height:2px;background:linear-gradient(90deg,var(--ak-pink),var(--ak-green),var(--ak-teal));opacity:.8}.component-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}.stack{display:grid;gap:12px}.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.section{margin-top:26px}.section h2{font-size:15px;margin:0 0 12px}.mini{height:14px}.mini.wide{width:85%}.mini.mid{width:60%}.mini.short{width:35%}@media(max-width:1000px){.layout{grid-template-columns:1fr}.sidebar,.inspector{display:none}.flow{min-width:0;grid-template-columns:1fr}.gallery{padding:16px}}
+  </style>
+</head>
+<body class="ak-ui">
+  <main class="gallery">
+    <header class="hero">
+      <div><div class="ak-pill ak-pill--pink">AKARI DESIGN SYSTEM</div><h1>Operational UI Library</h1><p>A coded component reference for future CRM work: compact, stateful, accessible and built around AKARI relationship workflows.</p></div>
+      <div class="row"><button class="ak-btn ak-btn--ghost">Documentation</button><button class="ak-btn ak-btn--primary">Use components</button></div>
+    </header>
+
+    <section class="ak-panel layout">
+      <aside class="sidebar">
+        <div class="brand"><span class="mark">花</span><span>AKARI CRM</span></div>
+        <div class="nav">
+          <button class="ak-btn ak-btn--primary">Overview</button>
+          <button class="ak-btn ak-btn--ghost">Foundations</button>
+          <button class="ak-btn ak-btn--ghost">Components</button>
+          <button class="ak-btn ak-btn--ghost">Workflow nodes</button>
+          <button class="ak-btn ak-btn--ghost">CRM patterns</button>
+        </div>
+        <div class="section"><h2>Node states</h2><div class="stack"><span class="ak-pill">Idle</span><span class="ak-pill ak-pill--pink">Active</span><span class="ak-pill ak-pill--success">Completed</span><span class="ak-pill ak-pill--warning">Waiting</span><span class="ak-pill ak-pill--danger">Failed</span></div></div>
+      </aside>
+
+      <div class="canvas ak-grid">
+        <div class="flow">
+          <article class="ak-node"><div class="ak-node__label">SOURCE</div><div class="ak-node__title">New lead created</div><div class="ak-node__metric">24</div></article>
+          <article class="ak-node ak-node--active"><div class="ak-node__label">ACTION</div><div class="ak-node__title">First follow-up</div><div class="ak-card__foot"><span>Owner assigned</span><span class="ak-pill ak-pill--pink">Live</span></div></article>
+          <article class="ak-node ak-node--success"><div class="ak-node__label">CONVERSION</div><div class="ak-node__title">Meeting booked</div><div class="ak-node__metric">13</div></article>
+          <article class="ak-node ak-node--waiting"><div class="ak-node__label">WAIT</div><div class="ak-node__title">Waiting for reply</div><div class="ak-card__foot"><span>48 hours</span><span class="ak-pill ak-pill--warning">Pending</span></div></article>
+          <article class="ak-node"><div class="ak-node__label">MESSAGE</div><div class="ak-node__title">Draft outreach</div><div class="ak-card__foot"><span>Telegram + X</span><span class="ak-pill">Draft</span></div></article>
+          <article class="ak-node ak-node--failed"><div class="ak-node__label">BRANCH</div><div class="ak-node__title">No response</div><div class="ak-card__foot"><span>Needs action</span><span class="ak-pill ak-pill--danger">Overdue</span></div></article>
+        </div>
+      </div>
+
+      <aside class="inspector ak-inspector">
+        <div class="ak-inspector__section"><span class="ak-pill ak-pill--success">SELECTED NODE</span><h3 style="margin-top:12px">Meeting booked</h3><p>Use the inspector for editable details, projected outcomes, activity, validation and guardrails.</p></div>
+        <div class="ak-inspector__section"><h3>Guardrails</h3><div class="stack"><div class="row" style="justify-content:space-between"><span>Require next action</span><button class="ak-switch" aria-checked="true"></button></div><div class="row" style="justify-content:space-between"><span>Referral captured</span><button class="ak-switch" aria-checked="true"></button></div><div class="row" style="justify-content:space-between"><span>X + Telegram</span><button class="ak-switch" aria-checked="true"></button></div></div></div>
+        <div class="ak-inspector__section"><h3>Projected completion</h3><div class="ak-skeleton mini wide"></div><div class="ak-skeleton mini mid" style="margin-top:10px"></div><div class="ak-skeleton mini short" style="margin-top:10px"></div></div>
+      </aside>
+    </section>
+
+    <section class="section"><h2>Buttons and states</h2><div class="row"><button class="ak-btn ak-btn--primary">Primary</button><button class="ak-btn">Secondary</button><button class="ak-btn ak-btn--success">Success</button><button class="ak-btn ak-btn--warning">Warning</button><button class="ak-btn ak-btn--danger">Destructive</button><button class="ak-btn ak-btn--ghost">Ghost</button><button class="ak-btn is-loading">Loading…</button><button class="ak-btn" disabled>Disabled</button></div></section>
+
+    <section class="section component-grid">
+      <article class="ak-card"><div class="ak-card__head"><div><div class="ak-card__title">Lead card</div><div class="ak-card__meta">X @project · Telegram @contact</div></div><span class="ak-pill ak-pill--pink">Qualified</span></div><div class="ak-card__foot"><span>Follow-up today</span><strong>$25,000</strong></div></article>
+      <article class="ak-card is-selected"><div class="ak-card__head"><div><div class="ak-card__title">Client service</div><div class="ak-card__meta">3-month GTM retainer</div></div><span class="ak-pill ak-pill--success">Active</span></div><div class="ak-card__foot"><span>Renewal 30 Sep</span><strong>72%</strong></div></article>
+      <article class="ak-card"><div class="ak-card__head"><div><div class="ak-card__title">Referral obligation</div><div class="ak-card__meta">Muaz · 5% net revenue</div></div><span class="ak-pill ak-pill--warning">Due</span></div><div class="ak-card__foot"><span>Evidence attached</span><strong>$5,000</strong></div></article>
+    </section>
+
+    <section class="section ak-panel" style="padding:18px"><h2>Forms</h2><div class="component-grid"><label class="ak-field"><span>Project name</span><input class="ak-input" value="AKARI House" /></label><label class="ak-field"><span>Lifecycle</span><select class="ak-select"><option>Lead</option><option>Client</option><option>Partner</option></select></label><label class="ak-field"><span>X account</span><input class="ak-input" value="@MuazXinthi" /></label><label class="ak-field"><span>Telegram handle</span><input class="ak-input" aria-invalid="true" placeholder="@username" /><small class="ak-error">Telegram handle is required</small></label></div></section>
+  </main>
+</body>
+</html>
