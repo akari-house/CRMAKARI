@@ -21,6 +21,7 @@ function payloadFor(url, method) {
   if(path==='/api/dashboard') return {currency:'USD',metrics:{monthlyTarget:0,revenueBooked:0,revenueCollected:0,netRevenue:0,weightedPipeline:0,activeOpportunities:0,yearToDateRevenue:0,activeCustomers:0,activeCampaigns:0,activePartners:0,outstandingPayments:0,referralRewardsDue:0}};
   if(path==='/api/tasks?scope=mine') return {items:[],total:0};
   if(path==='/api/tasks?scope=mine&includeCompleted=1') return {items:[],total:0};
+  if(path==='/api/projects?limit=5') return {items:[project],total:1};
   if(path==='/api/opportunities') return {items:[],total:0};
   if(path==='/api/campaigns') return {items:[],total:0};
   if(path==='/api/payments') return {items:[],total:0};
@@ -93,7 +94,7 @@ test('relationship drawer shows qualification and records a booked call',async({
   await expect(page.getByRole('heading',{name:'Book discovery call'})).toBeVisible();
   await page.fill('input[name="meetingScheduledAt"]','2030-02-15T14:30');
   await page.fill('input[name="meetingLocationUrl"]','https://meet.google.com/example');
-  await page.getByRole('button',{name:'Save booked call'}).click();
+  await page.locator('[data-bd-form="book-call"] button[type="submit"]').click();
   await expect.poll(()=>captures.some((item)=>item.path==='/api/activities')).toBeTruthy();
   const sent=captures.find((item)=>item.path==='/api/activities').body;
   expect(sent.activityType).toBe('MEETING');
@@ -107,7 +108,7 @@ test('billing profile and relationship invoice flow are connected',async({page})
   await page.locator('[data-route="settings"]').first().click();
   await expect(page.getByText('Billing and invoice profile',{exact:true})).toBeVisible();
   await page.fill('[data-bd-form="billing-profile"] input[name="legalName"]','AKARI GmbH');
-  await page.getByRole('button',{name:'Save billing profile'}).click();
+  await page.locator('[data-bd-form="billing-profile"] button[type="submit"]').click();
   await expect.poll(()=>captures.some((item)=>item.path==='/api/billing-profile'&&item.method==='PATCH')).toBeTruthy();
 
   await page.locator('[data-route="leads"]').first().click();
@@ -117,7 +118,7 @@ test('billing profile and relationship invoice flow are connected',async({page})
   await page.fill('input[name="unitPrice"]','5000');
   await page.fill('input[name="recipientAddressLine1"]','Client Street 2');
   await page.fill('input[name="recipientCountry"]','Germany');
-  await page.getByRole('button',{name:'Create invoice'}).click();
+  await page.locator('[data-bd-form="create-invoice"] button[type="submit"]').click();
   await expect.poll(()=>captures.some((item)=>item.path==='/api/invoices')).toBeTruthy();
   const sent=captures.find((item)=>item.path==='/api/invoices').body;
   expect(sent.projectId).toBe('prj_1');
