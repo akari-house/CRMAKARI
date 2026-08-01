@@ -1,6 +1,9 @@
 import { DEMO_AUTH } from './lib/demo-data.js';
 import { json } from './lib/response.js';
 
+const DEFAULT_ACCESS_TEAM_DOMAIN = 'crimson-wildflower-0f8d.cloudflareaccess.com';
+const DEFAULT_ACCESS_AUD = 'c588ec31c2f28826d192548846f060dd7fa9355b3bd20ddff59600c5d3596eaf';
+
 function accessLoginResponse(request, env) {
   const url = new URL(request.url);
   const accept = request.headers.get('accept') || '';
@@ -8,9 +11,12 @@ function accessLoginResponse(request, env) {
 
   if (!isBrowserPage) return json({ error: 'Authentication required' }, 401);
 
-  const teamDomain = env.ACCESS_TEAM_DOMAIN || 'crimson-wildflower-0f8d.cloudflareaccess.com';
+  const teamDomain = env.ACCESS_TEAM_DOMAIN || DEFAULT_ACCESS_TEAM_DOMAIN;
+  const audience = env.ACCESS_AUD || DEFAULT_ACCESS_AUD;
   const login = new URL(`https://${teamDomain}/cdn-cgi/access/login/${url.host}`);
-  login.searchParams.set('redirect_url', url.toString());
+  login.searchParams.set('kid', audience);
+  login.searchParams.set('redirect_url', `${url.pathname}${url.search}` || '/');
+  login.searchParams.set('meta', '{}');
   return Response.redirect(login.toString(), 302);
 }
 

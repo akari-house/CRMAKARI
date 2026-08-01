@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Verify protected CRM endpoints
         shell: bash
+        env:
+          ACCESS_AUD: c588ec31c2f28826d192548846f060dd7fa9355b3bd20ddff59600c5d3596eaf
         run: |
           set -euo pipefail
 
@@ -40,12 +42,13 @@ jobs:
 
             test "$status" = "302"
             printf '%s' "$location" | grep -q "cloudflareaccess.com/cdn-cgi/access/login/${expected_host}"
+            printf '%s' "$location" | grep -q "kid=${ACCESS_AUD}"
           }
 
           check_access_redirect "https://crmakari.pages.dev/" "crmakari.pages.dev"
           check_access_redirect "https://crm.akarihouse.com/" "crm.akarihouse.com"
 
-          echo "Both AKARI CRM browser endpoints redirect to Cloudflare Access."
+          echo "Both AKARI CRM browser endpoints redirect with the configured Access audience."
 
       - name: Mark deployment smoke success
         if: success()
