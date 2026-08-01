@@ -1,16 +1,25 @@
 import { DEMO_AUTH } from './lib/demo-data.js';
 import { json } from './lib/response.js';
 
+function accessLoginResponse(request, env) {
+  const url = new URL(request.url);
+  const accept = request.headers.get('accept') || '';
+  const isBrowserPage = request.method === 'GET' && accept.includes('text/html') && !url.pathname.startsWith('/api/');
+
+  if (!isBrowserPage) return json({ error: 'Authentication required' }, 401);
+
+  const teamDomain = env.ACCESS_TEAM_DOMAIN || 'crimson-wildflower-0f8d.cloudflareaccess.com';
+  const login = new URL(`https://${teamDomain}/cdn-cgi/access/login/${url.host}`);
+  login.searchParams.set('redirect_url', url.toString());
+  return Response.redirect(login.toString(), 302);
+}
+
 /**
  * Cloudflare Pages authentication and tenant resolution.
  *
  * - demo: sanitized local-development identity only.
  * - access: Cloudflare Access authenticates the email, then D1 resolves the
  *   active user, tenant, role and finance permission.
- *
- * The frontend is a normal static module application. Authentication middleware
- * does not rewrite HTML or inject scripts, which keeps the UI deterministic and
- * prevents stale placeholder modules from being loaded.
  */
 export async function onRequest(context) {
   const mode = context.env.AUTH_MODE || 'demo';
@@ -25,7 +34,7 @@ export async function onRequest(context) {
   }
 
   const email = context.request.headers.get('cf-access-authenticated-user-email');
-  if (!email) return json({ error: 'Authentication required' }, 401);
+  if (!email) return accessLoginResponse(context.request, context.env);
   if (!context.env.DB) return json({ error: 'D1 binding DB is not configured' }, 500);
 
   const membership = await context.env.DB.prepare(`
