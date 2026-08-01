@@ -14,7 +14,7 @@ const required = [
   'functions/api/imports/akari-leads/commit.js','functions/api/invoices/index.js','functions/api/invoices/[id].js',
   'functions/api/billing-profile/index.js','functions/api/team/index.js','functions/api/team/[id].js','functions/api/profile/index.js',
   'functions/api/projects/[id]/convert.js','db/migrations/0001_core.sql','README.md','playwright.config.js','tests/ui.spec.js',
-  'tests/tenant-isolation.test.mjs',
+  'tests/stabilization-m1.spec.js','tests/tenant-isolation.test.mjs',
 ];
 for (const file of required) await access(file, constants.R_OK);
 async function findJavaScriptFiles(directory) {
@@ -27,7 +27,7 @@ async function findJavaScriptFiles(directory) {
   }
   return files;
 }
-const jsFiles = [...await findJavaScriptFiles('public/assets'),'public/sw.js',...await findJavaScriptFiles('functions'),'playwright.config.js','tests/ui.spec.js'];
+const jsFiles = [...await findJavaScriptFiles('public/assets'),'public/sw.js',...await findJavaScriptFiles('functions'),'playwright.config.js','tests/ui.spec.js','tests/stabilization-m1.spec.js'];
 for (const file of [...new Set(jsFiles)]) {
   const result = spawnSync(process.execPath, ['--check', file], { encoding:'utf8' });
   if (result.status !== 0) {
