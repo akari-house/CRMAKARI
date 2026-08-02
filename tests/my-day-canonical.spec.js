@@ -94,7 +94,9 @@ test.beforeEach(async ({ page }) => {
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(genericResponse(request.url())) });
   });
 
-  await page.goto('/app/akari-house/day');
+  await page.goto('/app/akari-house/home');
+  await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening), Muaz/i })).toBeVisible();
+  await page.locator('.sidebar [data-route="day"]').click();
   await expect(page.getByRole('heading', { name: 'My Day' })).toBeVisible();
   await expect(page.locator('#work-os-root')).toBeVisible();
   await expect(page.locator('[data-work-task="tsk_drag_1"]')).toBeVisible();
