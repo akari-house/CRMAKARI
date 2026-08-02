@@ -590,10 +590,10 @@ export async function onRequestPost(context) {
     if (!context.env.DB) return error('D1 binding DB is not configured', 500);
     const body = await readJson(context.request);
     const action = String(body.action || '').toLowerCase();
-    if (action === 'create-task') return createTask(context, body);
-    if (action === 'update-task') return updateTask(context, body);
-    if (action === 'start-partnership-activation') return startPartnershipActivation(context, body);
-    if (action === 'start-fundraising-workplan') return startFundraisingWorkplan(context, body);
+    if (action === 'create-task') return await createTask(context, body);
+    if (action === 'update-task') return await updateTask(context, body);
+    if (action === 'start-partnership-activation') return await startPartnershipActivation(context, body);
+    if (action === 'start-fundraising-workplan') return await startFundraisingWorkplan(context, body);
     return error('Work OS action is not supported', 404);
   } catch (cause) {
     return error(cause.message || 'Work OS action failed', Number(cause.status || 500));
