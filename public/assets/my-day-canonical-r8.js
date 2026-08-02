@@ -15,6 +15,7 @@
 
   function workRequest(input, init = {}) {
     try {
+      if (!isMyDay() && !/\/day\/?$/.test(window.location.pathname)) return null;
       const raw = input instanceof Request ? input.url : String(input);
       const url = new URL(raw, window.location.origin);
       const method = String(init.method || (input instanceof Request ? input.method : 'GET')).toUpperCase();
