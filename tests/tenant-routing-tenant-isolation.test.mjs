@@ -55,7 +55,9 @@ test('canonical tenant route serves the directory app shell exactly once',async(
 test('canonical workspace routing wraps the existing CRM renderer without duplicate Pages redirects',()=>{
   assert.match(runtime,/\/app\/\$\{encodeURIComponent\(slug\)\}/);
   assert.match(runtime,/x-akari-tenant/);
-  assert.ok(app.indexOf('tenant-routing-r6.js')<app.indexOf('crm.js'));
+  const tenantScript=app.indexOf('<script src="/assets/tenant-routing-r6.js');
+  const crmScript=app.indexOf('<script type="module" src="/assets/crm.js');
+  assert.ok(tenantScript>=0&&crmScript>=0&&tenantScript<crmScript);
   assert.doesNotMatch(redirects,/^\/app(?:\/|\/\*)?\s/m);
   assert.match(redirects,/\/fundraising \/enter-crm 302/);
 });
