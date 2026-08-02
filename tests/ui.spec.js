@@ -148,12 +148,22 @@ test('outreach flow exposes the full call and follow-up sequence', async ({ page
 test('public Home is concise, interactive and separate from the CRM Dashboard', async ({ page }) => {
   await expect(page.locator('.sidebar .nav-item--public')).toHaveAttribute('href', '/');
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: /One clear view/i })).toBeVisible();
-  await expect(page.locator('.workspace-previews').getByText('KlineO', { exact: true })).toBeVisible();
-  await expect(page.locator('.workspace-previews').getByText('Yokai', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Keep every opportunity/i })).toBeVisible();
+  await expect(page.getByText('KlineO', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(/Yokai/).first()).toBeVisible();
   await expect(page.getByText(/BotChain|Digimaaya/i)).toHaveCount(0);
-  await page.locator('[data-node="call"]').click();
-  await expect(page.locator('[data-inspector]')).toContainText('Discovery call');
+  await page.locator('[data-node="advance"]').click();
+  await expect(page.locator('.flow-inspector')).toContainText('Advance with accountable actions');
+  await page.getByRole('tab', { name: 'Fundraising' }).click();
+  await expect(page.getByRole('heading', { name: /Move investor relationships/i })).toBeVisible();
+  await page.getByRole('button', { name: /Run simulation/i }).click();
+  await expect(page.locator('[data-flow-lab]')).toHaveAttribute('data-state', 'running');
+  await page.getByRole('button', { name: /Pause/i }).click();
+  await expect(page.locator('[data-flow-lab]')).toHaveAttribute('data-state', 'paused');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator('.hero-stage')).toBeVisible();
+  await expect(page.getByRole('button', { name: /Run|Resume/i })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await expect.poll(() => new URL(page.url()).pathname).toBe('/');
 });
 

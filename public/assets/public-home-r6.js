@@ -1,43 +1,82 @@
-const nodeDetails={
-  lead:{project:'KlineO',stage:'Qualified lead',owner:'Muaz Xinthi',status:'Ready',next:'Confirm project goals and schedule discovery.',width:'25%'},
-  call:{project:'Yokai',stage:'Discovery call',owner:'BD Lead',status:'Due today',next:'Capture budget, timing, decision process, and fit.',width:'42%'},
-  proposal:{project:'KlineO',stage:'Commercial scope',owner:'Muaz Xinthi',status:'Approval gate',next:'Review deliverables and release the proposal.',width:'72%'},
-  won:{project:'AKARI House',stage:'Client onboarding',owner:'Delivery Lead',status:'Kickoff ready',next:'Confirm access, assets, milestones, and reporting.',width:'88%'},
-  revenue:{project:'Yokai',stage:'Payment received',owner:'Finance',status:'Reconciled',next:'Close liabilities and prepare the performance report.',width:'100%'}
+const stageData={
+  capture:{crumb:'Lead inbox',label:'RELATIONSHIPS',title:'New lead captured',copy:'Source, project and people arrive in one complete relationship record.',badge:'Ready to qualify',cardLabel:'Relationship record',mark:'KL',company:'KlineO',sector:'Technology · Global',fields:[['Source','AKARI network'],['People','3 contacts'],['Owner','Muaz Xinthi']],tags:['Warm introduction','Launch'],panel:'Activity and next action',count:'3 signals',activity:[['Introduction received','Project and contact context attached','09:10'],['Review qualification','Confirm fit, timing and decision process','Now']],action:'Assign owner and begin qualification',icon:'↗',inspectorTitle:'Capture the full context',description:'Start with the organization, source, people, sector, and reason for the relationship.',owner:'BD owner',outcome:'Complete lead record',context:'Source + contacts',next:'Review and qualify the opportunity'},
+  qualify:{crumb:'Relationship detail',label:'QUALIFICATION',title:'Fit and timing made visible',copy:'The owner records needs, decision makers, timing, and why this opportunity matters.',badge:'Qualified · High',cardLabel:'Qualification profile',mark:'YK',company:'Yokai collaboration',sector:'Partner · Technology',fields:[['Decision process','2 stakeholders'],['Timing','This quarter'],['Priority','High']],tags:['Strategic fit','Budget confirmed'],panel:'Qualification activity',count:'4 checks',activity:[['Stakeholders mapped','POC and decision maker connected','10:25'],['Confirm commercial range','Budget conversation scheduled','Today']],action:'Schedule a structured discovery call',icon:'◇',inspectorTitle:'Decide where to invest attention',description:'Qualification gives the team a shared view of fit, timing, people, and commercial potential.',owner:'Relationship owner',outcome:'Qualified or routed',context:'Fit + timing + people',next:'Book discovery or move to follow-up'},
+  advance:{crumb:'Opportunity pipeline',label:'OPPORTUNITY',title:'Every follow-up has a purpose',copy:'Calls, tasks, notes, documents, and proposal status stay attached to the same opportunity.',badge:'Proposal · 62%',cardLabel:'Opportunity record',mark:'KL',company:'Global launch partnership',sector:'KlineO · Opportunity',fields:[['Potential value','$48,000'],['Stage','Proposal'],['Confidence','62%']],tags:['Discovery complete','Scope shared'],panel:'Calls and follow-ups',count:'5 activities',activity:[['Discovery completed','Needs and success criteria captured','Yesterday'],['Proposal review','Approval and requested changes','Today']],action:'Review proposal and capture the decision',icon:'◎',inspectorTitle:'Advance with accountable actions',description:'Every call, email, meeting, task, and proposal advances a named outcome instead of becoming disconnected activity.',owner:'Opportunity owner',outcome:'Decision with context',context:'Activity + proposal',next:'Approve, revise, or schedule follow-up'},
+  deliver:{crumb:'Campaign delivery',label:'DELIVERY',title:'Won work becomes an operating plan',copy:'The relationship hands over into milestones, deliverables, owners, risks, and reporting.',badge:'Kickoff ready',cardLabel:'Client delivery record',mark:'AH',company:'AKARI delivery',sector:'Campaign · Active',fields:[['Milestones','8 deliverables'],['Deposit','Confirmed'],['Delivery owner','Campaign lead']],tags:['Contract signed','Access ready'],panel:'Onboarding activity',count:'6 checks',activity:[['Commercial hand-off','Scope and commitments transferred','Complete'],['Kickoff preparation','Assets, access and timeline','Today']],action:'Begin delivery with shared accountability',icon:'▥',inspectorTitle:'Turn the promise into delivery',description:'Won opportunities retain their commercial context while delivery gains clear owners, milestones, and risk visibility.',owner:'Delivery lead',outcome:'Accountable campaign',context:'Scope + commitments',next:'Launch the agreed delivery plan'},
+  learn:{crumb:'Revenue overview',label:'REVENUE + INSIGHT',title:'The outcome returns as intelligence',copy:'Invoices, collections, net revenue, performance, and relationship learning close the loop.',badge:'Payment reconciled',cardLabel:'Revenue record',mark:'$',company:'Launch partnership',sector:'Invoice · Reconciled',fields:[['Booked','$48,000'],['Collected','$24,000'],['Net revenue','$19,200']],tags:['Payment received','Report ready'],panel:'Revenue activity',count:'3 outcomes',activity:[['Payment reconciled','Liabilities and referral share checked','Complete'],['Relationship review','Learning returned to the workspace','Next']],action:'Report performance and plan the next cycle',icon:'✦',inspectorTitle:'Learn from every outcome',description:'Revenue and relationship intelligence return to the workspace so leaders can see what worked and what should happen next.',owner:'Finance + leadership',outcome:'Measured relationship',context:'Revenue + learning',next:'Report, renew, expand, or close'}
 };
 
-const details={
-  project:document.querySelector('[data-inspector-project]'),
-  stage:document.querySelector('[data-inspector-stage]'),
-  owner:document.querySelector('[data-inspector-owner]'),
-  status:document.querySelector('[data-inspector-status]'),
-  next:document.querySelector('[data-inspector-next]'),
-  bar:document.querySelector('[data-prob-bar]')
+const roleData={
+  bd:{eyebrow:'BUSINESS DEVELOPMENT',title:'Know exactly who needs attention today.',metrics:[['Follow-ups due','12','4 high priority'],['Qualified pipeline','$245K','Across 6 opportunities'],['Meetings booked','8','This month']],listTitle:'My priority relationships',listCopy:'Sorted by next action and risk',listCount:'4 due',chartTitle:'Pipeline movement',items:[['KL','KlineO','Discovery call · Today, 14:00','High'],['YK','Yokai','Review proposal · Tomorrow','Medium'],['EX','Example partner','Follow up · Friday','Normal']]},
+  fundraising:{eyebrow:'FUNDRAISING',title:'Move investor relationships from research to conviction.',metrics:[['Investor follow-ups','9','3 due today'],['Active conversations','18','Across 4 sectors'],['Meetings secured','5','This month']],listTitle:'Investor relationships',listCopy:'Context, thesis and next touch',listCount:'3 due',chartTitle:'Conversation momentum',items:[['IF','Example fund','Thesis follow-up · Today','High'],['FA','Family office','Data room review · Tomorrow','Medium'],['AD','Advisor network','Warm introduction · Friday','Normal']]},
+  leadership:{eyebrow:'LEADERSHIP',title:'See relationships, delivery, and revenue in one view.',metrics:[['Weighted pipeline','$410K','↑ 14% this quarter'],['Revenue booked','$84K','68% of target'],['Items at risk','4','Owners notified']],listTitle:'Business attention',listCopy:'The issues that need a decision',listCount:'4 items',chartTitle:'Revenue movement',items:[['RV','Revenue','Two invoices need follow-up','High'],['DL','Delivery','One milestone at risk','Medium'],['PL','Pipeline','Three deals have no next action','Normal']]}
 };
 
-document.querySelectorAll('[data-node]').forEach((node)=>node.addEventListener('click',()=>{
-  document.querySelectorAll('[data-node]').forEach((item)=>item.classList.remove('active'));
-  node.classList.add('active');
-  const detail=nodeDetails[node.dataset.node];
-  details.project.textContent=detail.project;
-  details.stage.textContent=detail.stage;
-  details.owner.textContent=detail.owner;
-  details.status.textContent=detail.status;
-  details.next.textContent=detail.next;
-  details.bar.style.width=detail.width;
-}));
+const flowLab=document.querySelector('[data-flow-lab]');
+const stageButtons=[...document.querySelectorAll('[data-stage-rail] [data-node]')];
+const scenarioSelect=document.querySelector('[data-flow-scenario]');
+const runButton=document.querySelector('[data-flow-run]');
+const resetButton=document.querySelector('[data-flow-reset]');
+const railLight=document.querySelector('[data-rail-light]');
+const flowStatus=document.querySelector('[data-flow-status]');
+const reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
+const paths={convert:['capture','qualify','advance','deliver','learn'],followup:['capture','qualify','advance'],archive:['capture','qualify']};
+let flowState={selected:'capture',status:'idle',pathIndex:0,completed:new Set(),timer:0,token:0};
+
+const screen={
+  crumb:document.querySelector('[data-screen-crumb]'),label:document.querySelector('[data-screen-label]'),title:document.querySelector('[data-screen-title]'),copy:document.querySelector('[data-screen-copy]'),badge:document.querySelector('[data-screen-badge]'),cardLabel:document.querySelector('[data-screen-card-label]'),mark:document.querySelector('[data-screen-mark]'),company:document.querySelector('[data-screen-company]'),sector:document.querySelector('[data-screen-sector]'),fieldOne:document.querySelector('[data-screen-field-one]'),valueOne:document.querySelector('[data-screen-value-one]'),fieldTwo:document.querySelector('[data-screen-field-two]'),valueTwo:document.querySelector('[data-screen-value-two]'),fieldThree:document.querySelector('[data-screen-field-three]'),valueThree:document.querySelector('[data-screen-value-three]'),tags:document.querySelector('[data-screen-tags]'),panel:document.querySelector('[data-screen-panel]'),count:document.querySelector('[data-screen-count]'),activityOneTitle:document.querySelector('[data-activity-one-title]'),activityOneCopy:document.querySelector('[data-activity-one-copy]'),activityOneTime:document.querySelector('[data-activity-one-time]'),activityTwoTitle:document.querySelector('[data-activity-two-title]'),activityTwoCopy:document.querySelector('[data-activity-two-copy]'),activityTwoTime:document.querySelector('[data-activity-two-time]'),action:document.querySelector('[data-screen-action]')
+};
+const inspector={state:document.querySelector('[data-inspector-state]'),icon:document.querySelector('[data-inspector-icon]'),title:document.querySelector('[data-inspector-title]'),description:document.querySelector('[data-inspector-description]'),owner:document.querySelector('[data-inspector-owner]'),outcome:document.querySelector('[data-inspector-outcome]'),context:document.querySelector('[data-inspector-context]'),next:document.querySelector('[data-inspector-next]')};
+
+function setText(element,value){if(element)element.textContent=value;}
+function renderTags(tags){if(!screen.tags)return;screen.tags.replaceChildren(...tags.map((tag)=>{const span=document.createElement('span');span.textContent=tag;return span;}));}
+function renderStage(id,{announce=true}={}){
+  const data=stageData[id];if(!data)return;flowState.selected=id;
+  const stageIndex=stageButtons.findIndex((button)=>button.dataset.node===id);
+  stageButtons.forEach((button)=>{const selected=button.dataset.node===id;button.classList.toggle('is-selected',selected);button.classList.toggle('is-complete',flowState.completed.has(button.dataset.node));button.classList.toggle('is-running',selected&&flowState.status==='running');selected?button.setAttribute('aria-current','step'):button.removeAttribute('aria-current');});
+  if(railLight)railLight.style.height=`${Math.max(0,stageIndex)*21}%`;
+  setText(screen.crumb,data.crumb);setText(screen.label,data.label);setText(screen.title,data.title);setText(screen.copy,data.copy);setText(screen.badge,data.badge);setText(screen.cardLabel,data.cardLabel);setText(screen.mark,data.mark);setText(screen.company,data.company);setText(screen.sector,data.sector);
+  [[screen.fieldOne,screen.valueOne],[screen.fieldTwo,screen.valueTwo],[screen.fieldThree,screen.valueThree]].forEach((pair,index)=>{setText(pair[0],data.fields[index][0]);setText(pair[1],data.fields[index][1]);});
+  renderTags(data.tags);setText(screen.panel,data.panel);setText(screen.count,data.count);setText(screen.activityOneTitle,data.activity[0][0]);setText(screen.activityOneCopy,data.activity[0][1]);setText(screen.activityOneTime,data.activity[0][2]);setText(screen.activityTwoTitle,data.activity[1][0]);setText(screen.activityTwoCopy,data.activity[1][1]);setText(screen.activityTwoTime,data.activity[1][2]);setText(screen.action,data.action);
+  setText(inspector.icon,data.icon);setText(inspector.title,data.inspectorTitle);setText(inspector.description,data.description);setText(inspector.owner,data.owner);setText(inspector.outcome,data.outcome);setText(inspector.context,data.context);setText(inspector.next,data.next);setText(inspector.state,flowState.status==='running'?'Processing':flowState.completed.has(id)?'Completed':'Ready');
+  updateBranches();if(announce&&flowStatus)setText(flowStatus,`${data.inspectorTitle}. ${data.next}`);
+}
+function updateBranches(){const scenario=scenarioSelect?.value||'convert';document.querySelectorAll('[data-branch]').forEach((branch)=>branch.classList.remove('is-active'));const active=scenario==='convert'?'primary':scenario==='followup'?'secondary':'tertiary';document.querySelector(`[data-branch="${active}"]`)?.classList.add('is-active');}
+function updateRunButton(){if(!runButton)return;if(flowState.status==='running')runButton.innerHTML='<span aria-hidden="true">Ⅱ</span> Pause';else if(flowState.status==='paused')runButton.innerHTML='<span aria-hidden="true">▶</span> Resume';else if(flowState.status==='completed')runButton.innerHTML='<span aria-hidden="true">↺</span> Run again';else runButton.innerHTML='<span aria-hidden="true">▶</span> Run simulation';}
+function cancelTimer(){window.clearTimeout(flowState.timer);flowState.timer=0;flowState.token+=1;}
+function resetFlow({announce=true}={}){cancelTimer();flowState.status='idle';flowState.pathIndex=0;flowState.completed.clear();flowLab?.setAttribute('data-state','idle');renderStage('capture',{announce:false});updateRunButton();if(announce)setText(flowStatus,'Simulation reset. Ready to run.');}
+function finishFlow(){flowState.status='completed';flowLab?.setAttribute('data-state','completed');updateRunButton();renderStage(flowState.selected,{announce:false});const outcome=scenarioSelect?.value==='convert'?'Opportunity converted into delivery and measured revenue.':scenarioSelect?.value==='followup'?'Relationship retained in an owned follow-up queue.':'Relationship context retained and safely nurtured or archived.';setText(flowStatus,`Simulation complete. ${outcome}`);setText(inspector.state,'Complete');}
+function executeStep(){
+  if(flowState.status!=='running')return;const path=paths[scenarioSelect?.value||'convert'];if(flowState.pathIndex>=path.length){finishFlow();return;}const id=path[flowState.pathIndex];renderStage(id,{announce:false});setText(flowStatus,`Simulating ${stageData[id].inspectorTitle}.`);const token=flowState.token;flowState.timer=window.setTimeout(()=>{if(token!==flowState.token||flowState.status!=='running')return;flowState.completed.add(id);renderStage(id,{announce:false});setText(inspector.state,'Completed just now');flowState.pathIndex+=1;executeStep();},reducedMotion.matches?220:900);
+}
+function runOrPause(){
+  if(flowState.status==='running'){cancelTimer();flowState.status='paused';flowLab?.setAttribute('data-state','paused');renderStage(flowState.selected,{announce:false});updateRunButton();setText(flowStatus,`Simulation paused at ${stageData[flowState.selected].inspectorTitle}.`);return;}
+  if(flowState.status==='completed'||flowState.status==='idle')resetFlow({announce:false});flowState.status='running';flowLab?.setAttribute('data-state','running');updateRunButton();executeStep();
+}
+stageButtons.forEach((button,index)=>{
+  button.addEventListener('click',()=>renderStage(button.dataset.node));
+  button.addEventListener('keydown',(event)=>{if(!['ArrowDown','ArrowRight','ArrowUp','ArrowLeft','Home','End'].includes(event.key))return;event.preventDefault();let next=index;if(event.key==='Home')next=0;else if(event.key==='End')next=stageButtons.length-1;else next=(index+(event.key==='ArrowDown'||event.key==='ArrowRight'?1:-1)+stageButtons.length)%stageButtons.length;stageButtons[next].focus();renderStage(stageButtons[next].dataset.node);});
+});
+scenarioSelect?.addEventListener('change',()=>{resetFlow({announce:false});updateBranches();setText(flowStatus,`${scenarioSelect.options[scenarioSelect.selectedIndex].text} scenario selected. Ready to run.`);});
+runButton?.addEventListener('click',runOrPause);resetButton?.addEventListener('click',()=>resetFlow());
+flowLab?.addEventListener('keydown',(event)=>{const target=event.target;if((event.key==='r'||event.key==='R')&&!['INPUT','SELECT','TEXTAREA'].includes(target.tagName)){event.preventDefault();resetFlow();resetButton?.focus();}});
+renderStage('capture',{announce:false});updateRunButton();
+
+const roleTabs=[...document.querySelectorAll('[data-role-tab]')];
+const roleElements={eyebrow:document.querySelector('[data-role-eyebrow]'),title:document.querySelector('[data-role-title]'),metricOneLabel:document.querySelector('[data-metric-one-label]'),metricOneValue:document.querySelector('[data-metric-one-value]'),metricOneNote:document.querySelector('[data-metric-one-note]'),metricTwoLabel:document.querySelector('[data-metric-two-label]'),metricTwoValue:document.querySelector('[data-metric-two-value]'),metricTwoNote:document.querySelector('[data-metric-two-note]'),metricThreeLabel:document.querySelector('[data-metric-three-label]'),metricThreeValue:document.querySelector('[data-metric-three-value]'),metricThreeNote:document.querySelector('[data-metric-three-note]'),listTitle:document.querySelector('[data-role-list-title]'),listCopy:document.querySelector('[data-role-list-copy]'),listCount:document.querySelector('[data-role-list-count]'),chartTitle:document.querySelector('[data-role-chart-title]'),list:document.querySelector('[data-role-list]')};
+function renderRole(id){const data=roleData[id];if(!data)return;roleTabs.forEach((tab)=>tab.setAttribute('aria-selected',String(tab.dataset.roleTab===id)));setText(roleElements.eyebrow,data.eyebrow);setText(roleElements.title,data.title);['One','Two','Three'].forEach((word,index)=>{setText(roleElements[`metric${word}Label`],data.metrics[index][0]);setText(roleElements[`metric${word}Value`],data.metrics[index][1]);setText(roleElements[`metric${word}Note`],data.metrics[index][2]);});setText(roleElements.listTitle,data.listTitle);setText(roleElements.listCopy,data.listCopy);setText(roleElements.listCount,data.listCount);setText(roleElements.chartTitle,data.chartTitle);if(roleElements.list)roleElements.list.replaceChildren(...data.items.map(([mark,name,action,priority])=>{const row=document.createElement('p'),icon=document.createElement('i'),copy=document.createElement('span'),title=document.createElement('strong'),note=document.createElement('small'),level=document.createElement('em');icon.textContent=mark;title.textContent=name;note.textContent=action;level.textContent=priority;copy.append(title,note);row.append(icon,copy,level);return row;}));}
+roleTabs.forEach((tab,index)=>{tab.addEventListener('click',()=>renderRole(tab.dataset.roleTab));tab.addEventListener('keydown',(event)=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();let next=index;if(event.key==='Home')next=0;else if(event.key==='End')next=roleTabs.length-1;else next=(index+(event.key==='ArrowRight'?1:-1)+roleTabs.length)%roleTabs.length;roleTabs[next].focus();renderRole(roleTabs[next].dataset.roleTab);});});
+
+const siteHeader=document.querySelector('[data-site-header]');
+window.addEventListener('scroll',()=>siteHeader?.classList.toggle('is-stuck',window.scrollY>18),{passive:true});
 
 const form=document.querySelector('#waitlist-form');
-const status=document.querySelector('#waitlist-status');
+const formStatus=document.querySelector('#waitlist-status');
+const formError=document.querySelector('#form-error');
+form?.addEventListener('input',(event)=>{event.target.removeAttribute('aria-invalid');if(formError)formError.hidden=true;});
 form?.addEventListener('submit',async(event)=>{
-  event.preventDefault();
-  status.textContent='Submitting your interest…';
-  const payload=Object.fromEntries(new FormData(form).entries());
-  try{
-    const response=await fetch('/api/waitlist',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
-    const result=await response.json();
-    if(!response.ok)throw new Error(result.error||'Unable to submit interest');
-    form.reset();
-    status.textContent=`Thanks — ${result.company||'your company'} is on the waitlist${result.position?` at position #${result.position}`:''}.`;
-  }catch(error){status.textContent=error.message||'Unable to submit your interest.';}
+  event.preventDefault();const invalid=[...form.elements].filter((field)=>typeof field.checkValidity==='function'&&!field.checkValidity());
+  if(invalid.length){invalid.forEach((field)=>field.setAttribute('aria-invalid','true'));if(formError){formError.hidden=false;formError.textContent='Please complete every required field and use a valid work email.';formError.focus();}return;}
+  const submit=form.querySelector('button[type="submit"]');submit.disabled=true;setText(formStatus,'Submitting your interest…');const payload=Object.fromEntries(new FormData(form).entries());
+  try{const response=await fetch('/api/waitlist',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});const result=await response.json();if(!response.ok)throw new Error(result.error||'Unable to submit interest');const confirmation=document.createElement('div');confirmation.className='form-confirmation full';confirmation.tabIndex=-1;const title=document.createElement('h3'),message=document.createElement('p'),next=document.createElement('span');title.textContent='Your interest is registered.';message.textContent=`Thank you — ${result.company||'your organization'} is now on the early-access list.`;next.textContent='The AKARI team will review your needs and contact suitable early users directly. No payment has been collected.';confirmation.append(title,message,next);form.replaceChildren(confirmation);confirmation.focus();}catch(error){submit.disabled=false;if(formError){formError.hidden=false;formError.textContent=error.message||'Unable to submit your interest. Please try again.';formError.focus();}setText(formStatus,'');}
 });
