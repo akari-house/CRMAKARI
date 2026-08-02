@@ -44,7 +44,7 @@ for (const token of ['/assets/deal-outcomes-r11.css?v=1', '/assets/deal-outcomes
 }
 
 const worker = await readFile('public/sw.js', 'utf8');
-for (const token of ['akari-crm-shell-v40', 'app/index.html?runtime=v40', './assets/deal-outcomes-r11.css?v=1', './assets/deal-outcomes-r11.js?v=1']) {
+for (const token of ['akari-crm-shell-v42', 'app/index.html?runtime=v42', './assets/deal-outcomes-r11.css?v=1', './assets/deal-outcomes-r11.js?v=1']) {
   if (!worker.includes(token)) throw new Error(`Service worker missing ${token}`);
 }
 
