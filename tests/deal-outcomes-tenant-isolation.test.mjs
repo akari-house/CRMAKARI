@@ -87,8 +87,8 @@ test('partnership close creates a non-billable engagement and promotes the proje
 
   const campaignInsert = db.calls.find((call) => /INSERT INTO campaigns/.test(call.sql));
   assert.ok(campaignInsert);
-  assert.equal(campaignInsert.bindings[12], 0);
-  const metadata = JSON.parse(campaignInsert.bindings[22]);
+  assert.equal(campaignInsert.bindings[11], 0);
+  const metadata = JSON.parse(campaignInsert.bindings[20]);
   assert.equal(metadata.dealModel, 'PARTNERSHIP');
   assert.equal(metadata.invoiceEligible, false);
   assert.equal(metadata.commercialModel, 'NON_BILLABLE');
@@ -159,10 +159,10 @@ test('optional announcement plan creates connected BD, content, design and socia
 
   const taskCalls = db.calls.filter((call) => /INSERT INTO tasks/.test(call.sql));
   assert.equal(taskCalls.length, 11);
-  assert.ok(taskCalls.some((call) => String(call.bindings[12]).includes(':CONTENT:')));
-  assert.ok(taskCalls.some((call) => String(call.bindings[12]).includes(':DESIGN:')));
-  assert.ok(taskCalls.some((call) => String(call.bindings[12]).includes(':SOCIAL:')));
-  assert.ok(taskCalls.every((call) => call.bindings[9] === 'project_a' && call.bindings[10] === 'opp_a'));
+  assert.ok(taskCalls.some((call) => String(call.bindings[11]).includes(':CONTENT:')));
+  assert.ok(taskCalls.some((call) => String(call.bindings[11]).includes(':DESIGN:')));
+  assert.ok(taskCalls.some((call) => String(call.bindings[11]).includes(':SOCIAL:')));
+  assert.ok(taskCalls.every((call) => call.bindings[8] === 'project_a' && call.bindings[9] === 'opp_a'));
 });
 
 test('invoice middleware blocks the non-billable partnership engagement', async () => {
