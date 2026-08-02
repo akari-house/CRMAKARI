@@ -12,6 +12,6 @@ if(!publicJs.includes('/api/waitlist'))throw new Error('Public waitlist client i
 for(const token of ['/assets/crm.js?v=','/assets/fundraising-closing-r5.js?v=','/assets/modal-polish-r6.css?v=','id="app"','id="modal-root"','id="toast-root"'])if(!appHtml.includes(token))throw new Error(`Protected app shell missing ${token}`);
 for(const token of ["pathname==='/api/waitlist'","pathname==='/'",'cf-access-jwt-assertion','tenant_memberships','x-akari-tenant'])if(!middleware.includes(token))throw new Error(`Public/private middleware split missing ${token}`);
 for(const token of ['public_waitlist','monthly_budget','consent_at','ON CONFLICT(email)'])if(!waitlist.includes(token))throw new Error(`Waitlist persistence missing ${token}`);
-for(const token of ['/app/* /app/index.html 200','/fundraising /app/ 302','/leads /app/ 302'])if(!redirects.includes(token))throw new Error(`Protected route rewrite missing ${token}`);
+for(const token of ['/app /enter-crm 302','/app/ /enter-crm 302','/app/* /app/index.html 200','/fundraising /enter-crm 302','/leads /enter-crm 302'])if(!redirects.includes(token))throw new Error(`Protected route rewrite missing ${token}`);
 if(publicHtml.includes('src="/assets/crm.js'))throw new Error('Public homepage must not boot the CRM renderer');
 console.log('CRM by AKARI public entry validation passed');
