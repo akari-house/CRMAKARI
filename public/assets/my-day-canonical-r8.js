@@ -3,12 +3,92 @@
 
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+  const nativeFetch = window.fetch.bind(window);
+  const workRequests = new Map();
   let dragTaskId = '';
   let touchDrag = null;
   let scheduled = false;
+  let slowLoadingTimer = null;
 
   const isMyDay = () => $('#view-root .page-head h1')?.textContent?.trim() === 'My Day';
   const title = (value) => String(value || '').toLowerCase().split('_').map((part) => part ? part[0].toUpperCase() + part.slice(1) : '').join(' ');
+
+  function workRequest(input, init = {}) {
+    try {
+      if (!isMyDay() && !/\/day\/?$/.test(window.location.pathname)) return null;
+      const raw = input instanceof Request ? input.url : String(input);
+      const url = new URL(raw, window.location.origin);
+      const method = String(init.method || (input instanceof Request ? input.method : 'GET')).toUpperCase();
+      if (method !== 'GET' || url.origin !== window.location.origin || url.pathname !== '/api/work-os' || url.searchParams.get('full') === '1') return null;
+      return { url, scope: url.searchParams.get('scope') === 'team' ? 'team' : 'mine' };
+    } catch {
+      return null;
+    }
+  }
+
+  function scheduleFullHydration(entry) {
+    if (entry.refreshScheduled) return;
+    entry.refreshScheduled = true;
+    let attempts = 0;
+    const attempt = () => {
+      attempts += 1;
+      const root = $('#work-os-root');
+      const refresh = $('[data-work-action="refresh"]');
+      if (root && refresh && root.querySelector('.work-command')) {
+        refresh.click();
+        return;
+      }
+      if (attempts < 40) setTimeout(attempt, 100);
+    };
+    setTimeout(attempt, 0);
+  }
+
+  window.fetch = async function progressiveWorkFetch(input, init = {}) {
+    const request = workRequest(input, init);
+    if (!request) return nativeFetch(input, init);
+
+    let entry = workRequests.get(request.scope);
+    if (!entry) {
+      entry = { coreServed: false, fullPromise: null, fullDelivered: false, refreshScheduled: false };
+      workRequests.set(request.scope, entry);
+
+      const coreUrl = new URL('/api/work-os-core', window.location.origin);
+      coreUrl.searchParams.set('scope', request.scope);
+      const coreResponse = await nativeFetch(coreUrl.toString(), init);
+      if (!coreResponse.ok) {
+        workRequests.delete(request.scope);
+        return nativeFetch(input, init);
+      }
+
+      let corePayload = null;
+      try {
+        corePayload = await coreResponse.clone().json();
+      } catch {
+        corePayload = null;
+      }
+      if (corePayload?.partial !== true || !Array.isArray(corePayload.tasks) || !Array.isArray(corePayload.members)) {
+        workRequests.delete(request.scope);
+        return nativeFetch(input, init);
+      }
+
+      entry.coreServed = true;
+      const fullUrl = new URL('/api/work-os', window.location.origin);
+      fullUrl.searchParams.set('scope', request.scope);
+      fullUrl.searchParams.set('full', '1');
+      entry.fullPromise = nativeFetch(fullUrl.toString(), init).catch(() => null);
+      scheduleFullHydration(entry);
+      return coreResponse;
+    }
+
+    if (entry.coreServed && !entry.fullDelivered && entry.fullPromise) {
+      const fullResponse = await entry.fullPromise;
+      entry.fullDelivered = true;
+      workRequests.delete(request.scope);
+      if (fullResponse?.ok) return fullResponse.clone();
+    }
+
+    return nativeFetch(input, init);
+  };
 
   function toast(message, type = 'success') {
     const root = $('#toast-root');
@@ -18,6 +98,25 @@
     node.textContent = message;
     root.appendChild(node);
     setTimeout(() => node.remove(), 3600);
+  }
+
+  function armSlowLoadingNotice(root) {
+    clearTimeout(slowLoadingTimer);
+    slowLoadingTimer = setTimeout(() => {
+      if (!root?.isConnected || !root.classList.contains('work-os-loading') || root.querySelector('.work-command')) return;
+      const card = root.querySelector('.work-os-loading-card');
+      if (!card) return;
+      card.classList.add('is-slow');
+      card.innerHTML = '<span>TEAM WORK OS</span><strong>Tasks are taking longer than expected.</strong><p>Your workspace is secure, but the task data request has not completed. Reload this view to retry.</p><button type="button" class="btn small" data-canonical-retry>Reload Tasks</button>';
+    }, 8000);
+  }
+
+  function settleLoadingState() {
+    const root = $('#work-os-root');
+    if (!root || !root.querySelector('.work-command')) return;
+    root.classList.remove('work-os-loading');
+    root.removeAttribute('aria-busy');
+    clearTimeout(slowLoadingTimer);
   }
 
   function ensureCanonicalMyDay() {
@@ -37,9 +136,12 @@
       root.className = 'work-os work-os-loading';
       root.setAttribute('aria-live', 'polite');
       root.setAttribute('aria-busy', 'true');
-      root.innerHTML = '<div class="work-os-loading-card"><span>TEAM WORK OS</span><strong>Loading tasks and calendar…</strong><p>Opening the canonical execution workspace.</p></div>';
+      root.innerHTML = '<div class="work-os-loading-card"><span>TEAM WORK OS</span><strong>Loading your tasks…</strong><p>Opening the task board first; calendar and workflow details will follow.</p></div>';
       pageHead.insertAdjacentElement('afterend', root);
+      armSlowLoadingNotice(root);
     }
+
+    settleLoadingState();
   }
 
   function decorateCards() {
@@ -64,6 +166,7 @@
     scheduled = false;
     ensureCanonicalMyDay();
     decorateCards();
+    settleLoadingState();
   }
 
   function scheduleMaintain() {
@@ -237,6 +340,11 @@
     if (next === current) return;
     event.preventDefault();
     await persistMove(card.dataset.workTask, { status: statuses[next] }, `Task moved to ${title(statuses[next])}`);
+  }, true);
+
+  document.addEventListener('click', (event) => {
+    if (!event.target.closest?.('[data-canonical-retry]')) return;
+    window.location.reload();
   }, true);
 
   const observer = new MutationObserver(scheduleMaintain);

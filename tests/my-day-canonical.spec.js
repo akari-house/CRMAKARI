@@ -2,6 +2,9 @@ import { test, expect } from '@playwright/test';
 
 let actions = [];
 let liveWorkPayload;
+let fullRequestDelayMs = 0;
+let coreRequests = 0;
+let fullResponses = 0;
 
 const baseWorkPayload = {
   scope: 'mine',
@@ -43,6 +46,19 @@ const baseWorkPayload = {
   permissions: { canWrite: true, canManage: true, canFinance: true },
 };
 
+function corePayload() {
+  return {
+    ...structuredClone(liveWorkPayload),
+    partial: true,
+    projects: [],
+    opportunities: [],
+    campaigns: [],
+    partnershipCandidates: [],
+    fundraisingPlans: [],
+    performance: { mode:'core', durationMs:5 },
+  };
+}
+
 function genericResponse(url) {
   const parsed = new URL(url);
   const key = `${parsed.pathname}${parsed.search}`;
@@ -60,13 +76,22 @@ function genericResponse(url) {
   return responses[key] || { items: [], total: 0 };
 }
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page }, testInfo) => {
   actions = [];
   liveWorkPayload = structuredClone(baseWorkPayload);
+  coreRequests = 0;
+  fullResponses = 0;
+  fullRequestDelayMs = testInfo.title.includes('before slow full hydration') ? 5000 : 0;
 
   await page.route('**/api/**', async (route) => {
     const request = route.request();
     const parsed = new URL(request.url());
+
+    if (parsed.pathname === '/api/work-os-core') {
+      coreRequests += 1;
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(corePayload()) });
+      return;
+    }
 
     if (parsed.pathname === '/api/work-os') {
       if (request.method() === 'POST') {
@@ -87,6 +112,8 @@ test.beforeEach(async ({ page }) => {
         return;
       }
 
+      if (fullRequestDelayMs) await new Promise((resolve) => setTimeout(resolve, fullRequestDelayMs));
+      fullResponses += 1;
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(liveWorkPayload) });
       return;
     }
@@ -100,6 +127,16 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'My Day' })).toBeVisible();
   await expect(page.locator('#work-os-root')).toBeVisible();
   await expect(page.locator('[data-work-task="tsk_drag_1"]')).toBeVisible();
+});
+
+test('core task board appears before slow full hydration finishes', async ({ page }) => {
+  expect(coreRequests).toBe(1);
+  expect(fullResponses).toBe(0);
+  await expect(page.locator('#work-os-root')).not.toHaveClass(/work-os-loading/);
+  await expect(page.locator('.work-column[data-work-drop-status="TODO"] [data-work-task="tsk_drag_1"]')).toBeVisible();
+  await expect(page.getByText('Loading your tasks…')).toHaveCount(0);
+  await expect.poll(() => fullResponses, { timeout: 7000 }).toBe(1);
+  await expect(page.locator('[data-work-filter="project"] option[value="prj_1"]')).toHaveCount(1);
 });
 
 test('legacy My Day is removed and only one canonical Work OS remains', async ({ page }) => {
