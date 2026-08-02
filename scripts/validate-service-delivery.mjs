@@ -13,5 +13,5 @@ for(const requirement of ['private, no-store','Print / Save as PDF','Client deli
 const html=await readFile('public/app/index.html','utf8');
 for(const requirement of ['/assets/service-delivery-v4.css?v=33','/assets/service-delivery-v4.js?v=33'])if(!html.includes(requirement))throw new Error(`Protected application shell is missing ${requirement}`);
 const worker=await readFile('public/sw.js','utf8');
-for(const requirement of ['akari-crm-shell-v38','./assets/service-delivery-v4.css?v=33','./assets/service-delivery-v4.js?v=33','app/index.html?runtime=v38'])if(!worker.includes(requirement))throw new Error(`Service-worker shell is missing ${requirement}`);
+for(const requirement of ['akari-crm-shell-v39','./assets/service-delivery-v4.css?v=33','./assets/service-delivery-v4.js?v=33','app/index.html?runtime=v39'])if(!worker.includes(requirement))throw new Error(`Service-worker shell is missing ${requirement}`);
 console.log('AKARI CRM Release 4 service-delivery validation passed.');

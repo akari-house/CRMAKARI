@@ -89,7 +89,7 @@ test('clean paths preserve navigation and restore the rich dashboard', async ({ 
 
   await page.locator('.nav-item[data-route="dashboard"]').click();
   await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening), Muaz/i })).toBeVisible();
-  await expect.poll(() => new URL(page.url()).pathname).toBe('/app/akari-house/home');
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/app/akari-house/dashboard');
 
   await page.goBack();
   await expect(page.getByRole('heading', { name: 'Opportunity Pipeline' })).toBeVisible();
