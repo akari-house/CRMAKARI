@@ -84,10 +84,11 @@ test('won form distinguishes partnership, service and hybrid outcomes', async ({
 
   const form = page.locator('#revenue-active-form');
   await expect(form.getByRole('heading',{name:'Close as won'})).toBeVisible();
-  await expect(form.locator('select[name="dealModel"]')).toHaveValue('SERVICE');
-  await expect(form.getByText('Paid service / campaign · invoice eligible')).toBeVisible();
+  const dealModel = form.locator('select[name="dealModel"]');
+  await expect(dealModel).toHaveValue('SERVICE');
+  await expect(dealModel).toContainText('Paid service / campaign · invoice eligible');
 
-  await form.locator('select[name="dealModel"]').selectOption('PARTNERSHIP');
+  await dealModel.selectOption('PARTNERSHIP');
   await expect(form.locator('input[name="finalValue"]')).toBeHidden();
   await expect(form.locator('input[name="campaignCost"]')).toBeHidden();
   await expect(form.getByText('No invoice will be created.')).toBeVisible();
