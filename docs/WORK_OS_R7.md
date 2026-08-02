@@ -82,6 +82,10 @@ The current Capital Room storage remains in tenant feature flags. This release r
 - Every task mutation and workflow-template start creates an audit record.
 - No production schema migration is required.
 
+## Release validation
+
+The release gate covers source validation, tenant-isolation boundaries, role enforcement, cross-tenant task relations, duplicate workflow prevention, the protected application shell, browser interaction and responsive behavior. Production deployment remains limited to the existing `crmakari` Cloudflare Pages project.
+
 ## Known controlled limitations
 
 - Workstream is encoded through the existing task activity-type field until a dedicated task metadata migration is approved.
