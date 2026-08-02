@@ -1,6 +1,13 @@
 /* AKARI CRM launch hardening: billing profile, legacy operation fields and modal scroll ownership. */
 
-#modal-root .modal.ak-modal-standard > form {
+/* Only the billing profile needs the three-row Operations form override.
+   Other modal families already have their own tested layout rules. */
+#modal-root .ops-billing-profile-modal {
+  display: grid !important;
+  grid-template-rows: minmax(0, 1fr) !important;
+}
+
+#modal-root .ops-billing-profile-modal > form {
   height: 100%;
   min-height: 0;
   display: grid !important;
@@ -8,12 +15,12 @@
   overflow: hidden !important;
 }
 
-#modal-root .modal.ak-modal-standard > form > .modal-head,
-#modal-root .modal.ak-modal-standard > form > .modal-foot {
+#modal-root .ops-billing-profile-modal > form > .modal-head,
+#modal-root .ops-billing-profile-modal > form > .modal-foot {
   flex: 0 0 auto;
 }
 
-#modal-root .modal.ak-modal-standard > form > .modal-body {
+#modal-root .ops-billing-profile-modal > form > .modal-body {
   min-height: 0 !important;
   overflow: auto !important;
   overscroll-behavior: contain;
