@@ -1,6 +1,3 @@
-/app /enter-crm 302
-/app/ /enter-crm 302
-/app/* /app/index.html 200
 /dashboard /enter-crm 302
 /home /enter-crm 302
 /day /enter-crm 302
@@ -15,6 +12,7 @@
 /team /enter-crm 302
 /settings /enter-crm 302
 # Canonical protected pattern: /app/:tenantSlug/:module
+# Pages Functions own /app, /app/ and /app/:tenantSlug/*.
 # Generic and legacy CRM entries resolve membership on the server through /enter-crm.
 # /day /index.html 200
 # /leads /index.html 200
