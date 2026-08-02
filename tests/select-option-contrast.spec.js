@@ -23,7 +23,7 @@ test('native modal select options remain readable in Chromium dark mode', async 
 
   const styles = await page.evaluate(() => {
     const select = document.querySelector('select[name="stage"]');
-    const option = select.querySelector('option');
+    const option = select.querySelector('option:not(:checked)');
     const selected = select.querySelector('option:checked');
     return {
       colorScheme:getComputedStyle(select).colorScheme,
