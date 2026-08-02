@@ -1,7 +1,7 @@
 const ROUTES = {
-  flows: { label: 'Outreach Flows', section: 'WORKSPACE', icon: '⇢' },
-  dashboard: { label: 'Home', section: 'WORKSPACE', icon: '⌂' },
+  dashboard: { label: 'Dashboard', section: 'WORKSPACE', icon: '▦' },
   day: { label: 'My Day', section: 'WORKSPACE', icon: '✓' },
+  flows: { label: 'Outreach Flows', section: 'WORKSPACE', icon: '⇢' },
   leads: { label: 'AKARI Leads', section: 'RELATIONSHIPS', icon: '◇' },
   contacts: { label: 'Contacts', section: 'RELATIONSHIPS', icon: '◎' },
   opportunities: { label: 'Opportunities', section: 'BUSINESS', icon: '▥' },
@@ -39,6 +39,13 @@ const FLOW_LINKS = [
   ['email-1','meeting-3','Replied','success'], ['email-1','wait-2','No reply','failed'], ['wait-2','email-2','After 3 days','waiting'],
   ['email-2','meeting-4','Replied','success'], ['email-2','exit','No reply','failed'],
 ];
+const LANDING_FLOW_NODES = [
+  { id:'capture', type:'LEAD', title:'Lead captured', detail:'KlineO · inbound', meta:'Owner assigned', x:18, y:48, tone:'source' },
+  { id:'qualify', type:'QUALIFY', title:'Fit confirmed', detail:'Priority · High', meta:'2 contacts', x:205, y:48, tone:'active' },
+  { id:'call', type:'CALL', title:'Discovery call', detail:'Tomorrow · 10:30', meta:'Yokai team', x:392, y:48, tone:'message' },
+  { id:'proposal', type:'PROPOSAL', title:'Proposal shared', detail:'Review pending', meta:'$25k value', x:579, y:48, tone:'waiting' },
+  { id:'won', type:'SUCCESS', title:'Client onboarding', detail:'Deposit confirmed', meta:'Workspace ready', x:766, y:48, tone:'success' },
+];
 const SHEETJS_MODULE = 'https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs';
 
 const state = {
@@ -58,6 +65,8 @@ const state = {
   reports: null,
   import: null,
   selectedFlowNode: 'call-1',
+  flowScale: 0.86,
+  selectedLandingFlowNode: 'capture',
 };
 
 const $ = (selector, root = document) => root.querySelector(selector);
@@ -134,6 +143,63 @@ function toast(message, type = 'success', duration = 3200) {
   setTimeout(() => node.remove(), duration);
 }
 
+function normalPath() {
+  return String(location.pathname || '/').replace(/\/+$/, '') || '/';
+}
+
+function isPublicHomePath() {
+  return !location.hash && ['/', '/home'].includes(normalPath());
+}
+
+function landingFlowNodeHtml(node) {
+  const selected = node.id === state.selectedLandingFlowNode;
+  const icons = { LEAD:'◇', QUALIFY:'✓', CALL:'◉', PROPOSAL:'▤', SUCCESS:'★' };
+  return `<button class="landing-flow-node landing-flow-node--${node.tone} ${selected ? 'is-selected' : ''}" style="left:${node.x}px;top:${node.y}px" data-action="select-landing-flow-node" data-id="${node.id}" aria-pressed="${selected}">
+    <span class="landing-flow-node__icon" aria-hidden="true">${icons[node.type] || '•'}</span>
+    <span><small>${escapeHtml(node.type)}</small><strong>${escapeHtml(node.title)}</strong><em>${escapeHtml(node.detail)}</em></span>
+  </button>`;
+}
+
+function landingFlowInspectorHtml(node) {
+  const index = LANDING_FLOW_NODES.findIndex((item) => item.id === node.id);
+  return `<div class="landing-flow-inspector" id="landing-flow-inspector">
+    <div><span class="landing-live-dot"></span><small>LIVE WORKFLOW PREVIEW</small></div>
+    <strong>${escapeHtml(node.title)}</strong><p>${escapeHtml(node.detail)}</p>
+    <dl><div><dt>Workspace</dt><dd>${index < 2 ? 'KlineO' : 'Yokai'}</dd></div><div><dt>Status</dt><dd>${escapeHtml(node.meta)}</dd></div><div><dt>Owner</dt><dd>AKARI team</dd></div></dl>
+    <a href="/dashboard">Open in CRM <span aria-hidden="true">→</span></a>
+  </div>`;
+}
+
+function landingDashboardPreviewHtml() {
+  return `<div class="landing-product-frame" aria-label="AKARI CRM dashboard preview">
+    <div class="landing-frame-top"><span><i></i><i></i><i></i></span><b>AKARI House / Dashboard</b><em>Product preview</em></div>
+    <div class="landing-preview-shell">
+      <aside><img src="./assets/brand/akari-icon.png" alt=""/><span class="is-active">▦</span><span>✓</span><span>⇢</span><span>◇</span><span>▤</span></aside>
+      <div class="landing-preview-main">
+        <header><span>Good morning, Muaz.</span><small>Operating overview · Aug 2026</small></header>
+        <div class="landing-preview-kpis"><article><small>Weighted pipeline</small><b>$184k</b><em>↑ 18%</em></article><article><small>Revenue booked</small><b>$42k</b><em>72% target</em></article><article><small>Tasks today</small><b>12</b><em>3 priority</em></article></div>
+        <div class="landing-preview-grid"><article><div><strong>Revenue movement</strong><small>Last 8 months</small></div><svg viewBox="0 0 420 128" role="img" aria-label="Revenue trend rising over eight months"><path class="preview-chart-area" d="M10,111 C48,104 66,82 103,87 S159,75 191,71 S243,80 276,54 S329,44 355,29 S393,24 410,12 L410,120 L10,120 Z"/><path class="preview-chart-line" d="M10,111 C48,104 66,82 103,87 S159,75 191,71 S243,80 276,54 S329,44 355,29 S393,24 410,12"/></svg></article><article><div><strong>Needs attention</strong><small>Today</small></div><p><i class="urgent"></i><span><b>Proposal follow-up</b><small>KlineO · 10:30</small></span></p><p><i></i><span><b>Discovery call</b><small>Yokai · 14:00</small></span></p><p><i></i><span><b>Investor update</b><small>AKARI House</small></span></p></article></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderPublicLanding() {
+  const selected = LANDING_FLOW_NODES.find((node) => node.id === state.selectedLandingFlowNode) || LANDING_FLOW_NODES[0];
+  document.body.dataset.akariPage = 'public-home';
+  document.documentElement.dataset.akariInteractive = 'ready';
+  const app = $('#app');
+  app.className = '';
+  app.innerHTML = `<main class="public-landing">
+    <nav class="landing-nav" aria-label="Public navigation"><a class="landing-brand" href="/" aria-label="AKARI CRM home"><img src="./assets/brand/akari-icon.png" alt=""/><span><small>CRM by</small><strong>AKARI</strong></span></a><div><a href="#product">Product</a><a href="/dashboard" class="landing-enter">Enter CRM</a><a href="#waitlist" class="landing-cta">Join waitlist</a></div></nav>
+    <section class="landing-hero" id="product"><div class="landing-hero-copy"><span class="landing-kicker">THE OPERATING SYSTEM FOR RELATIONSHIPS</span><h1>From relationships<br/>to <em>revenue.</em></h1><p>Business development, CRM, fundraising and revenue operations—connected in one private workspace.</p><div class="landing-hero-actions"><a href="/dashboard" class="landing-primary">Enter CRM <span aria-hidden="true">→</span></a><a href="#waitlist" class="landing-secondary">Join waitlist</a></div><div class="landing-trust"><span>◇ Multi-tenant</span><span>◉ Private by default</span><span>✓ Owner-assisted</span></div></div>${landingDashboardPreviewHtml()}</section>
+    <section class="landing-flow-section"><div class="landing-section-copy"><span>ONE CONNECTED JOURNEY</span><h2>See every next step.</h2><p>Select a stage to inspect how an AKARI workspace moves a relationship forward.</p></div><div class="landing-flow-demo"><div class="landing-flow-canvas" aria-label="Interactive relationship workflow"><svg viewBox="0 0 950 190" aria-hidden="true"><path d="M178 98 C190 98 193 98 205 98 M365 98 C377 98 380 98 392 98 M552 98 C564 98 567 98 579 98 M739 98 C751 98 754 98 766 98"/></svg>${LANDING_FLOW_NODES.map(landingFlowNodeHtml).join('')}</div>${landingFlowInspectorHtml(selected)}</div></section>
+    <section class="landing-showcase"><div class="landing-section-copy"><span>REAL OPERATING VIEWS</span><h2>One glance, then act.</h2><p>Compact command views for each project—without mixing tenant data.</p></div><div class="landing-shot-grid"><article><header><span>AKARI House</span><em>Executive command centre</em></header><div class="shot-metrics"><b>$184k<small>Pipeline</small></b><b>12<small>Tasks</small></b><b>895<small>Leads</small></b></div><div class="shot-bars"><i style="--w:82%"></i><i style="--w:58%"></i><i style="--w:71%"></i></div></article><article><header><span>KlineO</span><em>Opportunity pipeline</em></header><div class="shot-board"><i><b>Qualified</b><small>3 opportunities</small></i><i><b>Proposal</b><small>$25k · Review</small></i><i><b>Won</b><small>Onboarding</small></i></div></article><article><header><span>Yokai</span><em>Outreach activity</em></header><div class="shot-activity"><i>◉</i><p><b>Discovery call</b><small>Today · 14:00</small></p><span>Ready</span></div><div class="shot-activity"><i>✓</i><p><b>Follow-up sent</b><small>2 hours ago</small></p><span>Done</span></div></article></div></section>
+    <section class="landing-waitlist" id="waitlist"><div><span>EARLY ACCESS</span><h2>Bring your project into focus.</h2><p>Tell us what you need. No payment is collected during pre-registration.</p></div><form id="landing-waitlist-form"><label>Email<input type="email" name="email" required autocomplete="email" placeholder="you@company.com"/></label><label>Project<input name="organisation" required maxlength="120" placeholder="Project or organisation"/></label><label>Package<select name="package"><option value="BD">BD · $11.11/mo</option><option value="BD_CRM" selected>BD + CRM · $55.55/mo</option><option value="BD_CRM_FUNDRAISING">BD + CRM + Fundraising · $99.99/mo</option><option value="FULL_PLATFORM">Full platform + data access · $999.99/mo</option></select></label><label>Preferred term<select name="term"><option>Monthly</option><option>6 months</option><option selected>12 months</option></select></label><input class="landing-honeypot" name="website_confirm" tabindex="-1" autocomplete="off"/><button type="submit" class="landing-primary">Register interest →</button><small id="landing-form-status">Waitlist access does not create a CRM login.</small></form></section>
+    <footer class="landing-footer"><span>© 2026 AKARI House</span><a href="https://akarihouse.com">akarihouse.com</a></footer>
+  </main>`;
+}
+
 function routeFromLocation() {
   const route = location.hash.replace(/^#\/?/, '').split('?')[0] || 'dashboard';
   return ROUTES[route] ? route : 'dashboard';
@@ -162,6 +228,7 @@ function shellHtml() {
   const nav = navGroups().map(({ section, items }) => `
     <div class="nav-group">
       <div class="nav-label">${escapeHtml(section)}</div>
+      ${section === 'WORKSPACE' ? `<a class="nav-item nav-item--public" href="/" data-public-home><span class="nav-icon">⌂</span><span class="nav-text">Home</span><span class="nav-external" aria-label="Public page">↗</span></a>` : ''}
       ${items.map(([key, config]) => `
         <button class="nav-item ${state.route === key ? 'active' : ''}" data-route="${key}">
           <span class="nav-icon">${config.icon}</span>
@@ -174,9 +241,9 @@ function shellHtml() {
   return `
     <div class="shell ${state.financeHidden ? 'finance-hidden' : ''}">
       <aside class="sidebar ${state.sidebarOpen ? 'open' : ''}" id="sidebar">
-        <div class="brand">
+        <a class="brand" href="/" data-public-home aria-label="AKARI CRM public home">
           <img class="brand-lockup" src="./assets/brand/akari-crm-lockup.png" alt="AKARI CRM" />
-        </div>
+        </a>
         <button class="workspace-button" data-action="workspace">
           <span class="workspace-main">
             <span class="workspace-avatar">AH</span>
@@ -209,7 +276,7 @@ function shellHtml() {
         <div class="content" id="view-root"></div>
       </main>
       <nav class="mobile-bottom">
-        <button class="${state.route === 'dashboard' ? 'active' : ''}" data-route="dashboard">⌂<span>Home</span></button>
+        <button class="${state.route === 'dashboard' ? 'active' : ''}" data-route="dashboard">▦<span>Dashboard</span></button>
         <button class="${state.route === 'day' ? 'active' : ''}" data-route="day">✓<span>My Day</span></button>
         <button class="${state.route === 'leads' ? 'active' : ''}" data-route="leads">◇<span>Leads</span></button>
         <button data-action="open-sidebar">⋯<span>More</span></button>
@@ -291,29 +358,40 @@ function invalidate(...keys) { keys.forEach((key) => state.cache.delete(key)); }
 
 async function renderDashboard(force = false) {
   const financeRequest = state.me?.user?.financeAccess ? api('/api/payments').catch(() => ({items:[]})) : Promise.resolve({items:[]});
-  const [dashboard, tasksPayload, oppPayload, leadPayload, campaignPayload, paymentPayload] = await Promise.all([
+  const [dashboard, tasksPayload, oppPayload, leadPayload, campaignPayload, paymentPayload, reportsPayload] = await Promise.all([
     cached('dashboard', () => api('/api/dashboard'), force),
     cached('tasks', () => api('/api/tasks?scope=mine'), force),
     cached('opportunities', () => api('/api/opportunities'), force),
     cached('leads:recent', () => api('/api/akari-leads?limit=8&offset=0'), force),
     cached('campaigns', () => api('/api/campaigns'), force),
     force ? financeRequest : cached('payments', () => financeRequest),
+    cached('reports', () => api('/api/reports').catch(() => ({pipelineByStage:[],revenueByMonth:[]})), force),
   ]);
   state.tasks = tasksPayload.items || [];
   state.opportunities = oppPayload.items || [];
   state.campaigns = campaignPayload.items || [];
   state.payments = paymentPayload.items || [];
+  state.reports = reportsPayload;
   state.leads.total = leadPayload.total || state.leads.total;
   const m = dashboard.metrics || {};
   const currency = dashboard.currency || 'USD';
   const activeOpps = state.opportunities.filter((o) => !['WON','LOST'].includes(o.stage));
   const attention = buildAttention(activeOpps, state.tasks, state.campaigns, state.payments);
+  const now = new Date();
+  const todayTasks = state.tasks.filter((task) => task.due_at && new Date(task.due_at).toDateString() === now.toDateString());
+  const overdueTasks = state.tasks.filter((task) => task.status !== 'DONE' && isOverdue(task.due_at));
+  const highTasks = state.tasks.filter((task) => ['URGENT','HIGH'].includes(task.priority) && task.status !== 'DONE');
   const root = $('#view-root');
   root.innerHTML = `
-    ${pageHead('LIVE · AKARI HOUSE', `Good evening, ${escapeHtml((state.me?.user?.fullName || 'Muaz').split(' ')[0])}.`, 'Your relationships, opportunities, delivery and revenue in one operating view.', `
+    ${pageHead('LIVE · AKARI HOUSE', `Good ${new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'}, ${escapeHtml((state.me?.user?.fullName || 'Muaz').split(' ')[0])}.`, 'Today’s actions, targets, relationships and revenue in one operating view.', `
       <button class="btn yellow" data-action="open-import">⇧ Import AKARI leads</button>
       <button class="btn primary" data-action="new-lead">＋ New lead</button>`)}
-    <div class="live-banner">Live tenant data is connected. Every number below comes from the AKARI House workspace.</div>
+    <div class="dashboard-command-strip" aria-label="Daily operating summary">
+      <button data-route="day"><span class="command-icon command-icon--today">✓</span><span><small>Due today</small><strong>${todayTasks.length}</strong></span><em>Open My Day →</em></button>
+      <button data-route="day"><span class="command-icon command-icon--overdue">!</span><span><small>Overdue</small><strong>${overdueTasks.length}</strong></span><em>${overdueTasks.length ? 'Needs attention' : 'All clear'}</em></button>
+      <button data-route="day"><span class="command-icon">↑</span><span><small>Priority tasks</small><strong>${highTasks.length}</strong></span><em>High + urgent</em></button>
+      <button data-route="opportunities"><span class="command-icon command-icon--pipeline">◇</span><span><small>Active deals</small><strong>${activeOpps.length}</strong></span><em>${money(m.weightedPipeline || 0, currency, true)} weighted</em></button>
+    </div>
     <div class="kpi-grid">
       ${kpi('Monthly target', m.monthlyTarget, currency, 'Target for the current month', 'yellow')}
       ${kpi('Revenue booked', m.revenueBooked, currency, 'Confirmed campaign revenue')}
@@ -329,13 +407,23 @@ async function renderDashboard(force = false) {
       ${miniKpi('Outstanding payments', money(m.outstandingPayments, currency))}
       ${miniKpi('Referral rewards due', money(m.referralRewardsDue, currency))}
     </div>
-    <div class="grid-main">
+    <div class="dashboard-chart-grid">
+      <div class="panel dashboard-revenue-panel">
+        <div class="panel-head"><div class="panel-title"><strong>Revenue movement</strong><span>Payments collected by month · up to 24 months</span></div><span class="dashboard-source">D1 · Payments</span></div>
+        <div class="panel-body">${revenueChartHtml(reportsPayload.revenueByMonth || [], currency)}</div>
+      </div>
+      <div class="panel dashboard-target-panel">
+        <div class="panel-head"><div class="panel-title"><strong>Monthly target</strong><span>Booked and collected against plan</span></div><span class="dashboard-source">Current month</span></div>
+        <div class="panel-body">${targetProgressHtml(m, currency)}</div>
+      </div>
+    </div>
+    <div class="grid-main dashboard-operating-grid">
       <div class="panel">
         <div class="panel-head"><div class="panel-title"><strong>Opportunity funnel</strong><span>Count and value by active stage</span></div><button class="btn small" data-route="opportunities">Open pipeline</button></div>
         <div class="panel-body">${funnelHtml(activeOpps)}</div>
       </div>
       <div class="panel">
-        <div class="panel-head"><div class="panel-title"><strong>Business attention</strong><span>Items requiring action</span></div>${pill(attention.length + ' items', attention.length ? 'red' : 'green')}</div>
+        <div class="panel-head"><div class="panel-title"><strong>Important messages</strong><span>Risks and updates requiring action</span></div>${pill(attention.length + ' items', attention.length ? 'red' : 'green')}</div>
         <div class="panel-body">${attentionHtml(attention)}</div>
       </div>
     </div>
@@ -350,6 +438,37 @@ async function renderDashboard(force = false) {
       </div>
     </div>`;
   updateNavBadges();
+}
+
+// Chart contract: collected revenue over a consistent monthly grain. A line
+// is used only with at least four observed periods; sparse evidence stays an
+// exact-value comparison rather than implying a continuous trend.
+function revenueChartHtml(rows, currency) {
+  const points = [...rows].filter((row) => row.month).sort((a,b) => String(a.month).localeCompare(String(b.month))).slice(-24);
+  if (!points.length) return emptyState('No collected revenue yet', 'Paid payments will create the revenue history automatically.');
+  const values = points.map((row) => Number(row.collected || 0));
+  const max = Math.max(...values, 1);
+  if (points.length < 4) {
+    return `<div class="revenue-sparse">${points.map((row) => `<div><span>${escapeHtml(monthLabel(row.month))}</span><i><b style="width:${Math.max(4, Number(row.collected || 0) / max * 100)}%"></b></i><strong>${escapeHtml(money(row.collected, currency, true))}</strong></div>`).join('')}</div><p class="chart-note">Exact monthly comparison · a trend line appears after four observed months.</p>`;
+  }
+  const width=720,height=220,padX=28,padY=24;
+  const coords=values.map((value,index)=>({x:padX+(width-padX*2)*(index/Math.max(values.length-1,1)),y:height-padY-(height-padY*2)*(value/max)}));
+  const line=coords.map((point,index)=>`${index?'L':'M'} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(' ');
+  const area=`${line} L ${coords.at(-1).x.toFixed(1)} ${height-padY} L ${coords[0].x.toFixed(1)} ${height-padY} Z`;
+  const labelIndexes=[0,Math.floor((points.length-1)/2),points.length-1];
+  return `<div class="revenue-chart"><div class="revenue-chart-total"><span>Collected in view</span><strong class="finance-value">${money(values.reduce((sum,value)=>sum+value,0),currency,true)}</strong></div><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Collected revenue across ${points.length} observed months"><line x1="${padX}" y1="${height-padY}" x2="${width-padX}" y2="${height-padY}"/><line x1="${padX}" y1="${height/2}" x2="${width-padX}" y2="${height/2}"/><path class="revenue-chart__area" d="${area}"/><path class="revenue-chart__line" d="${line}"/>${coords.map((point,index)=>`<circle cx="${point.x}" cy="${point.y}" r="${index===coords.length-1?5:3}"><title>${escapeHtml(monthLabel(points[index].month))}: ${escapeHtml(money(values[index],currency))}</title></circle>`).join('')}${labelIndexes.map((index)=>`<text x="${coords[index].x}" y="${height-4}" text-anchor="${index===0?'start':index===points.length-1?'end':'middle'}">${escapeHtml(monthLabel(points[index].month))}</text>`).join('')}</svg></div>`;
+}
+
+function monthLabel(value) {
+  const [year,month]=String(value).split('-').map(Number);
+  if(!year||!month)return String(value);
+  return new Intl.DateTimeFormat('en-GB',{month:'short',year:'2-digit'}).format(new Date(Date.UTC(year,month-1,1)));
+}
+
+function targetProgressHtml(metrics, currency) {
+  const target=Number(metrics.monthlyTarget || 0),booked=Number(metrics.revenueBooked || 0),collected=Number(metrics.revenueCollected || 0);
+  const bookedPct=target?Math.min(100,booked/target*100):0,collectedPct=target?Math.min(100,collected/target*100):0;
+  return `<div class="target-progress"><div class="target-ring" style="--progress:${bookedPct}"><div><strong>${target?Math.round(bookedPct):0}%</strong><span>booked</span></div></div><div class="target-progress__detail"><div><span>Target</span><strong class="finance-value">${money(target,currency,true)}</strong></div><div><span>Booked</span><strong class="finance-value">${money(booked,currency,true)}</strong></div><div><span>Collected</span><strong class="finance-value">${money(collected,currency,true)}</strong></div><i><b style="width:${collectedPct}%"></b></i><small>${target ? `${Math.round(collectedPct)}% collected` : 'Set a monthly target in Settings'}</small></div></div>`;
 }
 
 function kpi(label, value, currency, meta, tone = '', route = '') {
@@ -468,8 +587,10 @@ async function renderMyDay(force = false) {
 
 function flowNodeHtml(node) {
   const selected = node.id === state.selectedFlowNode;
+  const icons={SOURCE:'◇',CALL:'◉',SUCCESS:'✓',WAIT:'◷',EMAIL:'✉',EXIT:'↲'};
+  const statuses={SOURCE:'Ready',CALL:'Owner task',SUCCESS:'Conversion',WAIT:'Timed wait',EMAIL:'Draft message',EXIT:'Manual decision'};
   return `<button class="flow-node flow-node--${node.tone} ${selected?'is-selected':''}" style="left:${node.x}px;top:${node.y}px" data-action="select-flow-node" data-id="${node.id}" aria-pressed="${selected}">
-    <span class="flow-node__type">${escapeHtml(node.type)}</span><strong>${escapeHtml(node.title)}</strong><span>${escapeHtml(node.detail)}</span><i aria-hidden="true"></i>
+    <span class="flow-node__header"><b aria-hidden="true">${icons[node.type]||'•'}</b><span class="flow-node__type">${escapeHtml(node.type)}</span><em>${escapeHtml(statuses[node.type]||'Step')}</em></span><strong>${escapeHtml(node.title)}</strong><span>${escapeHtml(node.detail)}</span><span class="flow-node__footer"><i class="flow-avatar">AK</i><small>AKARI owner</small></span><i class="flow-port" aria-hidden="true"></i>
   </button>`;
 }
 
@@ -484,19 +605,34 @@ function flowPath(link) {
 
 function flowInspectorHtml(node) {
   const branchLinks=FLOW_LINKS.filter(([from])=>from===node.id);
-  return `<aside class="flow-inspector"><div class="flow-inspector__eyebrow">SELECTED STEP</div><h2>${escapeHtml(node.title)}</h2><p>${escapeHtml(node.detail)}</p>
-    <dl><div><dt>Step type</dt><dd>${escapeHtml(titleCase(node.type))}</dd></div><div><dt>Mode</dt><dd>Owner-assisted</dd></div><div><dt>Workspace</dt><dd>AKARI House</dd></div></dl>
+  return `<aside class="flow-inspector"><div class="flow-inspector__eyebrow">SELECTED STEP</div><div class="flow-inspector__title"><span>${escapeHtml(node.type.slice(0,1))}</span><div><h2>${escapeHtml(node.title)}</h2><p>${escapeHtml(node.detail)}</p></div></div>
+    <dl><div><dt>Step type</dt><dd>${escapeHtml(titleCase(node.type))}</dd></div><div><dt>Execution</dt><dd>Owner-assisted</dd></div><div><dt>Workspace</dt><dd>AKARI House</dd></div><div><dt>Template state</dt><dd>Draft</dd></div></dl>
     <div class="flow-inspector__section"><strong>Next outcomes</strong>${branchLinks.length?branchLinks.map(([,to,label,tone])=>{const target=FLOW_NODES.find((item)=>item.id===to);return `<button data-action="select-flow-node" data-id="${to}"><span class="flow-outcome flow-outcome--${tone}">${escapeHtml(label)}</span><b>${escapeHtml(target.title)}</b></button>`;}).join(''):'<span class="flow-inspector__empty">End of this sequence</span>'}</div>
-    <div class="live-banner">This is the approved AKARI playbook template. It visualises the follow-up sequence; external calling and email delivery remain owner-controlled until integrations are enabled.</div>
+    <div class="flow-guardrail"><span>OWNER-ASSISTED</span><strong>No silent automation</strong><p>Calls and emails stay owner-controlled until approved integrations and tenant execution logs are enabled.</p></div>
   </aside>`;
+}
+
+function applyFlowScale(scale) {
+  state.flowScale=Math.max(.55,Math.min(1.15,Number(scale)||.86));
+  const canvas=$('.flow-canvas'); const stage=$('.flow-canvas-stage'); const label=$('#flow-zoom-label');
+  if(canvas)canvas.style.transform=`scale(${state.flowScale})`;
+  if(stage){stage.style.width=`${1395*state.flowScale}px`;stage.style.height=`${810*state.flowScale}px`;}
+  if(label)label.textContent=`${Math.round(state.flowScale*100)}%`;
+}
+
+function fitFlowToView() {
+  const viewport=$('.flow-canvas-scroll');
+  if(!viewport)return;
+  applyFlowScale(Math.min(.96,(viewport.clientWidth-24)/1395,(Math.max(560,viewport.clientHeight)-24)/810));
+  viewport.scrollTo({left:0,top:0,behavior:'smooth'});
 }
 
 async function renderFlows() {
   const selected=FLOW_NODES.find((node)=>node.id===state.selectedFlowNode)||FLOW_NODES[0];
   $('#view-root').innerHTML=`${pageHead('AKARI OUTREACH PLAYBOOK','Outreach Flows','A visual owner-assisted sequence from first call to meeting or manual review.',`<span class="pill yellow">Template · Draft</span>`)}
     <div class="flow-workspace">
-      <section class="flow-canvas-panel"><div class="flow-canvas-toolbar"><div><strong>AKARI relationship sequence</strong><span>Choose any step to inspect its outcomes</span></div><div class="flow-legend"><span><i class="success"></i>Positive</span><span><i class="waiting"></i>Wait</span><span><i class="failed"></i>No response</span></div></div>
-        <div class="flow-canvas-scroll"><div class="flow-canvas" role="group" aria-label="AKARI outreach workflow"><svg width="1395" height="810" viewBox="0 0 1395 810" aria-hidden="true">${FLOW_LINKS.map(flowPath).join('')}</svg>${FLOW_NODES.map(flowNodeHtml).join('')}</div></div>
+      <section class="flow-canvas-panel"><div class="flow-canvas-toolbar"><div><strong>AKARI relationship sequence</strong><span>Select a step · drag the canvas to pan</span></div><div class="flow-toolbar-actions"><div class="flow-legend"><span><i class="success"></i>Positive</span><span><i class="waiting"></i>Wait</span><span><i class="failed"></i>No response</span></div><div class="flow-zoom"><button data-action="flow-zoom-out" aria-label="Zoom out">−</button><span id="flow-zoom-label">${Math.round(state.flowScale*100)}%</span><button data-action="flow-zoom-in" aria-label="Zoom in">+</button><button data-action="flow-fit">Fit</button></div></div></div>
+        <div class="flow-canvas-scroll" data-flow-pan tabindex="0" aria-label="Pannable outreach workflow canvas"><div class="flow-canvas-stage" style="width:${1395*state.flowScale}px;height:${810*state.flowScale}px"><div class="flow-canvas" style="transform:scale(${state.flowScale})" role="group" aria-label="AKARI outreach workflow"><svg width="1395" height="810" viewBox="0 0 1395 810" aria-hidden="true"><defs><marker id="flow-arrow-neutral" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z"/></marker></defs>${FLOW_LINKS.map(flowPath).join('')}</svg>${FLOW_NODES.map(flowNodeHtml).join('')}</div></div></div>
       </section>${flowInspectorHtml(selected)}
     </div>`;
 }
@@ -1082,6 +1218,25 @@ function applyTaskFilter(filter) {
 
 function toggleFinance() { state.financeHidden=!state.financeHidden; renderShell(); loadRoute(state.route); toast(state.financeHidden?'Screen-share privacy enabled':'Financial values visible'); }
 
+function selectLandingFlowNode(id) {
+  const node=LANDING_FLOW_NODES.find((item)=>item.id===id); if(!node)return;
+  state.selectedLandingFlowNode=id;
+  $$('.landing-flow-node').forEach((item)=>{const selected=item.dataset.id===id;item.classList.toggle('is-selected',selected);item.setAttribute('aria-pressed',String(selected));});
+  const inspector=$('#landing-flow-inspector'); if(inspector)inspector.outerHTML=landingFlowInspectorHtml(node);
+}
+
+async function submitLandingWaitlist(form) {
+  const button=form.querySelector('button[type="submit"]'); const status=$('#landing-form-status');
+  button.disabled=true; button.textContent='Registering…'; if(status)status.textContent='Saving your interest securely…';
+  try {
+    const data=new FormData(form);
+    await api('/api/waitlist',{method:'POST',body:JSON.stringify({email:data.get('email'),organisation:data.get('organisation'),package:data.get('package'),term:data.get('term'),websiteConfirm:data.get('website_confirm')})});
+    form.reset(); button.textContent='Interest registered ✓'; if(status)status.textContent='You are on the waitlist. AKARI will contact you before any account is activated.';
+  } catch(error) {
+    button.disabled=false; button.textContent='Register interest →'; if(status)status.textContent=error.message||'Registration failed. Please try again.';
+  }
+}
+
 async function handleAction(action, element) {
   if(action==='open-sidebar')openSidebar();
   else if(action==='close-sidebar')closeSidebar();
@@ -1108,6 +1263,10 @@ async function handleAction(action, element) {
   else if(action==='toggle-task')await toggleTask(element.dataset.id);
   else if(action==='change-task-status')await updateTaskStatus(element.dataset.id,element.value);
   else if(action==='select-flow-node'){state.selectedFlowNode=element.dataset.id;renderFlows();}
+  else if(action==='flow-zoom-out')applyFlowScale(state.flowScale-.1);
+  else if(action==='flow-zoom-in')applyFlowScale(state.flowScale+.1);
+  else if(action==='flow-fit')fitFlowToView();
+  else if(action==='select-landing-flow-node')selectLandingFlowNode(element.dataset.id);
   else if(action==='change-stage')await changeOpportunityStage(element.dataset.id,element.value);
   else if(action==='change-campaign-status')await changeCampaignStatus(element.dataset.id,element.value);
   else if(action==='mark-payment-paid')await markPaymentPaid(element.dataset.id);
@@ -1127,6 +1286,8 @@ function handleCommand(command) {
 
 function bindGlobalEvents() {
   document.addEventListener('click',async(event)=>{
+    const publicHome=event.target.closest('[data-public-home]');
+    if(publicHome){event.preventDefault();location.assign('/');return;}
     const route=event.target.closest('[data-route]')?.dataset.route;
     if(route){event.preventDefault();setRoute(route);return;}
     const lead=event.target.closest('[data-open-lead]')?.dataset.openLead;
@@ -1141,6 +1302,10 @@ function bindGlobalEvents() {
   document.addEventListener('change',async(event)=>{
     const action=event.target.dataset.action;
     if(action==='change-stage'||action==='change-campaign-status'||action==='change-task-status'){try{await handleAction(action,event.target);}catch(error){toast(error.message || 'Update failed','error');}}
+  });
+  document.addEventListener('submit',async(event)=>{
+    if(event.target.id!=='landing-waitlist-form')return;
+    event.preventDefault(); await submitLandingWaitlist(event.target);
   });
   document.addEventListener('dragstart',(event)=>{
     const card=event.target.closest('[data-task-card]'); if(!card)return;
@@ -1167,11 +1332,27 @@ function bindGlobalEvents() {
     if(event.key==='Escape'){closeModal();closeDrawer();closeSidebar();}
     if(event.key==='Enter'&&event.target.id==='global-search'){state.leads.search=event.target.value.trim();state.leads.page=0;setRoute('leads');}
   });
+  let flowPan=null;
+  document.addEventListener('pointerdown',(event)=>{
+    const viewport=event.target.closest('[data-flow-pan]');
+    if(!viewport||event.target.closest('button,a,input,select'))return;
+    flowPan={viewport,x:event.clientX,y:event.clientY,left:viewport.scrollLeft,top:viewport.scrollTop};
+    viewport.classList.add('is-panning'); viewport.setPointerCapture?.(event.pointerId);
+  });
+  document.addEventListener('pointermove',(event)=>{
+    if(!flowPan)return;
+    flowPan.viewport.scrollLeft=flowPan.left-(event.clientX-flowPan.x); flowPan.viewport.scrollTop=flowPan.top-(event.clientY-flowPan.y);
+  });
+  document.addEventListener('pointerup',()=>{if(flowPan)flowPan.viewport.classList.remove('is-panning');flowPan=null;});
   window.addEventListener('popstate',()=>{state.route=routeFromLocation();renderShell();loadRoute(state.route);});
 }
 
 async function bootstrap() {
   bindGlobalEvents();
+  if(isPublicHomePath()){
+    renderPublicLanding();
+    return;
+  }
   try {
     state.me=await api('/api/me');
     state.route=routeFromLocation();

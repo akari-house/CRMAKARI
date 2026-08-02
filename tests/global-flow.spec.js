@@ -72,9 +72,9 @@ async function ready(page) {
 
 test('clean paths preserve navigation and restore the rich dashboard', async ({ page }) => {
   await mockApi(page);
-  await page.goto('/');
+  await page.goto('/#/dashboard');
   await ready(page);
-  await expect(page.getByRole('heading', { name: /Good evening, Muaz/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening), Muaz/i })).toBeVisible();
   await expect(page.locator('.kpi-grid .kpi')).toHaveCount(5);
   await expect.poll(() => new URL(page.url()).hash).toBe('');
 
@@ -88,8 +88,8 @@ test('clean paths preserve navigation and restore the rich dashboard', async ({ 
   await expect.poll(() => new URL(page.url()).pathname).toBe('/opportunities');
 
   await page.locator('.nav-item[data-route="dashboard"]').click();
-  await expect(page.getByRole('heading', { name: /Good evening, Muaz/i })).toBeVisible();
-  await expect.poll(() => new URL(page.url()).pathname).toBe('/');
+  await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening), Muaz/i })).toBeVisible();
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/dashboard');
 
   await page.goBack();
   await expect(page.getByRole('heading', { name: 'Opportunity Pipeline' })).toBeVisible();
@@ -104,13 +104,13 @@ test('clean paths preserve navigation and restore the rich dashboard', async ({ 
   await expect(page.getByRole('heading', { name: 'Opportunity Pipeline' })).toBeVisible();
 
   await page.locator('.nav-item[data-route="dashboard"]').click();
-  await expect(page.getByRole('heading', { name: /Good evening, Muaz/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening), Muaz/i })).toBeVisible();
   await expect(page.locator('.kpi-grid .kpi')).toHaveCount(5);
 });
 
 test('modal fields remain interactive and only an intentional dismissal closes the modal', async ({ page }) => {
   await mockApi(page);
-  await page.goto('/');
+  await page.goto('/#/dashboard');
   await ready(page);
 
   await page.locator('.nav-item[data-route="campaigns"]').click();
@@ -138,7 +138,7 @@ test('modal fields remain interactive and only an intentional dismissal closes t
 
 test('Cloudflare Pages rewrites cover every clean CRM route', async () => {
   const redirects = readFileSync(new URL('../public/_redirects', import.meta.url), 'utf8');
-  for (const path of ['/day', '/leads', '/contacts', '/opportunities', '/fundraising', '/campaigns', '/partners', '/finance', '/reports', '/team', '/settings']) {
+  for (const path of ['/dashboard', '/day', '/flows', '/leads', '/contacts', '/opportunities', '/fundraising', '/campaigns', '/partners', '/finance', '/reports', '/team', '/settings']) {
     expect(redirects).toContain(`${path} /index.html 200`);
   }
 });

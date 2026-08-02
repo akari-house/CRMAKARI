@@ -2,13 +2,13 @@
 
 ## 1. Create the GitHub repository
 
-Create a new private repository under the existing AKARI GitHub account or organisation:
+The canonical public repository is:
 
 ```text
-akari-crm
+https://github.com/akari-house/CRMAKARI
 ```
 
-Upload the contents of this folder to the repository root.
+Do not commit production credentials, Cloudflare tokens, D1 identifiers or tenant exports.
 
 ## 2. Create the Cloudflare Pages project
 
@@ -57,15 +57,17 @@ DEFAULT_TENANT_SLUG=akari-house
 
 Preview can remain `AUTH_MODE=demo` until test memberships are configured.
 
-## 6. Protect access
+## 6. Protect CRM access while keeping Home public
 
-Create a Cloudflare Access self-hosted application for:
+The custom hostname is:
 
 ```text
 crm.akarihouse.com
 ```
 
-Allow only approved AKARI emails initially. Ensure those same emails exist in the D1 `users` and `tenant_memberships` tables.
+Keep `/` and `/home` public for the compact product page, and allow the exact `/api/waitlist` pre-registration endpoint. Protect `/dashboard`, all other CRM paths and tenant APIs. Allow only approved AKARI emails initially, and ensure those same emails exist in D1 `users` and `tenant_memberships`.
+
+Keep `akarihouse.com` outside this Access application.
 
 ## 7. Connect the domain
 
@@ -84,5 +86,7 @@ This does not require changing the public `akarihouse.com` application repositor
 - Confirm unauthorised emails receive 403
 - Confirm finance values disappear for a user without finance permission
 - Confirm `/api/health` and `/api/me` work
+- Confirm `/` loads publicly and `/dashboard` invokes CRM authentication
+- Confirm submitting the waitlist does not create a CRM user or tenant membership
 - Confirm the public `akarihouse.com` site remains unchanged
 

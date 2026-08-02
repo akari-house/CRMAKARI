@@ -45,8 +45,8 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/api/**', async (route) => {
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(responseFor(route.request())) });
   });
-  await page.goto('/');
-  await expect(page.getByRole('heading', { name: /Good evening, Muaz/i })).toBeVisible();
+  await page.goto('/#/dashboard');
+  await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening), Muaz/i })).toBeVisible();
 });
 
 test('advanced lead filters are server-driven and persist on the live Leads page', async ({ page }) => {

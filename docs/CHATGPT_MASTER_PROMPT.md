@@ -134,9 +134,17 @@ Read and maintain `docs/uilib.md`, `docs/UI_UX.md` and the coded UI library. New
 
 ## 7. Current product modules
 
-The canonical sidebar/routes currently include:
+The public and authenticated route contract is intentional:
 
-- Home/rich business dashboard;
+- `/` and `/home` render the short public product one-pager and waitlist without requiring a CRM session;
+- `/dashboard` is the default authenticated CRM route;
+- the sidebar `Home` link returns to the public one-pager, while `Dashboard` opens the tenant operating view;
+- all other CRM routes and tenant APIs remain protected and tenant-scoped.
+
+The canonical CRM sidebar/routes currently include:
+
+- Home (public one-pager, clearly marked as an external destination);
+- Dashboard (rich tenant operating view);
 - My Day;
 - Outreach Flows;
 - AKARI Leads;
@@ -150,7 +158,9 @@ The canonical sidebar/routes currently include:
 - Team;
 - Settings.
 
-The dashboard is a one-stop operating view with source-backed KPIs, pipeline/revenue context, tasks, recent tenant leads and attention signals. Never fabricate revenue, conversion or activity metrics. If records do not provide a metric, show a transparent empty/no-data state and a useful next action.
+The dashboard is a one-stop operating view with source-backed KPIs, daily command items, targets, pipeline/revenue context, tasks, recent tenant leads, important messages and responsive charts. Never fabricate revenue, conversion or activity metrics. If records do not provide a metric, show a transparent empty/no-data state and a useful next action.
+
+Keep the public one-pager concise: hero, product/dashboard preview, an interactive relationship-flow preview, three compact operating-view previews, waitlist form and footer. Use AKARI House, KlineO and Yokai as examples. Do not use BotChain or Digimaaya. Illustrative preview values must be visibly labelled as product previews and must never be presented as tenant records.
 
 Tenant lead/project records must support easy editing and these relationship/channel fields where known:
 
@@ -233,7 +243,7 @@ Use this order unless the product owner explicitly changes it:
 2. Keep canonical navigation/loading/interactivity stable across route changes.
 3. Complete editable lead/project/contact/POC records and reliable workbook visibility.
 4. Make the dashboard genuinely operational and source-backed.
-5. Deepen My Day and outreach flows, including activities and follow-up logging.
+5. Deepen My Day and the interactive, pannable/zoomable outreach flows, including activities and follow-up logging.
 6. Complete opportunity/fundraising/campaign/finance workflows end to end.
 7. Build the public landing page, pricing presentation and waitlist/pre-registration flow without payment activation.
 8. Add tenant provisioning, invitations and plan/module entitlements.

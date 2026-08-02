@@ -44,8 +44,8 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/api/**', async (route) => {
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(responseFor(route.request().url())) });
   });
-  await page.goto('http://127.0.0.1:4173/');
-  await expect(page.getByRole('heading', { name: /Good evening, Muaz/i })).toBeVisible();
+  await page.goto('http://127.0.0.1:4173/#/dashboard');
+  await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening), Muaz/i })).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('data-akari-interactive', 'ready');
   await expect(page.locator('html')).toHaveAttribute('data-akari-ui', 'v1');
   await expect(page.locator('body')).toHaveClass(/ak-ui/);
@@ -104,14 +104,14 @@ test('desktop navigation and forms are clickable', async ({ page }) => {
   await page.locator('#drawer-root button[data-action="close-drawer"]').click();
 });
 
-test('returning Home after viewing Opportunities restores the rich dashboard', async ({ page }) => {
+test('returning Dashboard after viewing Opportunities restores the rich dashboard', async ({ page }) => {
   await page.locator('.sidebar [data-route="opportunities"]').click();
   await expect(page.getByRole('heading', { name: 'Opportunity Pipeline' })).toBeVisible();
   await expect(page.locator('#view-root .pipeline .stage')).toHaveCount(6);
   await expect(page.locator('#view-root .kanban')).toHaveCount(0);
 
   await page.locator('.sidebar [data-route="dashboard"]').click();
-  await expect(page.getByRole('heading', { name: /Good evening, Muaz/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening), Muaz/i })).toBeVisible();
   await expect(page.getByText('Loading workspace…')).toHaveCount(0);
   await expect(page.locator('#view-root .kpi-grid .kpi')).toHaveCount(5);
 });
@@ -141,6 +141,20 @@ test('outreach flow exposes the full call and follow-up sequence', async ({ page
   await expect(page.locator('.flow-inspector').getByRole('heading', { name: 'First follow-up email' })).toBeVisible();
   await expect(page.locator('.flow-inspector').getByText('Replied')).toBeVisible();
   await expect(page.locator('.flow-inspector').getByText('No reply')).toBeVisible();
+  await page.getByRole('button', { name: 'Zoom in' }).click();
+  await expect(page.locator('#flow-zoom-label')).toContainText('%');
+});
+
+test('public Home is concise, interactive and separate from the CRM Dashboard', async ({ page }) => {
+  await expect(page.locator('.sidebar .nav-item--public')).toHaveAttribute('href', '/');
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: /From relationships/i })).toBeVisible();
+  await expect(page.locator('.landing-shot-grid').getByText('KlineO', { exact: true })).toBeVisible();
+  await expect(page.locator('.landing-shot-grid').getByText('Yokai', { exact: true })).toBeVisible();
+  await expect(page.getByText(/BotChain|Digimaaya/i)).toHaveCount(0);
+  await page.locator('[data-action="select-landing-flow-node"][data-id="call"]').click();
+  await expect(page.locator('#landing-flow-inspector')).toContainText('Discovery call');
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/');
 });
 
 test('mobile navigation remains interactive', async ({ page }) => {

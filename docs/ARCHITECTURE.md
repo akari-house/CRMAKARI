@@ -12,7 +12,7 @@ Cloudflare Pages Functions `/api/*`
 Cloudflare D1
 ```
 
-Cloudflare Access can protect the entire production hostname for the first AKARI users.
+The production hostname intentionally has two surfaces: public GET routes for `/`, `/home` and static assets, plus an exact public waitlist submission endpoint. Cloudflare Access protects `/dashboard`, the remaining CRM routes and tenant APIs for the first AKARI users. Never apply the CRM Access policy to `akarihouse.com`.
 
 ## Multi-tenancy
 

@@ -16,7 +16,7 @@ export default defineConfig({
   webServer: {
     command: 'python -m http.server 4173 --directory public',
     url: 'http://127.0.0.1:4173',
-    reuseExistingServer: false,
+    reuseExistingServer: true,
     timeout: 30_000,
   },
 });

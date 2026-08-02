@@ -1,1 +1,43 @@
-const nodeDetails={lead:{stage:'Lead captured',prob:'25%',next:'Qualify the opportunity and confirm service interest.',width:'25%'},qualified:{stage:'Qualified',prob:'45%',next:'Create the opportunity and schedule discovery.',width:'45%'},nofit:{stage:'No fit',prob:'0%',next:'Record the reason and preserve the relationship history.',width:'0%'},opportunity:{stage:'Opportunity',prob:'60%',next:'Prepare scope, budget and the commercial proposal.',width:'60%'},proposal:{stage:'Proposal',prob:'72%',next:'Secure internal approval and follow up with the client.',width:'72%'},onboarding:{stage:'Client onboarding',prob:'88%',next:'Confirm deposit, assets, access and the kickoff plan.',width:'88%'},delivery:{stage:'Campaign delivery',prob:'92%',next:'Resolve milestones, approvals and outstanding deliverables.',width:'92%'},invoice:{stage:'Invoice',prob:'96%',next:'Track collections and reconcile partial payments.',width:'96%'},payment:{stage:'Payment',prob:'100%',next:'Confirm referral liability and prepare the client report.',width:'100%'},renewal:{stage:'Renewal',prob:'100%',next:'Create the renewal or upsell opportunity.',width:'100%'}};document.querySelectorAll('[data-node]').forEach(node=>node.addEventListener('click',()=>{document.querySelectorAll('[data-node]').forEach(item=>item.classList.remove('active'));node.classList.add('active');const detail=nodeDetails[node.dataset.node];document.querySelector('[data-inspector-stage]').textContent=detail.stage;document.querySelector('[data-inspector-prob]').textContent=detail.prob;document.querySelector('[data-inspector-next]').textContent=detail.next;document.querySelector('[data-prob-bar]').style.width=detail.width;}));const defaultWorkspaceEntry='/enter-crm';document.querySelectorAll('a[href="/app/"]').forEach(link=>link.setAttribute('href',defaultWorkspaceEntry));const form=document.querySelector('#waitlist-form');const status=document.querySelector('#waitlist-status');form?.addEventListener('submit',async(event)=>{event.preventDefault();status.textContent='Submitting your interest…';const payload=Object.fromEntries(new FormData(form).entries());try{const response=await fetch('/api/waitlist',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});const result=await response.json();if(!response.ok)throw new Error(result.error||'Unable to submit interest');form.reset();status.textContent=`Thanks — ${result.company||'your company'} is on the CRM by AKARI waitlist${result.position?` at position #${result.position}`:''}. We will contact selected teams when new workspaces become available.`;}catch(error){status.textContent=error.message||'Unable to submit your interest.';}});
+const nodeDetails={
+  lead:{project:'KlineO',stage:'Qualified lead',owner:'Muaz Xinthi',status:'Ready',next:'Confirm project goals and schedule discovery.',width:'25%'},
+  call:{project:'Yokai',stage:'Discovery call',owner:'BD Lead',status:'Due today',next:'Capture budget, timing, decision process, and fit.',width:'42%'},
+  proposal:{project:'KlineO',stage:'Commercial scope',owner:'Muaz Xinthi',status:'Approval gate',next:'Review deliverables and release the proposal.',width:'72%'},
+  won:{project:'AKARI House',stage:'Client onboarding',owner:'Delivery Lead',status:'Kickoff ready',next:'Confirm access, assets, milestones, and reporting.',width:'88%'},
+  revenue:{project:'Yokai',stage:'Payment received',owner:'Finance',status:'Reconciled',next:'Close liabilities and prepare the performance report.',width:'100%'}
+};
+
+const details={
+  project:document.querySelector('[data-inspector-project]'),
+  stage:document.querySelector('[data-inspector-stage]'),
+  owner:document.querySelector('[data-inspector-owner]'),
+  status:document.querySelector('[data-inspector-status]'),
+  next:document.querySelector('[data-inspector-next]'),
+  bar:document.querySelector('[data-prob-bar]')
+};
+
+document.querySelectorAll('[data-node]').forEach((node)=>node.addEventListener('click',()=>{
+  document.querySelectorAll('[data-node]').forEach((item)=>item.classList.remove('active'));
+  node.classList.add('active');
+  const detail=nodeDetails[node.dataset.node];
+  details.project.textContent=detail.project;
+  details.stage.textContent=detail.stage;
+  details.owner.textContent=detail.owner;
+  details.status.textContent=detail.status;
+  details.next.textContent=detail.next;
+  details.bar.style.width=detail.width;
+}));
+
+const form=document.querySelector('#waitlist-form');
+const status=document.querySelector('#waitlist-status');
+form?.addEventListener('submit',async(event)=>{
+  event.preventDefault();
+  status.textContent='Submitting your interest…';
+  const payload=Object.fromEntries(new FormData(form).entries());
+  try{
+    const response=await fetch('/api/waitlist',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
+    const result=await response.json();
+    if(!response.ok)throw new Error(result.error||'Unable to submit interest');
+    form.reset();
+    status.textContent=`Thanks — ${result.company||'your company'} is on the waitlist${result.position?` at position #${result.position}`:''}.`;
+  }catch(error){status.textContent=error.message||'Unable to submit your interest.';}
+});

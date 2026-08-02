@@ -6,6 +6,8 @@ AKARI CRM is the product. AKARI House is Customer 001 and the first real organis
 
 Future projects and companies receive separate tenant workspaces. They do not receive access to AKARI House data.
 
+The public home at `/` is a concise product and pre-registration page. It does not create tenant membership. Approved users enter the protected CRM at `/dashboard`, which resolves their active tenant membership before loading operational data.
+
 ## Core relationship model
 
 ```text
@@ -25,6 +27,7 @@ A project exists once. Client status is a lifecycle change, not a duplicate clie
 - Show monthly targets, daily scorecards and business attention alerts
 - Operate a visual owner-assisted outreach playbook covering calls, waits, follow-up emails, meeting outcomes and manual review
 - Move task cards between To do, In progress, Waiting and Done with tenant-scoped persistence
+- Land approved users on a source-backed command dashboard covering daily work, targets, important messages, pipeline and revenue
 
 ## Future platform workflow
 

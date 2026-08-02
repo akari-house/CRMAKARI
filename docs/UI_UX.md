@@ -24,7 +24,7 @@ The CRM is a quiet operational room inside AKARI House: premium, private, fast a
 
 ## Mobile
 
-- Bottom navigation: Home, My Day, Pipeline, More
+- Bottom navigation: Dashboard, My Day, Pipeline, More
 - Tables become list cards in later implementation
 - No hover-only actions
 - Primary daily actions remain one tap away
@@ -43,3 +43,12 @@ The CRM is a quiet operational room inside AKARI House: premium, private, fast a
 - `Outreach Flows` is the canonical AKARI call and follow-up canvas. Its draft template is explicitly owner-assisted; it must not imply that telephony or email delivery is automated before integrations exist.
 - `My Day` is a four-section task board. Desktop users drag cards between statuses; keyboard and mobile users use the status selector on each card. Every status change is written through the tenant-scoped task API.
 - New modules must use the canonical renderer in `public/assets/crm.js` and the AKARI dark orange/amber brand layer. Do not restore deleted legacy runtimes or introduce a second renderer.
+
+## Route and public-home rules
+
+- `/` and `/home` are the compact public product one-pager.
+- `/dashboard` is the authenticated CRM landing route and one-stop operating view.
+- CRM sidebar `Home` returns to the public page; `Dashboard` stays inside the active tenant.
+- Public workflow stages are selectable and update a stage inspector. Authenticated outreach flows support selection, drag-to-pan, zoom and fit-to-view.
+- Public preview examples are AKARI House, KlineO and Yokai. Never use BotChain or Digimaaya.
+- Sample values on the public page must be visibly identified as previews; authenticated charts use tenant API data or honest no-data states.
