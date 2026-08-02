@@ -1,0 +1,31 @@
+:where(#modal-root,#commercial-modal-root,#work-os-modal-root) .ak-select{position:relative;display:block;width:100%;min-width:0}
+:where(#modal-root,#commercial-modal-root,#work-os-modal-root) .ak-select__native{position:absolute!important;width:1px!important;height:1px!important;min-height:1px!important;margin:-1px!important;padding:0!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;clip-path:inset(50%)!important;white-space:nowrap!important;border:0!important;opacity:.001!important;pointer-events:none!important}
+:where(#modal-root,#commercial-modal-root,#work-os-modal-root) .ak-select__trigger{position:relative;width:100%;min-height:48px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0;padding:12px 42px 12px 14px;border:1px solid #313a48;border-radius:11px;background:#080d14;color:#f7f8fb;font:inherit;font-size:14px;line-height:1.35;text-align:left;cursor:pointer;outline:none;box-shadow:none}
+:where(#modal-root,#commercial-modal-root,#work-os-modal-root) .ak-select__trigger:hover{border-color:#465264;background:#0a1018}
+:where(#modal-root,#commercial-modal-root,#work-os-modal-root) .ak-select__trigger:focus-visible,
+:where(#modal-root,#commercial-modal-root,#work-os-modal-root) .ak-select.is-open .ak-select__trigger{border-color:#f4d35e;box-shadow:0 0 0 3px rgba(244,211,94,.13)}
+:where(#modal-root,#commercial-modal-root,#work-os-modal-root) .ak-select__value{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#f7f8fb}
+:where(#modal-root,#commercial-modal-root,#work-os-modal-root) .ak-select__chevron{position:absolute;right:15px;top:50%;width:8px;height:8px;border-right:2px solid #aab3c0;border-bottom:2px solid #aab3c0;transform:translateY(-68%) rotate(45deg);transition:transform .16s ease}
+:where(#modal-root,#commercial-modal-root,#work-os-modal-root) .ak-select.is-open .ak-select__chevron{transform:translateY(-30%) rotate(225deg)}
+:where(#modal-root,#commercial-modal-root,#work-os-modal-root) .ak-select.is-disabled{opacity:.58}
+:where(#modal-root,#commercial-modal-root,#work-os-modal-root) .ak-select__trigger:disabled{cursor:not-allowed}
+.ak-select__menu{position:fixed;z-index:100000;display:flex;flex-direction:column;gap:4px;overflow:auto;overscroll-behavior:contain;padding:7px;border:1px solid #364152;border-radius:12px;background:#0d121a;color:#f7f8fb;box-shadow:0 22px 70px rgba(0,0,0,.65),0 0 0 1px rgba(255,255,255,.03);scrollbar-width:thin;scrollbar-color:#596475 transparent}
+.ak-select__menu[hidden]{display:none!important}
+.ak-select__menu::-webkit-scrollbar{width:9px}
+.ak-select__menu::-webkit-scrollbar-thumb{border:2px solid transparent;border-radius:999px;background:#596475;background-clip:padding-box}
+.ak-select__option{width:100%;min-height:40px;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:9px 11px;border:0;border-radius:8px;background:transparent;color:#f4f6fa;font:inherit;font-size:13px;line-height:1.35;text-align:left;cursor:pointer;outline:none}
+.ak-select__option:hover,.ak-select__option:focus-visible{background:#1b2431;color:#fff}
+.ak-select__option.is-selected{background:rgba(244,211,94,.12);color:#ffe47a}
+.ak-select__option i{font-style:normal;color:#f4d35e;opacity:0}
+.ak-select__option.is-selected i{opacity:1}
+.ak-select__option[aria-disabled="true"]{opacity:.42;cursor:not-allowed}
+.ak-select__option[aria-disabled="true"]:hover{background:transparent}
+.ak-select__group{display:flex;flex-direction:column;gap:3px}
+.ak-select__group+.ak-select__group{margin-top:5px;padding-top:6px;border-top:1px solid rgba(255,255,255,.08)}
+.ak-select__group-label{padding:6px 10px 3px;color:#7f8998;font-size:10px;font-weight:800;letter-spacing:.09em;text-transform:uppercase}
+@media(max-width:760px){
+  :where(#modal-root,#commercial-modal-root,#work-os-modal-root) .ak-select__trigger{min-height:50px;font-size:16px}
+  .ak-select__menu{border-radius:12px;font-size:16px}
+  .ak-select__option{min-height:46px;font-size:15px}
+}
+@media(prefers-reduced-motion:reduce){:where(#modal-root,#commercial-modal-root,#work-os-modal-root) .ak-select__chevron{transition:none}}
