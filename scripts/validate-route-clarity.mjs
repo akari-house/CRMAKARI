@@ -15,7 +15,7 @@ for (const token of ['Public Website', 'Open the public CRM by AKARI website', "
 for (const token of ['/assets/tenant-routing-r6.js?v=3', '/assets/route-clarity-r10.js?v=1']) {
   if (!html.includes(token)) throw new Error(`Protected shell missing ${token}`);
 }
-for (const token of ['akari-crm-shell-v39', 'app/index.html?runtime=v39', './assets/tenant-routing-r6.js?v=3', './assets/route-clarity-r10.js?v=1']) {
+for (const token of ['akari-crm-shell-v40', 'app/index.html?runtime=v40', './assets/tenant-routing-r6.js?v=3', './assets/route-clarity-r10.js?v=1']) {
   if (!worker.includes(token)) throw new Error(`Service worker missing ${token}`);
 }
 console.log('AKARI dashboard route clarity validation passed');
