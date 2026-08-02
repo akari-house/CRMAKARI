@@ -16,40 +16,43 @@ jobs:
         with:
           ref: build/work-os-calendar-r7
           fetch-depth: 0
-      - name: Patch responsive controls, finance dedupe and browser coverage
+      - name: Patch responsive controls and browser regressions
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
 
-          css_path = Path('public/assets/work-os-v1.css')
-          css = css_path.read_text()
-          hidden = ".work-quick form select:nth-of-type(3),.work-quick form select:nth-of-type(4){display:none}"
-          if css.count(hidden) != 1:
-              raise SystemExit('Expected responsive hidden-select rule was not found')
-          css_path.write_text(css.replace(hidden, ''))
+          def replace_once(path, before, after, label):
+              p = Path(path)
+              source = p.read_text()
+              count = source.count(before)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected one occurrence, found {count}')
+              p.write_text(source.replace(before, after, 1))
 
-          commercial_path = Path('public/assets/commercial-hardening-v3.js')
-          commercial = commercial_path.read_text()
-          before = '      existing?.remove();'
-          after = "      document.querySelectorAll('#commercial-command-centre').forEach((node) => node.remove());"
-          if commercial.count(before) != 1:
-              raise SystemExit('Expected commercial hardening root removal was not found')
-          commercial_path.write_text(commercial.replace(before, after))
-
-          finance_path = Path('public/assets/commercial-finance-v3-fix.js')
-          finance = finance_path.read_text()
-          before = "      $('#commercial-command-centre')?.remove();"
-          after = "      document.querySelectorAll('#commercial-command-centre').forEach((node) => node.remove());"
-          if finance.count(before) != 1:
-              raise SystemExit('Expected finance route-fix root removal was not found')
-          finance_path.write_text(finance.replace(before, after))
+          replace_once(
+              'public/assets/work-os-v1.css',
+              '.work-quick form select:nth-of-type(3),.work-quick form select:nth-of-type(4){display:none}',
+              '',
+              'responsive quick-task controls',
+          )
+          replace_once(
+              'public/assets/commercial-hardening-v3.js',
+              '      existing?.remove();',
+              "      document.querySelectorAll('#commercial-command-centre').forEach((node) => node.remove());",
+              'commercial command centre cleanup',
+          )
+          replace_once(
+              'public/assets/commercial-finance-v3-fix.js',
+              "      $('#commercial-command-centre')?.remove();",
+              "      document.querySelectorAll('#commercial-command-centre').forEach((node) => node.remove());",
+              'finance command centre cleanup',
+          )
 
           ui_path = Path('tests/ui.spec.js')
           ui = ui_path.read_text()
-          marker = "  ], total: 3 },\n  '/api/projects?limit=5':"
-          insertion = """  ], total: 3 },
-  '/api/work-os?scope=mine': {
+          fixture_anchor = "  '/api/projects?limit=5':"
+          fixture = """  '/api/work-os?scope=mine': {
     scope: 'mine',
     tasks: [{ id: 'tsk_1', title: 'Follow up Project Alpha', description: 'Prepare the next action.', ownerUserId: 'usr_test', ownerName: 'Muaz Test', status: 'TODO', priority: 'HIGH', dueAt: '2030-01-01T12:00:00Z', projectId: 'prj_1', projectName: 'Project Alpha', workstream: 'BD', showOnHome: true }],
     members: [{ id: 'usr_test', fullName: 'Muaz Test', email: 'owner@example.com', role: 'OWNER' }],
@@ -57,32 +60,35 @@ jobs:
     opportunities: [], campaigns: [], calendarEvents: [], partnershipCandidates: [], fundraisingPlans: [],
     permissions: { canWrite: true, canManage: true, canFinance: true },
   },
-  '/api/projects?limit=5':"""
-          if ui.count(marker) != 1:
-              raise SystemExit('Expected UI mock insertion marker was not found')
-          ui = ui.replace(marker, insertion)
-          old_block = """  const todoCard=page.locator('[data-task-card=\"tsk_1\"]');
+"""
+          if "'/api/work-os?scope=mine'" not in ui:
+              if fixture_anchor not in ui:
+                  raise SystemExit('UI fixture anchor not found')
+              ui = ui.replace(fixture_anchor, fixture + fixture_anchor, 1)
+
+          old_drag = """  const todoCard=page.locator('[data-task-card=\"tsk_1\"]');
   await expect(todoCard).toBeVisible();
   await todoCard.dragTo(page.locator('[data-task-column=\"IN_PROGRESS\"] .task-board-dropzone'));
   await expect(page.locator('[data-task-column=\"IN_PROGRESS\"] [data-task-card=\"tsk_1\"]')).toBeVisible();
   await expect(page.getByText('Task moved to In Progress')).toBeVisible();"""
-          new_block = """  await expect(page.locator('#work-os-root')).toBeVisible();
+          new_task = """  await expect(page.locator('#work-os-root')).toBeVisible();
   await page.getByRole('button', { name: 'Follow up Project Alpha', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'Task details' })).toBeVisible();
   await page.locator('#work-task-form select[name=\"status\"]').selectOption('IN_PROGRESS');
   await page.locator('#work-task-form').getByRole('button', { name: 'Save task' }).click();
   await expect(page.getByText('Work OS updated')).toBeVisible();"""
-          if ui.count(old_block) != 1:
-              raise SystemExit('Expected legacy task drag test block was not found')
-          ui_path.write_text(ui.replace(old_block, new_block))
+          if old_drag not in ui:
+              raise SystemExit('Legacy task drag assertion block not found')
+          ui_path.write_text(ui.replace(old_drag, new_task, 1))
 
-          work_test_path = Path('tests/work-os.spec.js')
-          work_test = work_test_path.read_text()
+          work_path = Path('tests/work-os.spec.js')
+          work = work_path.read_text()
           old_heading = "await expect(page.getByRole('heading', { name: 'Project Alpha' })).toBeVisible();"
           new_heading = "await expect(page.locator('#work-os-modal-root').getByRole('heading', { name: 'Project Alpha' })).toBeVisible();"
-          if work_test.count(old_heading) != 2:
-              raise SystemExit('Expected two ambiguous Work OS heading assertions')
-          work_test_path.write_text(work_test.replace(old_heading, new_heading))
+          count = work.count(old_heading)
+          if count != 2:
+              raise SystemExit(f'Expected two ambiguous modal heading assertions, found {count}')
+          work_path.write_text(work.replace(old_heading, new_heading))
 
           Path('.github/workflows/work-os-ui-self-patch.yml').unlink()
           PY
