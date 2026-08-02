@@ -1,0 +1,93 @@
+name: Work OS UI self patch
+
+on:
+  push:
+    branches: [build/work-os-calendar-r7]
+    paths: [.github/workflows/work-os-ui-self-patch.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: build/work-os-calendar-r7
+          fetch-depth: 0
+      - name: Patch responsive controls, finance dedupe and browser coverage
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          css_path = Path('public/assets/work-os-v1.css')
+          css = css_path.read_text()
+          hidden = ".work-quick form select:nth-of-type(3),.work-quick form select:nth-of-type(4){display:none}"
+          if css.count(hidden) != 1:
+              raise SystemExit('Expected responsive hidden-select rule was not found')
+          css_path.write_text(css.replace(hidden, ''))
+
+          commercial_path = Path('public/assets/commercial-hardening-v3.js')
+          commercial = commercial_path.read_text()
+          before = '      existing?.remove();'
+          after = "      document.querySelectorAll('#commercial-command-centre').forEach((node) => node.remove());"
+          if commercial.count(before) != 1:
+              raise SystemExit('Expected commercial hardening root removal was not found')
+          commercial_path.write_text(commercial.replace(before, after))
+
+          finance_path = Path('public/assets/commercial-finance-v3-fix.js')
+          finance = finance_path.read_text()
+          before = "      $('#commercial-command-centre')?.remove();"
+          after = "      document.querySelectorAll('#commercial-command-centre').forEach((node) => node.remove());"
+          if finance.count(before) != 1:
+              raise SystemExit('Expected finance route-fix root removal was not found')
+          finance_path.write_text(finance.replace(before, after))
+
+          ui_path = Path('tests/ui.spec.js')
+          ui = ui_path.read_text()
+          marker = "  ], total: 3 },\n  '/api/projects?limit=5':"
+          insertion = """  ], total: 3 },
+  '/api/work-os?scope=mine': {
+    scope: 'mine',
+    tasks: [{ id: 'tsk_1', title: 'Follow up Project Alpha', description: 'Prepare the next action.', ownerUserId: 'usr_test', ownerName: 'Muaz Test', status: 'TODO', priority: 'HIGH', dueAt: '2030-01-01T12:00:00Z', projectId: 'prj_1', projectName: 'Project Alpha', workstream: 'BD', showOnHome: true }],
+    members: [{ id: 'usr_test', fullName: 'Muaz Test', email: 'owner@example.com', role: 'OWNER' }],
+    projects: [{ id: 'prj_1', name: 'Project Alpha', ownerUserId: 'usr_test', lifecycleStatus: 'LEAD' }],
+    opportunities: [], campaigns: [], calendarEvents: [], partnershipCandidates: [], fundraisingPlans: [],
+    permissions: { canWrite: true, canManage: true, canFinance: true },
+  },
+  '/api/projects?limit=5':"""
+          if ui.count(marker) != 1:
+              raise SystemExit('Expected UI mock insertion marker was not found')
+          ui = ui.replace(marker, insertion)
+          old_block = """  const todoCard=page.locator('[data-task-card=\"tsk_1\"]');
+  await expect(todoCard).toBeVisible();
+  await todoCard.dragTo(page.locator('[data-task-column=\"IN_PROGRESS\"] .task-board-dropzone'));
+  await expect(page.locator('[data-task-column=\"IN_PROGRESS\"] [data-task-card=\"tsk_1\"]')).toBeVisible();
+  await expect(page.getByText('Task moved to In Progress')).toBeVisible();"""
+          new_block = """  await expect(page.locator('#work-os-root')).toBeVisible();
+  await page.getByRole('button', { name: 'Follow up Project Alpha', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Task details' })).toBeVisible();
+  await page.locator('#work-task-form select[name=\"status\"]').selectOption('IN_PROGRESS');
+  await page.locator('#work-task-form').getByRole('button', { name: 'Save task' }).click();
+  await expect(page.getByText('Work OS updated')).toBeVisible();"""
+          if ui.count(old_block) != 1:
+              raise SystemExit('Expected legacy task drag test block was not found')
+          ui_path.write_text(ui.replace(old_block, new_block))
+
+          work_test_path = Path('tests/work-os.spec.js')
+          work_test = work_test_path.read_text()
+          old_heading = "await expect(page.getByRole('heading', { name: 'Project Alpha' })).toBeVisible();"
+          new_heading = "await expect(page.locator('#work-os-modal-root').getByRole('heading', { name: 'Project Alpha' })).toBeVisible();"
+          if work_test.count(old_heading) != 2:
+              raise SystemExit('Expected two ambiguous Work OS heading assertions')
+          work_test_path.write_text(work_test.replace(old_heading, new_heading))
+
+          Path('.github/workflows/work-os-ui-self-patch.yml').unlink()
+          PY
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add public/assets/work-os-v1.css public/assets/commercial-hardening-v3.js public/assets/commercial-finance-v3-fix.js tests/ui.spec.js tests/work-os.spec.js .github/workflows/work-os-ui-self-patch.yml
+          git commit -m "Fix Work OS responsive controls and browser acceptance"
+          git push origin HEAD:build/work-os-calendar-r7
