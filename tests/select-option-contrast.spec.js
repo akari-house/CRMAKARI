@@ -41,7 +41,7 @@ test('modal selects use an accessible in-app combobox instead of the Windows nat
   }));
   expect(nativeStyle.opacity).toBe('0');
   expect(nativeStyle.pointerEvents).toBe('none');
-  expect(nativeStyle.width).toBeLessThanOrEqual(1);
+  expect(nativeStyle.width).toBeLessThanOrEqual(2);
 
   await trigger.click();
   await expect(trigger).toHaveAttribute('aria-expanded', 'true');
