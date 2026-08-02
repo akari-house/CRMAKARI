@@ -267,7 +267,11 @@
     if (activeCombobox.panel.contains(event.target) || activeCombobox.trigger.contains(event.target)) return;
     closeCombobox();
   }, true);
-  document.addEventListener('scroll', () => closeCombobox(), true);
+  document.addEventListener('scroll', (event) => {
+    if (!activeCombobox) return;
+    if (event.target instanceof Node && activeCombobox.panel.contains(event.target)) return;
+    closeCombobox();
+  }, true);
   window.addEventListener('resize', positionCombobox);
 
   const observer = new MutationObserver(() => queueMicrotask(normalizeAll));
