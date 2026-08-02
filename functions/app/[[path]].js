@@ -14,7 +14,10 @@ export async function onRequestGet(context){
     return new Response('You do not have access to this CRM workspace',{status:403});
   }
 
-  const shellUrl=new URL('/app/index.html',url.origin);
+  // Fetch the directory URL so Cloudflare Pages serves public/app/index.html
+  // without canonicalising /app/index.html back to /app/ and re-entering the
+  // authenticated workspace resolver.
+  const shellUrl=new URL('/app/',url.origin);
   const response=await context.env.ASSETS.fetch(new Request(shellUrl.toString(),context.request));
   const headers=new Headers(response.headers);
   headers.set('cache-control','no-store');
