@@ -1,0 +1,73 @@
+name: Read-only D1 Diagnostics
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/readonly-d1-diagnostics.yml'
+      - 'functions/api/imports/akari-leads/existing.js'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  production-counts:
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'fix/lead-diagnostics-and-smoke-r14'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment:
+      name: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Require read-only Cloudflare credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          test -n "${CLOUDFLARE_API_TOKEN}"
+          test -n "${CLOUDFLARE_ACCOUNT_ID}"
+
+      - name: Query production record counts
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.28.0 d1 execute akari-crm-production \
+            --remote \
+            --json \
+            --command "
+              SELECT t.slug AS tenant_slug, COALESCE(NULLIF(TRIM(p.source_type), ''), '(unset)') AS source_type, COUNT(*) AS record_count
+              FROM projects p
+              JOIN tenants t ON t.id = p.tenant_id
+              GROUP BY t.slug, COALESCE(NULLIF(TRIM(p.source_type), ''), '(unset)')
+              ORDER BY t.slug, record_count DESC;
+
+              SELECT t.slug AS tenant_slug,
+                (SELECT COUNT(*) FROM projects p WHERE p.tenant_id = t.id) AS projects,
+                (SELECT COUNT(*) FROM contacts c WHERE c.tenant_id = t.id) AS contacts,
+                (SELECT COUNT(*) FROM tasks k WHERE k.tenant_id = t.id) AS tasks,
+                (SELECT COUNT(*) FROM projects p WHERE p.tenant_id = t.id AND p.source_type IN ('AKARI_LEADS', 'PRIVATE_TENANT_IMPORT')) AS visible_leads,
+                (SELECT COUNT(*) FROM tenant_memberships tm WHERE tm.tenant_id = t.id AND tm.status = 'ACTIVE') AS active_memberships
+              FROM tenants t
+              WHERE t.slug = 'akari-house';
+
+              SELECT action, created_at
+              FROM audit_logs a
+              JOIN tenants t ON t.id = a.tenant_id
+              WHERE t.slug = 'akari-house' AND action LIKE 'AKARI_LEADS_IMPORT_%'
+              ORDER BY created_at DESC
+              LIMIT 20;
+            " > d1-diagnostics.json
+
+      - name: Upload sanitized diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: akari-production-d1-counts
+          path: d1-diagnostics.json
+          if-no-files-found: error
+          retention-days: 1
