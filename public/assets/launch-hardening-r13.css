@@ -1,0 +1,231 @@
+/* AKARI CRM launch hardening: billing profile, legacy operation fields and modal scroll ownership. */
+
+/* Only the billing profile needs the three-row Operations form override.
+   Other modal families already have their own tested layout rules. */
+#modal-root .ops-billing-profile-modal {
+  display: grid !important;
+  grid-template-rows: minmax(0, 1fr) !important;
+}
+
+#modal-root .ops-billing-profile-modal > form {
+  height: 100%;
+  min-height: 0;
+  display: grid !important;
+  grid-template-rows: auto minmax(0, 1fr) auto !important;
+  overflow: hidden !important;
+}
+
+#modal-root .ops-billing-profile-modal > form > .modal-head,
+#modal-root .ops-billing-profile-modal > form > .modal-foot {
+  flex: 0 0 auto;
+}
+
+#modal-root .ops-billing-profile-modal > form > .modal-body {
+  min-height: 0 !important;
+  overflow: auto !important;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+/* The original Operations forms use `.field`, while the shared modal system
+   previously covered only newer field wrapper names. */
+#modal-root .ak-modal-standard .field {
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-rows: auto auto !important;
+  align-content: start !important;
+  gap: 8px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  position: relative !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+#modal-root .ak-modal-standard .field.full {
+  grid-column: 1 / -1 !important;
+}
+
+#modal-root .ak-modal-standard .field > span {
+  position: static !important;
+  inset: auto !important;
+  transform: none !important;
+  display: block !important;
+  width: auto !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #b8c0cd !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  line-height: 1.35 !important;
+  letter-spacing: .01em !important;
+  white-space: normal !important;
+}
+
+#modal-root .ak-modal-standard .field :is(input, select, textarea) {
+  position: static !important;
+  inset: auto !important;
+  transform: none !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 48px !important;
+  margin: 0 !important;
+  padding: 12px 14px !important;
+  border: 1px solid #313a48 !important;
+  border-radius: 11px !important;
+  background: #080d14 !important;
+  color: #f7f8fb !important;
+  font: inherit !important;
+  font-size: 14px !important;
+  line-height: 1.35 !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+#modal-root .ak-modal-standard .field :is(input, select, textarea):focus {
+  border-color: #f4d35e !important;
+  box-shadow: 0 0 0 3px rgba(244, 211, 94, .13) !important;
+}
+
+#modal-root .ak-modal-standard .field textarea {
+  min-height: 116px !important;
+  resize: vertical !important;
+}
+
+/* Billing profile */
+#modal-root .ops-billing-profile-modal {
+  width: min(1120px, calc(100vw - 64px)) !important;
+  height: min(840px, calc(100dvh - 64px)) !important;
+  max-height: calc(100dvh - 64px) !important;
+}
+
+#modal-root .ops-billing-profile-modal .modal-head {
+  position: relative;
+  z-index: 3;
+  min-height: 92px !important;
+  padding: 24px 30px 20px !important;
+  background: linear-gradient(180deg, #151b25 0%, #0d121a 100%) !important;
+}
+
+#modal-root .ops-billing-profile-modal .modal-head .eyebrow {
+  margin-bottom: 7px;
+  color: #ffbd4a;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .14em;
+}
+
+#modal-root .ops-billing-profile-modal .modal-body {
+  padding: 24px 28px 30px !important;
+  background: #0b1017;
+}
+
+#modal-root .ops-billing-profile-modal .modal-foot {
+  min-height: 72px;
+  padding: 15px 28px !important;
+  background: #090e15 !important;
+}
+
+.ops-billing-sections {
+  display: grid;
+  gap: 18px;
+}
+
+.ops-billing-section {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, .085);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .025), rgba(255, 255, 255, .012));
+}
+
+.ops-billing-section > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 17px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, .07);
+}
+
+.ops-billing-section > header strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #f5f7fa;
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.ops-billing-section > header span {
+  display: block;
+  max-width: 650px;
+  color: #8f99a8;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.ops-billing-section__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 20px;
+  align-items: start;
+}
+
+.ops-billing-section--payment .ops-billing-section__grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ops-billing-section--defaults .field:last-child {
+  grid-column: 1 / -1 !important;
+}
+
+/* One clean, readable error state rather than a wall of technical notices. */
+.toast.ak-launch-deduped {
+  max-width: min(460px, calc(100vw - 32px));
+  white-space: normal;
+  line-height: 1.45;
+}
+
+@media (max-width: 760px) {
+  #modal-root .ops-billing-profile-modal {
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+  }
+
+  #modal-root .ops-billing-profile-modal .modal-head {
+    min-height: 82px !important;
+    padding: 18px !important;
+  }
+
+  #modal-root .ops-billing-profile-modal .modal-body {
+    padding: 18px !important;
+  }
+
+  .ops-billing-section {
+    padding: 16px;
+    border-radius: 13px;
+  }
+
+  .ops-billing-section__grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px;
+  }
+
+  .ops-billing-section .field.full,
+  .ops-billing-section--defaults .field:last-child {
+    grid-column: auto !important;
+  }
+
+  #modal-root .ak-modal-standard .field :is(input, select, textarea) {
+    min-height: 50px !important;
+    font-size: 16px !important;
+  }
+}
