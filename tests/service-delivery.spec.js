@@ -77,8 +77,8 @@ test.beforeEach(async ({ page }) => {
     }
     await route.fulfill({ status:200, contentType:'application/json', body:JSON.stringify(responseFor(request.url())) });
   });
-  await page.goto('http://127.0.0.1:4173/');
-  await expect(page.getByRole('heading', { name:/Good evening, Muaz/i })).toBeVisible();
+  await page.goto('http://127.0.0.1:4173/app/akari-house/home');
+  await expect(page.getByRole('heading', { name:/Good (morning|afternoon|evening), Muaz/i })).toBeVisible();
 });
 
 test('Campaigns exposes the service delivery command centre and workspace', async ({ page }) => {

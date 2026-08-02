@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 
 const required = [
-  'public/index.html','public/_redirects','public/uilib.html','public/assets/uilib.css','docs/uilib.md',
+  'public/index.html','public/app/index.html','public/_redirects','public/uilib.html','public/assets/uilib.css','docs/uilib.md',
   'public/assets/page-upgrades-v1.css','public/assets/page-upgrades-v1.js',
   'public/assets/crm-stabilization-m1.css','public/assets/crm-stabilization-m1.js','public/assets/global-flow-v1.js',
   'public/assets/crm.css','public/assets/crm.js','public/assets/operations-v1.css','public/assets/operations-v1.js',
@@ -37,8 +37,8 @@ for (const file of [...new Set(jsFiles)]) {
     process.exit(result.status || 1);
   }
 }
-const html = await readFile('public/index.html','utf8');
-for (const requirement of ['AKARI CRM','./assets/crm.css?v=','./assets/global-flow-v1.js?v=','./assets/crm.js?v=','./assets/operations-v1.js?v=','./assets/lifecycle-v1.js?v=','./assets/identity-v1.js?v=','./assets/uilib.css?v=','./assets/page-upgrades-v1.css?v=','./assets/page-upgrades-v1.js?v=','./assets/crm-stabilization-m1.css?v=','./assets/crm-stabilization-m1.js?v=','./assets/bd-workflow-v1.css?v=','./assets/bd-workflow-v1.js?v=','id="app"','id="modal-root"','id="toast-root"']) {
+const html = await readFile('public/app/index.html','utf8');
+for (const requirement of ['CRM by AKARI','/assets/crm.css?v=','/assets/global-flow-v1.js?v=','/assets/crm.js?v=','/assets/operations-v1.js?v=','/assets/lifecycle-v1.js?v=','/assets/identity-v1.js?v=','/assets/uilib.css?v=','/assets/page-upgrades-v1.css?v=','/assets/page-upgrades-v1.js?v=','/assets/crm-stabilization-m1.css?v=','/assets/crm-stabilization-m1.js?v=','/assets/bd-workflow-v1.css?v=','/assets/bd-workflow-v1.js?v=','id="app"','id="modal-root"','id="toast-root"']) {
   if (!html.includes(requirement)) throw new Error(`The application shell is incomplete: missing ${requirement}`);
 }
 if (html.includes('./assets/app.js') || html.includes('./assets/interactive-import.js')) throw new Error('Legacy placeholder application scripts must not be loaded by the production entry point');
@@ -50,8 +50,8 @@ for (const requirement of ['history.pushState','ROUTE_PATHS','modal-backdrop','c
   if (!globalFlow.includes(requirement)) throw new Error(`Global navigation and modal flow is incomplete: missing ${requirement}`);
 }
 const redirects = await readFile('public/_redirects','utf8');
-for (const route of ['/day','/leads','/contacts','/opportunities','/fundraising','/campaigns','/partners','/finance','/reports','/team','/settings']) {
-  if (!redirects.includes(`${route} /index.html 200`)) throw new Error(`Clean CRM route is missing its Pages rewrite: ${route}`);
+for (const route of ['/dashboard','/home','/flows','/day','/leads','/contacts','/opportunities','/fundraising','/campaigns','/partners','/finance','/reports','/team','/settings']) {
+  if (!redirects.includes(`${route} /enter-crm 302`)) throw new Error(`Protected legacy CRM route is missing its membership resolver redirect: ${route}`);
 }
 const uiHtml = await readFile('public/uilib.html','utf8');
 for (const requirement of ['AKARI CRM UI Library','./assets/uilib.css','ak-node','ak-inspector','ak-btn--primary']) {

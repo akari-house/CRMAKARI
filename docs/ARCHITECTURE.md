@@ -12,7 +12,7 @@ Cloudflare Pages Functions `/api/*`
 Cloudflare D1
 ```
 
-The production hostname intentionally has two surfaces: public GET routes for `/`, `/home` and static assets, plus an exact public waitlist submission endpoint. Cloudflare Access protects `/dashboard`, the remaining CRM routes and tenant APIs for the first AKARI users. Never apply the CRM Access policy to `akarihouse.com`.
+The production hostname intentionally has two surfaces: public GET `/` and static assets, plus the exact public waitlist submission endpoint. Cloudflare Access protects `/app/*`, `/enter-crm`, tenant APIs and membership-resolving legacy entries for the first AKARI users. The canonical Dashboard URL is `/app/:tenantSlug/home`. Never apply the CRM Access policy to `akarihouse.com`.
 
 ## Multi-tenancy
 

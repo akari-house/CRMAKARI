@@ -44,7 +44,7 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/api/**', async (route) => {
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(responseFor(route.request().url())) });
   });
-  await page.goto('http://127.0.0.1:4173/#/dashboard');
+  await page.goto('http://127.0.0.1:4173/app/akari-house/home');
   await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening), Muaz/i })).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('data-akari-interactive', 'ready');
   await expect(page.locator('html')).toHaveAttribute('data-akari-ui', 'v1');
@@ -148,12 +148,12 @@ test('outreach flow exposes the full call and follow-up sequence', async ({ page
 test('public Home is concise, interactive and separate from the CRM Dashboard', async ({ page }) => {
   await expect(page.locator('.sidebar .nav-item--public')).toHaveAttribute('href', '/');
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: /From relationships/i })).toBeVisible();
-  await expect(page.locator('.landing-shot-grid').getByText('KlineO', { exact: true })).toBeVisible();
-  await expect(page.locator('.landing-shot-grid').getByText('Yokai', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /One clear view/i })).toBeVisible();
+  await expect(page.locator('.workspace-previews').getByText('KlineO', { exact: true })).toBeVisible();
+  await expect(page.locator('.workspace-previews').getByText('Yokai', { exact: true })).toBeVisible();
   await expect(page.getByText(/BotChain|Digimaaya/i)).toHaveCount(0);
-  await page.locator('[data-action="select-landing-flow-node"][data-id="call"]').click();
-  await expect(page.locator('#landing-flow-inspector')).toContainText('Discovery call');
+  await page.locator('[data-node="call"]').click();
+  await expect(page.locator('[data-inspector]')).toContainText('Discovery call');
   await expect.poll(() => new URL(page.url()).pathname).toBe('/');
 });
 

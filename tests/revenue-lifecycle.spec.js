@@ -55,8 +55,8 @@ async function boot(page, mode, captures) {
     if (['POST','PATCH'].includes(request.method())) captures.push({path:new URL(request.url()).pathname,method:request.method(),body:request.postDataJSON()});
     await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(responseFor(request.url(),request.method(),mode))});
   });
-  await page.goto('http://127.0.0.1:4173/');
-  await expect(page.getByRole('heading',{name:/Good evening, Muaz/i})).toBeVisible();
+  await page.goto('http://127.0.0.1:4173/app/akari-house/home');
+  await expect(page.getByRole('heading',{name:/Good (morning|afternoon|evening), Muaz/i})).toBeVisible();
   await page.locator('[data-route="opportunities"]').first().click();
   await expect(page.getByRole('heading',{name:'Opportunity Pipeline'})).toBeVisible();
   await expect(page.getByRole('button',{name:'Manage lifecycle'})).toBeVisible();

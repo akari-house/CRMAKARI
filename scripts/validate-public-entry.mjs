@@ -7,8 +7,8 @@ const appRoute=await readFile('functions/app/[[path]].js','utf8');
 const middleware=await readFile('functions/_middleware.js','utf8');
 const waitlist=await readFile('functions/api/waitlist.js','utf8');
 const redirects=await readFile('public/_redirects','utf8');
-for(const token of ['CRM by AKARI','Join the waitlist','What would you be willing to pay monthly?','/app/','public-home-r6.css','Executive command centre','Business Development','Campaign Delivery','Capital Room'])if(!publicHtml.includes(token))throw new Error(`Public homepage missing ${token}`);
-for(const token of ['crm-preview','preview-shell','mini-preview','metric-grid'])if(!publicCss.includes(token))throw new Error(`CRM-native homepage styling missing ${token}`);
+for(const token of ['CRM by AKARI','Join the waitlist','Monthly budget','/enter-crm','public-home-r6.css','Executive dashboard','A real operating flow','AKARI House','KlineO','Yokai'])if(!publicHtml.includes(token))throw new Error(`Public homepage missing ${token}`);
+for(const token of ['dashboard-shot','shot-kpis','flow-shell','workspace-previews'])if(!publicCss.includes(token))throw new Error(`CRM-native homepage styling missing ${token}`);
 if(!publicJs.includes('/api/waitlist'))throw new Error('Public waitlist client is not connected to /api/waitlist');
 for(const token of ['/assets/crm.js?v=','/assets/fundraising-closing-r5.js?v=','/assets/modal-polish-r6.css?v=','id="app"','id="modal-root"','id="toast-root"'])if(!appHtml.includes(token))throw new Error(`Protected app shell missing ${token}`);
 for(const token of ["new URL('/enter-crm',url.origin)","new URL('/app/',url.origin)",'x-akari-shell'])if(!appRoute.includes(token))throw new Error(`Protected app route missing ${token}`);
@@ -18,4 +18,5 @@ for(const token of ['public_waitlist','monthly_budget','consent_at','ON CONFLICT
 for(const token of ['/fundraising /enter-crm 302','/leads /enter-crm 302'])if(!redirects.includes(token))throw new Error(`Legacy protected route redirect missing ${token}`);
 for(const token of ['/app /enter-crm 302','/app/ /enter-crm 302','/app/* /app/index.html 200'])if(redirects.includes(token))throw new Error(`Conflicting Pages redirect must be removed: ${token}`);
 if(publicHtml.includes('src="/assets/crm.js'))throw new Error('Public homepage must not boot the CRM renderer');
+if(/BotChain|DigiMaaya/i.test(publicHtml))throw new Error('Removed examples must not return to the public homepage');
 console.log('CRM by AKARI public entry validation passed');

@@ -40,7 +40,7 @@ test.beforeEach(async ({ page }) => {
 
 test('desktop shell hides redundant menu and keeps operational headers compact', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto('http://127.0.0.1:4173/#/dashboard');
+  await page.goto('http://127.0.0.1:4173/app/akari-house/home');
   await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening)/i })).toBeVisible();
   await expect(page.locator('.mobile-menu')).toBeHidden();
   await expect(page.locator('#sidebar')).toBeVisible();
@@ -68,7 +68,7 @@ test('desktop shell hides redundant menu and keeps operational headers compact',
 
 test('mobile shell keeps the navigation menu available', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('http://127.0.0.1:4173/#/dashboard');
+  await page.goto('http://127.0.0.1:4173/app/akari-house/home');
   await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening)/i })).toBeVisible();
   await expect(page.locator('.mobile-menu')).toBeVisible();
   await page.locator('.mobile-menu').click();

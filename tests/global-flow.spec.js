@@ -72,7 +72,7 @@ async function ready(page) {
 
 test('clean paths preserve navigation and restore the rich dashboard', async ({ page }) => {
   await mockApi(page);
-  await page.goto('/#/dashboard');
+  await page.goto('/app/akari-house/home');
   await ready(page);
   await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening), Muaz/i })).toBeVisible();
   await expect(page.locator('.kpi-grid .kpi')).toHaveCount(5);
@@ -80,25 +80,25 @@ test('clean paths preserve navigation and restore the rich dashboard', async ({ 
 
   await page.locator('.nav-item[data-route="day"]').click();
   await expect(page.getByRole('heading', { name: 'My Day' })).toBeVisible();
-  await expect.poll(() => new URL(page.url()).pathname).toBe('/day');
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/app/akari-house/day');
   await expect.poll(() => new URL(page.url()).hash).toBe('');
 
   await page.locator('.nav-item[data-route="opportunities"]').click();
   await expect(page.getByRole('heading', { name: 'Opportunity Pipeline' })).toBeVisible();
-  await expect.poll(() => new URL(page.url()).pathname).toBe('/opportunities');
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/app/akari-house/opportunities');
 
   await page.locator('.nav-item[data-route="dashboard"]').click();
   await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening), Muaz/i })).toBeVisible();
-  await expect.poll(() => new URL(page.url()).pathname).toBe('/dashboard');
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/app/akari-house/home');
 
   await page.goBack();
   await expect(page.getByRole('heading', { name: 'Opportunity Pipeline' })).toBeVisible();
-  await expect.poll(() => new URL(page.url()).pathname).toBe('/opportunities');
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/app/akari-house/opportunities');
   await expect.poll(() => new URL(page.url()).hash).toBe('');
 
   await page.goBack();
   await expect(page.getByRole('heading', { name: 'My Day' })).toBeVisible();
-  await expect.poll(() => new URL(page.url()).pathname).toBe('/day');
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/app/akari-house/day');
 
   await page.goForward();
   await expect(page.getByRole('heading', { name: 'Opportunity Pipeline' })).toBeVisible();
@@ -110,7 +110,7 @@ test('clean paths preserve navigation and restore the rich dashboard', async ({ 
 
 test('modal fields remain interactive and only an intentional dismissal closes the modal', async ({ page }) => {
   await mockApi(page);
-  await page.goto('/#/dashboard');
+  await page.goto('/app/akari-house/home');
   await ready(page);
 
   await page.locator('.nav-item[data-route="campaigns"]').click();
@@ -139,6 +139,6 @@ test('modal fields remain interactive and only an intentional dismissal closes t
 test('Cloudflare Pages rewrites cover every clean CRM route', async () => {
   const redirects = readFileSync(new URL('../public/_redirects', import.meta.url), 'utf8');
   for (const path of ['/dashboard', '/day', '/flows', '/leads', '/contacts', '/opportunities', '/fundraising', '/campaigns', '/partners', '/finance', '/reports', '/team', '/settings']) {
-    expect(redirects).toContain(`${path} /index.html 200`);
+    expect(redirects).toContain(`${path} /enter-crm 302`);
   }
 });

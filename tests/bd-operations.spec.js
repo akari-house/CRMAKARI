@@ -47,8 +47,8 @@ test.beforeEach(async ({ page }) => {
     }
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(payloadFor(route.request().url())) });
   });
-  await page.goto('http://127.0.0.1:4173/');
-  await expect(page.getByRole('heading', { name: /Good evening, Muaz/i })).toBeVisible();
+  await page.goto('http://127.0.0.1:4173/app/akari-house/home');
+  await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening), Muaz/i })).toBeVisible();
 });
 
 test('BD leads expose quality queues selection bulk updates and saved views', async ({ page }) => {

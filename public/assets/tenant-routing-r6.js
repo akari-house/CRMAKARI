@@ -49,7 +49,13 @@
   function routeFromTarget(target){
     if(typeof target!=='string')return null;
     const match=target.match(/^#\/?([^?]+)/);
-    return match&&MODULES.has(match[1])?match[1]:null;
+    if(match&&MODULES.has(match[1]))return match[1];
+    try{
+      const targetUrl=new URL(target,location.origin);
+      if(targetUrl.pathname==='/')return 'dashboard';
+      const cleanRoute=targetUrl.pathname.match(/^\/([^/]+)\/?$/)?.[1];
+      return cleanRoute&&MODULES.has(cleanRoute)?cleanRoute:null;
+    }catch{return null;}
   }
   history.pushState=(state,title,target)=>{
     const route=routeFromTarget(target);

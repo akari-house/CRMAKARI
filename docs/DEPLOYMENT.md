@@ -65,7 +65,7 @@ The custom hostname is:
 crm.akarihouse.com
 ```
 
-Keep `/` and `/home` public for the compact product page, and allow the exact `/api/waitlist` pre-registration endpoint. Protect `/dashboard`, all other CRM paths and tenant APIs. Allow only approved AKARI emails initially, and ensure those same emails exist in D1 `users` and `tenant_memberships`.
+Keep `/` public for the compact product page. Replace any whole-host Access destination with path-scoped applications for `crm.akarihouse.com/app/*`, `crm.akarihouse.com/enter-crm` and `crm.akarihouse.com/api/*`, using the approved-AKARI-email Allow policy. Add a more-specific Bypass/Everyone application only for `crm.akarihouse.com/api/waitlist` so pre-registration works publicly. Legacy `/dashboard` and `/home` entries redirect to the protected resolver. Ensure approved emails also exist in D1 `users` and `tenant_memberships`.
 
 Keep `akarihouse.com` outside this Access application.
 
@@ -86,7 +86,8 @@ This does not require changing the public `akarihouse.com` application repositor
 - Confirm unauthorised emails receive 403
 - Confirm finance values disappear for a user without finance permission
 - Confirm `/api/health` and `/api/me` work
-- Confirm `/` loads publicly and `/dashboard` invokes CRM authentication
+- Confirm `/` loads publicly, `/api/waitlist` accepts validated public interest, and `/enter-crm` invokes CRM authentication
+- Confirm an approved account lands at `/app/:tenantSlug/home` and sees Dashboard rather than public Home
 - Confirm submitting the waitlist does not create a CRM user or tenant membership
 - Confirm the public `akarihouse.com` site remains unchanged
 

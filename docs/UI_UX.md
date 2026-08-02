@@ -46,8 +46,9 @@ The CRM is a quiet operational room inside AKARI House: premium, private, fast a
 
 ## Route and public-home rules
 
-- `/` and `/home` are the compact public product one-pager.
-- `/dashboard` is the authenticated CRM landing route and one-stop operating view.
+- `/` is the compact public product one-pager.
+- `/enter-crm` resolves membership and lands approved users at `/app/:tenantSlug/home`, the authenticated one-stop Dashboard.
+- `/home` and `/dashboard` are legacy protected entries that resolve membership; they are not public aliases.
 - CRM sidebar `Home` returns to the public page; `Dashboard` stays inside the active tenant.
 - Public workflow stages are selectable and update a stage inspector. Authenticated outreach flows support selection, drag-to-pan, zoom and fit-to-view.
 - Public preview examples are AKARI House, KlineO and Yokai. Never use BotChain or Digimaaya.

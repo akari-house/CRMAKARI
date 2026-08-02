@@ -2,6 +2,7 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
+  testMatch: '**/*.spec.js',
   timeout: 30_000,
   expect: { timeout: 7_500 },
   workers: 1,
@@ -14,7 +15,7 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   webServer: {
-    command: 'python -m http.server 4173 --directory public',
+    command: 'node scripts/serve-static-test.mjs',
     url: 'http://127.0.0.1:4173',
     reuseExistingServer: true,
     timeout: 30_000,

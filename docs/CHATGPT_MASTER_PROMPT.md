@@ -136,8 +136,9 @@ Read and maintain `docs/uilib.md`, `docs/UI_UX.md` and the coded UI library. New
 
 The public and authenticated route contract is intentional:
 
-- `/` and `/home` render the short public product one-pager and waitlist without requiring a CRM session;
-- `/dashboard` is the default authenticated CRM route;
+- `/` renders the short public product one-pager and waitlist without requiring a CRM session;
+- `/enter-crm` resolves approved membership and lands at the canonical Dashboard URL `/app/:tenantSlug/home`;
+- `/dashboard` and `/home` are protected legacy membership-resolving entries, not public aliases;
 - the sidebar `Home` link returns to the public one-pager, while `Dashboard` opens the tenant operating view;
 - all other CRM routes and tenant APIs remain protected and tenant-scoped.
 

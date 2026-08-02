@@ -6,7 +6,7 @@ AKARI CRM is the product. AKARI House is Customer 001 and the first real organis
 
 Future projects and companies receive separate tenant workspaces. They do not receive access to AKARI House data.
 
-The public home at `/` is a concise product and pre-registration page. It does not create tenant membership. Approved users enter the protected CRM at `/dashboard`, which resolves their active tenant membership before loading operational data.
+The public home at `/` is a concise product and pre-registration page. It does not create tenant membership. Approved users enter through `/enter-crm`; membership resolution sends them to the canonical tenant Dashboard at `/app/:tenantSlug/home` before operational data loads. `/dashboard` remains a protected legacy entry that redirects through the same resolver.
 
 ## Core relationship model
 
