@@ -1,0 +1,43 @@
+name: Work OS self patch
+
+on:
+  push:
+    branches: [build/work-os-calendar-r7]
+    paths: [.github/workflows/work-os-self-patch.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: build/work-os-calendar-r7
+          fetch-depth: 0
+      - name: Patch async route dispatch and remove temporary workflow
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('functions/api/work-os/index.js')
+          source = path.read_text()
+          replacements = {
+              "if (action === 'create-task') return createTask(context, body);": "if (action === 'create-task') return await createTask(context, body);",
+              "if (action === 'update-task') return updateTask(context, body);": "if (action === 'update-task') return await updateTask(context, body);",
+              "if (action === 'start-partnership-activation') return startPartnershipActivation(context, body);": "if (action === 'start-partnership-activation') return await startPartnershipActivation(context, body);",
+              "if (action === 'start-fundraising-workplan') return startFundraisingWorkplan(context, body);": "if (action === 'start-fundraising-workplan') return await startFundraisingWorkplan(context, body);",
+          }
+          for before, after in replacements.items():
+              if source.count(before) != 1:
+                  raise SystemExit(f'Expected one route dispatch occurrence: {before}')
+              source = source.replace(before, after)
+          path.write_text(source)
+          Path('.github/workflows/work-os-self-patch.yml').unlink()
+          PY
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add functions/api/work-os/index.js .github/workflows/work-os-self-patch.yml
+          git commit -m "Fix Work OS async error handling"
+          git push origin HEAD:build/work-os-calendar-r7
