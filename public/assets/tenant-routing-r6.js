@@ -1,13 +1,12 @@
 (()=>{
   const MODULES=new Set(['dashboard','home','day','flows','leads','contacts','opportunities','fundraising','campaigns','partners','finance','reports','team','settings']);
+  const normalizeRoute=(route)=>route==='home'?'dashboard':MODULES.has(route)?route:'dashboard';
   const parts=location.pathname.split('/').filter(Boolean);
   const isApp=parts[0]==='app';
   let tenantSlug=isApp&&parts[1]?decodeURIComponent(parts[1]):'';
-  let moduleName=isApp&&parts[2]?decodeURIComponent(parts[2]):'dashboard';
-  if(moduleName==='home')moduleName='dashboard';
-  if(!MODULES.has(moduleName))moduleName='dashboard';
+  let moduleName=normalizeRoute(isApp&&parts[2]?decodeURIComponent(parts[2]):'dashboard');
 
-  const canonical=(slug,route='dashboard')=>`/app/${encodeURIComponent(slug)}/${route==='dashboard'?'home':route}`;
+  const canonical=(slug,route='dashboard')=>`/app/${encodeURIComponent(slug)}/${normalizeRoute(route)}`;
   const nativePush=history.pushState.bind(history);
   const nativeReplace=history.replaceState.bind(history);
 
@@ -49,12 +48,12 @@
   function routeFromTarget(target){
     if(typeof target!=='string')return null;
     const match=target.match(/^#\/?([^?]+)/);
-    if(match&&MODULES.has(match[1]))return match[1];
+    if(match&&MODULES.has(match[1]))return normalizeRoute(match[1]);
     try{
       const targetUrl=new URL(target,location.origin);
       if(targetUrl.pathname==='/')return 'dashboard';
       const cleanRoute=targetUrl.pathname.match(/^\/([^/]+)\/?$/)?.[1];
-      return cleanRoute&&MODULES.has(cleanRoute)?cleanRoute:null;
+      return cleanRoute&&MODULES.has(cleanRoute)?normalizeRoute(cleanRoute):null;
     }catch{return null;}
   }
   history.pushState=(state,title,target)=>{
@@ -72,7 +71,7 @@
   addEventListener('popstate',()=>{
     const p=location.pathname.split('/').filter(Boolean);
     if(p[0]!=='app'||p[1]!==tenantSlug)return;
-    let route=p[2]||'dashboard';if(route==='home')route='dashboard';if(!MODULES.has(route))route='dashboard';
+    const route=normalizeRoute(p[2]||'dashboard');
     nativeReplace(history.state,'',`${location.pathname}${location.search}#/${route}`);
     setTimeout(()=>nativeReplace(history.state,'',canonical(tenantSlug,route)+location.search),0);
   },true);
