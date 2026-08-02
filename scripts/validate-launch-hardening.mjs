@@ -6,6 +6,7 @@ const required = [
   'functions/api/fundraising/index.js',
   'public/assets/launch-hardening-r13.css',
   'public/assets/launch-hardening-r13.js',
+  'public/assets/work-os-interaction-stability-r13.js',
   'tests/fundraising-schema-compat-tenant-isolation.test.mjs',
   'tests/launch-hardening.spec.js',
 ];
@@ -28,13 +29,21 @@ for (const token of ['enhanceBillingModal', 'Organisation billing details', 'Org
   if (!runtime.includes(token)) throw new Error(`Launch hardening runtime missing ${token}`);
 }
 
+const stability = await readFile('public/assets/work-os-interaction-stability-r13.js', 'utf8');
+for (const token of ['stableWorkFetch', 'waitForWorkIdle', 'work-is-dragging', "url.searchParams.get('full') === '1'", 'quietWindowMs']) {
+  if (!stability.includes(token)) throw new Error(`Work OS interaction stability missing ${token}`);
+}
+
 const html = await readFile('public/app/index.html', 'utf8');
-for (const token of ['/assets/launch-hardening-r13.css?v=1', '/assets/launch-hardening-r13.js?v=1']) {
+for (const token of ['/assets/launch-hardening-r13.css?v=1', '/assets/work-os-interaction-stability-r13.js?v=1', '/assets/launch-hardening-r13.js?v=1']) {
   if (!html.includes(token)) throw new Error(`Protected shell missing ${token}`);
+}
+if (html.indexOf('/assets/work-os-interaction-stability-r13.js?v=1') > html.indexOf('/assets/my-day-canonical-r8.js?v=1')) {
+  throw new Error('Work OS stability guard must load before the progressive My Day runtime');
 }
 
 const worker = await readFile('public/sw.js', 'utf8');
-for (const token of ['./assets/launch-hardening-r13.css?v=1', './assets/launch-hardening-r13.js?v=1']) {
+for (const token of ['./assets/launch-hardening-r13.css?v=1', './assets/work-os-interaction-stability-r13.js?v=1', './assets/launch-hardening-r13.js?v=1']) {
   if (!worker.includes(token)) throw new Error(`Service worker missing ${token}`);
 }
 
