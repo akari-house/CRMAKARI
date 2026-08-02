@@ -26,6 +26,30 @@ body.ak-modal-open{overflow:hidden}
 #modal-root .revenue-form-card{width:min(920px,calc(100% - 28px))!important;max-height:calc(100% - 28px)!important}
 #modal-root .revenue-form-body{padding:26px 28px 30px!important;scrollbar-gutter:stable!important}
 #modal-root .revenue-form-card>header,#modal-root .revenue-form-card>footer{padding-left:28px!important;padding-right:28px!important}
+
+.ak-combobox{position:relative;width:100%;min-width:0}
+:where(#modal-root,#commercial-modal-root,#work-os-modal-root) .ak-combobox>select.ak-combobox__native{position:absolute!important;left:0!important;bottom:0!important;width:1px!important;height:1px!important;min-width:1px!important;min-height:1px!important;margin:0!important;padding:0!important;opacity:0!important;pointer-events:none!important;clip-path:inset(50%)!important;overflow:hidden!important}
+.ak-combobox__trigger{width:100%;min-height:48px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border:1px solid #313a48;border-radius:11px;background:#080d14;color:#f7f8fb;font:inherit;font-size:14px;line-height:1.35;text-align:left;cursor:pointer;outline:none;transition:border-color .14s ease,box-shadow .14s ease,background .14s ease}
+.ak-combobox__trigger:hover{border-color:#465164;background:#0b111a}
+.ak-combobox__trigger:focus-visible,.ak-combobox__trigger.is-open{border-color:#f4d35e;box-shadow:0 0 0 3px rgba(244,211,94,.13)}
+.ak-combobox__trigger.is-invalid{border-color:#ff6577;box-shadow:0 0 0 3px rgba(255,101,119,.12)}
+.ak-combobox__trigger:disabled,.ak-combobox__trigger.is-disabled{cursor:not-allowed;opacity:.55}
+.ak-combobox__value{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ak-combobox__chevron{flex:0 0 auto;color:#aab3c1;font-size:17px;line-height:1;transform:translateY(-1px);transition:transform .14s ease}
+.ak-combobox__trigger.is-open .ak-combobox__chevron{transform:rotate(180deg) translateY(1px)}
+.ak-combobox__panel{position:fixed;z-index:12000;display:grid;grid-template-rows:auto minmax(0,1fr);overflow:hidden;border:1px solid #3a4555;border-radius:13px;background:#0d121a;color:#f7f8fb;box-shadow:0 24px 70px rgba(0,0,0,.62);animation:ak-combobox-in .12s ease-out}
+.ak-combobox__search-wrap{padding:10px;border-bottom:1px solid rgba(255,255,255,.08);background:#0a0f16}
+.ak-combobox__search{width:100%;min-height:40px;padding:9px 11px;border:1px solid #313a48;border-radius:9px;background:#070b11;color:#f7f8fb;font:inherit;font-size:14px;outline:none}
+.ak-combobox__search:focus{border-color:#f4d35e;box-shadow:0 0 0 3px rgba(244,211,94,.12)}
+.ak-combobox__list{min-height:0;overflow:auto;padding:7px;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#596474 transparent}
+.ak-combobox__option{width:100%;min-height:42px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 11px;border:0;border-radius:8px;background:transparent;color:#e9edf3;font:inherit;font-size:14px;text-align:left;cursor:pointer;outline:none}
+.ak-combobox__option:hover,.ak-combobox__option:focus-visible{background:#182231;color:#fff}
+.ak-combobox__option.is-selected{background:#253246;color:#fff;font-weight:700}
+.ak-combobox__option b{color:#f4d35e;font-size:13px}
+.ak-combobox__option:disabled{cursor:not-allowed;color:#687384;opacity:.7}
+.ak-combobox__empty{padding:20px 14px;color:#7f8998;text-align:center;font-size:13px}
+@keyframes ak-combobox-in{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+
 @media(max-width:760px){
   :where(#modal-root,#commercial-modal-root,#work-os-modal-root) :is(.modal-backdrop,.commercial-modal-backdrop,.work-modal-backdrop){padding:0!important;place-items:stretch!important}
   :where(#modal-root,#commercial-modal-root,#work-os-modal-root) .ak-modal-standard,
@@ -36,8 +60,10 @@ body.ak-modal-open{overflow:hidden}
   :where(#modal-root,#commercial-modal-root,#work-os-modal-root) :is(.form-grid,.commercial-form-grid,.work-form-grid,.revenue-field-grid){grid-template-columns:1fr!important;gap:17px!important}
   :where(#modal-root,#commercial-modal-root,#work-os-modal-root) :is(.form-group.full,.commercial-field.full,.revenue-field.full,.work-form-grid>label.full){grid-column:auto!important}
   :where(#modal-root,#commercial-modal-root,#work-os-modal-root) :is(.form-control,.commercial-field input,.commercial-field select,.commercial-field textarea,.revenue-field input,.revenue-field select,.revenue-field textarea,.work-form-grid input,.work-form-grid select,.work-form-grid textarea){font-size:16px!important;min-height:50px!important}
+  .ak-combobox__trigger,.ak-combobox__search,.ak-combobox__option{font-size:16px}
+  .ak-combobox__trigger{min-height:50px}
   #modal-root .revenue-form-card{width:100vw!important;height:100dvh!important;max-height:100dvh!important;border-radius:0!important}
   #modal-root .revenue-form-body{padding:20px 18px 26px!important}
   #modal-root .revenue-form-card>header,#modal-root .revenue-form-card>footer{padding-left:18px!important;padding-right:18px!important}
 }
-@media(prefers-reduced-motion:reduce){:where(#modal-root,#commercial-modal-root,#work-os-modal-root) :is(.modal-backdrop,.commercial-modal-backdrop,.work-modal-backdrop){backdrop-filter:none}}
+@media(prefers-reduced-motion:reduce){:where(#modal-root,#commercial-modal-root,#work-os-modal-root) :is(.modal-backdrop,.commercial-modal-backdrop,.work-modal-backdrop){backdrop-filter:none}.ak-combobox__panel{animation:none}}
