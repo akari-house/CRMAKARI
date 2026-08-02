@@ -1,0 +1,208 @@
+.deal-outcome-form .revenue-field-grid {
+  align-items: start;
+}
+
+.deal-outcome-intro {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(280px, .9fr);
+  gap: 18px;
+  padding: 20px;
+  border: 1px solid rgba(255, 206, 42, .22);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255, 206, 42, .07), rgba(245, 90, 180, .05));
+}
+
+.deal-outcome-intro > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.deal-outcome-intro > div:first-child > span,
+.deal-announcement-heading span {
+  color: var(--yellow, #ffce2a);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .12em;
+}
+
+.deal-outcome-intro > div:first-child > strong,
+.deal-announcement-heading strong {
+  color: var(--text, #f7f7f8);
+  font-size: 15px;
+}
+
+.deal-outcome-intro p,
+.deal-announcement-heading p {
+  margin: 0;
+  color: var(--muted, #9ca3af);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.deal-outcome-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.deal-outcome-field > span {
+  color: var(--muted, #aab0bd);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.deal-outcome-field select {
+  min-height: 48px;
+  width: 100%;
+  border: 1px solid var(--line, #293140);
+  border-radius: 11px;
+  background: var(--surface-2, #0b1018);
+  color: var(--text, #f7f7f8);
+  padding: 0 13px;
+}
+
+.deal-outcome-field--full,
+.deal-outcome-note,
+.deal-announcement-fields.full {
+  grid-column: 1 / -1;
+}
+
+.deal-outcome-note {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 13px 14px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, .035);
+  border: 1px solid rgba(255, 255, 255, .07);
+}
+
+.deal-outcome-note strong {
+  color: var(--text, #f7f7f8);
+  font-size: 12px;
+}
+
+.deal-outcome-note span {
+  color: var(--muted, #9ca3af);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.deal-outcome-added[hidden],
+.deal-announcement-fields[hidden],
+.deal-outcome-form [hidden] {
+  display: none !important;
+}
+
+/* Modal normalization may replace field classes after the form opens. These
+   relational selectors keep partnership-only visibility tied to the selected
+   outcome rather than to a particular wrapper class. */
+.deal-outcome-form:has(select[name="dealModel"] option[value="PARTNERSHIP"]:checked) label:has([name="finalValue"]),
+.deal-outcome-form:has(select[name="dealModel"] option[value="PARTNERSHIP"]:checked) label:has([name="currency"]),
+.deal-outcome-form:has(select[name="dealModel"] option[value="PARTNERSHIP"]:checked) label:has([name="serviceType"]),
+.deal-outcome-form:has(select[name="dealModel"] option[value="PARTNERSHIP"]:checked) label:has([name="commercialModel"]),
+.deal-outcome-form:has(select[name="dealModel"] option[value="PARTNERSHIP"]:checked) label:has([name="paymentTerms"]),
+.deal-outcome-form:has(select[name="dealModel"] option[value="PARTNERSHIP"]:checked) label:has([name="billingSchedule"]),
+.deal-outcome-form:has(select[name="dealModel"] option[value="PARTNERSHIP"]:checked) label:has([name="campaignCost"]),
+.deal-outcome-form:has(select[name="dealModel"] option[value="PARTNERSHIP"]:checked) label:has([name="creatorCost"]),
+.deal-outcome-form:has(select[name="dealModel"] option[value="PARTNERSHIP"]:checked) label:has([name="otherCost"]),
+.deal-outcome-form:has(select[name="dealModel"] option[value="PARTNERSHIP"]:checked) label:has([name="referralPartnerId"]),
+.deal-outcome-form:has(select[name="dealModel"] option[value="PARTNERSHIP"]:checked) label:has([name="referralPercentage"]) {
+  display: none !important;
+}
+
+.deal-outcome-form .revenue-field small {
+  color: var(--muted-2, #737b8c);
+  line-height: 1.45;
+}
+
+.deal-announcement-toggle {
+  margin-top: 4px;
+  padding: 15px 16px;
+  border: 1px solid rgba(245, 90, 180, .2);
+  border-radius: 13px;
+  background: rgba(245, 90, 180, .045);
+}
+
+.deal-announcement-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid rgba(245, 90, 180, .18);
+  border-radius: 14px;
+  background: rgba(245, 90, 180, .035);
+}
+
+.deal-announcement-heading {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: start;
+  padding-bottom: 4px;
+}
+
+.deal-announcement-heading > div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.deal-announcement-heading p {
+  max-width: 430px;
+  text-align: right;
+}
+
+.deal-no-invoice {
+  margin-left: 8px;
+  border-color: rgba(72, 211, 153, .25) !important;
+  background: rgba(72, 211, 153, .08) !important;
+  color: #78e6b5 !important;
+}
+
+.deal-partnership-callout {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 0 18px 18px;
+  padding: 13px 14px;
+  border: 1px solid rgba(72, 211, 153, .16);
+  border-radius: 11px;
+  background: rgba(72, 211, 153, .045);
+}
+
+.deal-partnership-callout strong {
+  color: #78e6b5;
+  font-size: 12px;
+}
+
+.deal-partnership-callout span {
+  color: var(--muted, #9ca3af);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.deal-workspace--non-billable .revenue-step.na {
+  opacity: .55;
+}
+
+@media (max-width: 760px) {
+  .deal-outcome-intro,
+  .deal-announcement-fields {
+    grid-template-columns: 1fr;
+    padding: 15px;
+  }
+
+  .deal-announcement-heading {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .deal-announcement-heading p {
+    max-width: none;
+    text-align: left;
+  }
+}

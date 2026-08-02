@@ -14,7 +14,7 @@ for (const token of ['normalizeTaskNavigation', 'normalizeDialog', "controls.len
 for (const token of ['/assets/modal-system-r9.css?v=1', '/assets/modal-system-r9.js?v=1']) {
   if (!html.includes(token)) throw new Error(`Protected shell missing ${token}`);
 }
-for (const token of ['akari-crm-shell-v39', './assets/modal-system-r9.css?v=1', './assets/modal-system-r9.js?v=1', 'runtime=v39']) {
+for (const token of ['akari-crm-shell-v40', './assets/modal-system-r9.css?v=1', './assets/modal-system-r9.js?v=1', 'runtime=v40']) {
   if (!sw.includes(token)) throw new Error(`Service worker missing ${token}`);
 }
 
