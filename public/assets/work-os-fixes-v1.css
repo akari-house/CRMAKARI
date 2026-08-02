@@ -1,0 +1,12 @@
+/* Work OS responsive correction: owner, relation and workstream controls must never disappear. */
+@media (max-width:1350px){
+  .work-quick form select:nth-of-type(3),
+  .work-quick form select:nth-of-type(4){display:block!important}
+  .work-quick form{grid-template-columns:minmax(240px,2fr) repeat(2,minmax(140px,1fr)) auto}
+}
+@media (max-width:900px){
+  .work-quick form{grid-template-columns:1fr 1fr}
+}
+@media (max-width:620px){
+  .work-quick form{grid-template-columns:1fr}
+}

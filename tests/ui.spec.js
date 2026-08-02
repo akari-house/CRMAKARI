@@ -17,6 +17,14 @@ const responses = {
     { id: 'tsk_2', title: 'Prepare discovery notes', status: 'IN_PROGRESS', priority: 'MEDIUM', due_at: '2030-01-02T12:00:00Z', project_name: 'Project Beta' },
     { id: 'tsk_3', title: 'Await partner reply', status: 'WAITING', priority: 'LOW', due_at: '2030-01-03T12:00:00Z', project_name: 'Project Gamma' },
   ], total: 3 },
+  '/api/work-os?scope=mine': {
+    scope: 'mine',
+    tasks: [{ id: 'tsk_1', title: 'Follow up Project Alpha', description: 'Prepare the next action.', ownerUserId: 'usr_test', ownerName: 'Muaz Test', status: 'TODO', priority: 'HIGH', dueAt: '2030-01-01T12:00:00Z', projectId: 'prj_1', projectName: 'Project Alpha', workstream: 'BD', showOnHome: true }],
+    members: [{ id: 'usr_test', fullName: 'Muaz Test', email: 'owner@example.com', role: 'OWNER' }],
+    projects: [{ id: 'prj_1', name: 'Project Alpha', ownerUserId: 'usr_test', lifecycleStatus: 'LEAD' }],
+    opportunities: [], campaigns: [], calendarEvents: [], partnershipCandidates: [], fundraisingPlans: [],
+    permissions: { canWrite: true, canManage: true, canFinance: true },
+  },
   '/api/projects?limit=5': { items: dashboardProjects, total: dashboardProjects.length },
   '/api/opportunities': { items: [{ id: 'opp_1', project_id: 'prj_1', project_name: 'Project Alpha', name: 'Creator campaign', stage: 'QUALIFIED', estimated_value: 10000, currency: 'USD', probability_percentage: 60, owner_name: 'Muaz Test', next_action: 'Send proposal' }], total: 1 },
   '/api/akari-leads?limit=8&offset=0': { items: dashboardProjects.map((project) => ({ ...project, priority: 'HIGH', source_name: 'Referral', contact_count: 1 })), total: dashboardProjects.length, categories: [{ category: 'Web3', count: 1 }], canWrite: true },
@@ -37,6 +45,7 @@ function responseFor(url) {
   if (parsed.pathname.startsWith('/api/akari-leads')) return responses['/api/akari-leads?limit=50&offset=0'];
   if (parsed.pathname.startsWith('/api/projects/')) return responses['/api/projects/prj_1'];
   if (parsed.pathname.startsWith('/api/tasks/')) return { updated: true };
+  if (parsed.pathname === '/api/work-os') return { updated: true };
   return { items: [], total: 0 };
 }
 
@@ -124,11 +133,12 @@ test('command palette and task interaction work', async ({ page }) => {
 
   await page.locator('.sidebar [data-route="day"]').click();
   await expect(page.getByRole('heading', { name: 'My Day' })).toBeVisible();
-  const todoCard=page.locator('[data-task-card="tsk_1"]');
-  await expect(todoCard).toBeVisible();
-  await todoCard.dragTo(page.locator('[data-task-column="IN_PROGRESS"] .task-board-dropzone'));
-  await expect(page.locator('[data-task-column="IN_PROGRESS"] [data-task-card="tsk_1"]')).toBeVisible();
-  await expect(page.getByText('Task moved to In Progress')).toBeVisible();
+  await expect(page.locator('#work-os-root')).toBeVisible();
+  await page.getByRole('button', { name: 'Follow up Project Alpha', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Task details' })).toBeVisible();
+  await page.locator('#work-task-form select[name="status"]').selectOption('IN_PROGRESS');
+  await page.locator('#work-task-form').getByRole('button', { name: 'Save task' }).click();
+  await expect(page.getByText('Work OS updated')).toBeVisible();
 });
 
 test('outreach flow exposes the full call and follow-up sequence', async ({ page }) => {
