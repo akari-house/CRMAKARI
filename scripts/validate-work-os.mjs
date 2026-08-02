@@ -1,0 +1,12 @@
+import { readFile } from 'node:fs/promises';
+const api = await readFile('functions/api/work-os/index.js', 'utf8');
+const js = await readFile('public/assets/work-os-v1.js', 'utf8');
+const css = await readFile('public/assets/work-os-v1.css', 'utf8');
+const html = await readFile('public/app/index.html', 'utf8');
+const docs = await readFile('docs/WORK_OS_R7.md', 'utf8');
+for (const token of ['validateRelations', 'startPartnershipActivation', 'startFundraisingWorkplan', 'WORK_OS_TASK_CREATED', "opportunity.stage !== 'WON'"]) if (!api.includes(token)) throw new Error(`Work OS API missing ${token}`);
+for (const token of ['Board', 'List', 'Calendar', 'Agenda', 'start-partnership-activation', 'start-fundraising-workplan', 'data-work-drop-date']) if (!js.includes(token)) throw new Error(`Work OS client missing ${token}`);
+for (const token of ['.work-board', '.work-calendar', '.work-modal', '.work-automation']) if (!css.includes(token)) throw new Error(`Work OS CSS missing ${token}`);
+for (const token of ['/assets/work-os-v1.css?v=1', '/assets/work-os-v1.js?v=1']) if (!html.includes(token)) throw new Error(`Protected shell missing ${token}`);
+for (const token of ['Partnership activation', 'Fundraising work plan', 'No production schema migration']) if (!docs.includes(token)) throw new Error(`Work OS documentation missing ${token}`);
+console.log('AKARI Work OS validation passed');
