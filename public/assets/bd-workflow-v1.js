@@ -20,7 +20,7 @@
     .replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;')
     .replaceAll('"','&quot;').replaceAll("'",'&#039;');
   const titleCase = (value) => String(value || '').toLowerCase().split('_').map((part) => part ? part[0].toUpperCase() + part.slice(1) : '').join(' ');
-  const money = (value, currency = 'USD') => value === null || value === undefined || value === '' ? '—' : new Intl.NumberFormat('en-US', { style:'currency', currency, maximumFractionDigits:0 }).format(Number(value || 0));
+  const money = (value, currency = 'USD') => value === null || value === undefined || value === '' ? '-' : new Intl.NumberFormat('en-US', { style:'currency', currency, maximumFractionDigits:0 }).format(Number(value || 0));
   const currentLeadId = () => sessionStorage.getItem('akari-current-lead-id') || '';
 
   async function request(path, options = {}) {

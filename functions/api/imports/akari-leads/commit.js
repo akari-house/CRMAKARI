@@ -87,7 +87,7 @@ function fallbackContactName(row) {
     || text(value(row, 'Telegram'), 300)
     || text(value(row, 'X Profile'), 300)
     || text(value(row, 'Other Contact'), 300)
-    || `Unknown contact — ${text(value(row, 'Project / Organization'), 200) || 'AKARI Lead'}`;
+    || `Unknown contact - ${text(value(row, 'Project / Organization'), 200) || 'AKARI Lead'}`;
 }
 
 function projectStatement(db, tenantId, userId, row, batchId, fileName, now) {

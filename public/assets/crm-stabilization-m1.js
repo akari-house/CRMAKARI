@@ -11,7 +11,7 @@
   const titleCase = (value) => String(value || '').toLowerCase().split('_').map((part) => part ? part[0].toUpperCase() + part.slice(1) : '').join(' ');
   const initials = (value) => String(value || 'AK').trim().split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
   const dateLabel = (value) => {
-    if (!value) return '—';
+    if (!value) return '-';
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return escapeHtml(value);
     return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(date);
@@ -122,7 +122,7 @@
       <td><div class="record-cell"><div class="record-logo">${escapeHtml(initials(lead.name))}</div><div class="record-name"><strong>${escapeHtml(lead.name)}</strong><span>${escapeHtml(lead.region || lead.original_status || titleCase(lead.lifecycle_status || 'LEAD'))}</span></div></div></td>
       <td>${escapeHtml(lead.category || 'Uncategorized')}</td>
       <td>${priorityPill(lead.priority)}</td>
-      <td><strong>${escapeHtml(lead.primary_contact || '—')}</strong><span class="ak-cell-meta">${escapeHtml(lead.primary_contact_telegram || lead.primary_contact_email || '')}</span></td>
+      <td><strong>${escapeHtml(lead.primary_contact || '-')}</strong><span class="ak-cell-meta">${escapeHtml(lead.primary_contact_telegram || lead.primary_contact_email || '')}</span></td>
       <td><div class="ak-channel-links">${channels}</div><span class="pill ${identityTone}">${lead.identity_complete && lead.contact_identity_complete ? 'Complete' : 'Update needed'}</span></td>
       <td>${escapeHtml(lead.owner || 'Unassigned')}</td>
       <td>${escapeHtml(dateLabel(lead.next_follow_up_at))}</td>

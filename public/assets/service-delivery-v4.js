@@ -5,7 +5,7 @@
   const $ = (selector, root = document) => root.querySelector(selector);
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[char]));
   const title = (value) => String(value || '').toLowerCase().split('_').map((part) => part ? `${part[0].toUpperCase()}${part.slice(1)}` : '').join(' ');
-  const date = (value) => value ? new Intl.DateTimeFormat('en-GB', { day:'numeric', month:'short', year:'numeric' }).format(new Date(`${String(value).slice(0,10)}T12:00:00`)) : '—';
+  const date = (value) => value ? new Intl.DateTimeFormat('en-GB', { day:'numeric', month:'short', year:'numeric' }).format(new Date(`${String(value).slice(0,10)}T12:00:00`)) : '-';
   const money = (value, currency = 'USD') => {
     if (value === null || value === undefined) return 'Restricted';
     const amount = Number(value || 0);
@@ -53,7 +53,7 @@
     return '';
   }
 
-  function pill(value) { return `<span class="delivery-pill ${tone(value)}">${esc(title(value || '—'))}</span>`; }
+  function pill(value) { return `<span class="delivery-pill ${tone(value)}">${esc(title(value || '-'))}</span>`; }
   function progress(value) { const safe=Math.min(Math.max(Number(value || 0),0),100); return `<div class="delivery-progress"><span style="width:${safe}%"></span></div>`; }
   function memberOptions(selected = '') {
     const members = state.workspace?.members || [];

@@ -87,7 +87,7 @@ function toggleScreenShare() {
   document.body.classList.toggle('screen-share-hidden');
   const active = document.body.classList.contains('screen-share-hidden');
   document.getElementById('shareBtn').style.color = active ? 'var(--pink)' : '';
-  showToast(active ? 'Screen-share mode enabled — financial values hidden' : 'Screen-share mode disabled');
+  showToast(active ? 'Screen-share mode enabled - financial values hidden' : 'Screen-share mode disabled');
 }
 
 function openCommand() {
@@ -157,7 +157,7 @@ function formatMoney(value, currency = 'USD', compact = false) {
 }
 
 function formatDate(value) {
-  if (!value) return '—';
+  if (!value) return '-';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return escapeHtml(value);
   return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(date);
@@ -296,12 +296,12 @@ function renderProjects(payload) {
       <td>${lifecyclePill(project.lifecycle_status)}</td>
       <td>${priorityPill(project.priority)}</td>
       <td><div class="person"><span class="person-dot">${initialsFor(owner)}</span>${escapeHtml(owner)}</div></td>
-      <td>${escapeHtml(project.primary_contact || '—')}</td>
+      <td>${escapeHtml(project.primary_contact || '-')}</td>
       <td>${Number(project.open_opportunities || 0)}</td>
       <td class="finance-value">${formatMoney(project.pipeline_value || 0)}</td>
       <td>${escapeHtml(formatDate(project.last_activity_at))}</td>
       <td>${followUpHtml}</td>
-      <td>${escapeHtml(project.source_name || '—')}</td>
+      <td>${escapeHtml(project.source_name || '-')}</td>
     </tr>`;
   }).join('');
 }
@@ -412,10 +412,10 @@ function renderProjectDrawer(project) {
     sections[0].innerHTML = `<h3>Relationship overview</h3><div class="property-grid">
       <div class="property"><span>Lifecycle</span><strong>${escapeHtml(titleCase(project.lifecycle_status || 'LEAD'))}</strong></div>
       <div class="property"><span>Relationship health</span><strong>${escapeHtml(project.relationship_health || 'Not assessed')}</strong></div>
-      <div class="property"><span>Primary contact</span><strong>${escapeHtml(contacts.find((contact) => contact.is_primary_contact)?.full_name || contacts[0]?.full_name || '—')}</strong></div>
-      <div class="property"><span>Category</span><strong>${escapeHtml(project.category || '—')}</strong></div>
+      <div class="property"><span>Primary contact</span><strong>${escapeHtml(contacts.find((contact) => contact.is_primary_contact)?.full_name || contacts[0]?.full_name || '-')}</strong></div>
+      <div class="property"><span>Category</span><strong>${escapeHtml(project.category || '-')}</strong></div>
       <div class="property"><span>Next follow-up</span><strong>${escapeHtml(formatDate(project.next_follow_up_at))}</strong></div>
-      <div class="property"><span>Source</span><strong>${escapeHtml(project.source_name || project.source_type || '—')}</strong></div>
+      <div class="property"><span>Source</span><strong>${escapeHtml(project.source_name || project.source_type || '-')}</strong></div>
     </div>`;
   }
   if (sections[1]) {
@@ -453,7 +453,7 @@ async function refreshTasks() {
 
 async function bootstrapLiveData() {
   if (location.protocol === 'file:') {
-    setLiveNotice('Standalone preview mode — sample values are shown. Production uses tenant-scoped D1 data.', 'neutral');
+    setLiveNotice('Standalone preview mode - sample values are shown. Production uses tenant-scoped D1 data.', 'neutral');
     return;
   }
 

@@ -7,7 +7,7 @@
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[char]));
   const title = (value) => String(value || '').toLowerCase().split('_').map((part) => part ? `${part[0].toUpperCase()}${part.slice(1)}` : '').join(' ');
   const money = (value, currency = 'USD') => value === null || value === undefined ? 'Restricted' : new Intl.NumberFormat('en-US', { style:'currency', currency: currency || 'USD', maximumFractionDigits:2 }).format(Number(value || 0));
-  const date = (value) => value ? new Intl.DateTimeFormat('en-GB', { day:'numeric', month:'short', year:'numeric' }).format(new Date(`${String(value).slice(0,10)}T12:00:00`)) : '—';
+  const date = (value) => value ? new Intl.DateTimeFormat('en-GB', { day:'numeric', month:'short', year:'numeric' }).format(new Date(`${String(value).slice(0,10)}T12:00:00`)) : '-';
   const dateInput = (value) => value ? String(value).slice(0, 10) : '';
   const dateTimeInput = (value) => {
     if (!value) return '';
@@ -71,7 +71,7 @@
   }
 
   function pill(value, tone = '') {
-    return `<span class="revenue-pill ${tone}">${esc(title(value || '—'))}</span>`;
+    return `<span class="revenue-pill ${tone}">${esc(title(value || '-'))}</span>`;
   }
 
   function lifecycleSteps(payload) {
@@ -125,7 +125,7 @@
   function engagementSection(payload) {
     if (!payload.engagements.length) return `<section class="revenue-panel"><div class="revenue-panel-head"><div><strong>Service engagement</strong><span>Created automatically when the opportunity is won.</span></div></div><div class="revenue-empty">No service engagement yet.</div></section>`;
     return payload.engagements.map((item) => `<section class="revenue-panel"><div class="revenue-panel-head"><div><strong>${esc(item.name)}</strong><span>${esc(title(item.serviceType))} · ${esc(title(item.commercialModel))}</span></div><div>${pill(item.status, item.status === 'COMPLETED' ? 'green' : item.status === 'CANCELLED' ? 'red' : 'pink')} ${payload.permissions.canWrite ? `<button class="btn small" data-revenue-action="edit-engagement" data-id="${esc(item.id)}">Edit</button>` : ''}</div></div><div class="revenue-property-grid">
-      ${property('Start', date(item.startDate))}${property('End', date(item.endDate))}${property('Next action', esc(item.nextAction || '—'))}${property('Deliverables', esc(item.deliverables || '—'))}
+      ${property('Start', date(item.startDate))}${property('End', date(item.endDate))}${property('Next action', esc(item.nextAction || '-'))}${property('Deliverables', esc(item.deliverables || '-'))}
       ${payload.permissions.canFinance ? `${property('Contract value', money(item.grossRevenue, item.currency), 'finance-value')}${property('Direct costs', money(item.directCosts, item.currency), 'finance-value')}${property('AKARI net', money(item.akariNetRevenue, item.currency), 'finance-value')}${property('Referral reward', money(item.referralReward, item.currency), 'finance-value')}` : ''}
     </div>${payload.permissions.canFinance ? `<div class="revenue-panel-actions"><button class="btn primary" data-revenue-action="invoice" data-id="${esc(item.id)}">Create invoice</button></div>` : ''}</section>`).join('');
   }
@@ -147,7 +147,7 @@
     const steps = lifecycleSteps(payload);
     return `<div class="revenue-backdrop" data-revenue-action="backdrop"><section class="revenue-workspace" role="dialog" aria-modal="true" aria-label="Revenue lifecycle workspace">
       <header class="revenue-workspace-head"><div><div class="eyebrow">REVENUE LIFECYCLE</div><h2>${esc(opportunity.name)}</h2><p>${esc(opportunity.project_name)} · ${esc(title(opportunity.service_type || 'Commercial opportunity'))}</p></div><button class="close" data-revenue-action="close">×</button></header>
-      <div class="revenue-stepper">${steps.map((step, index) => `<div class="revenue-step ${step.state}"><span>${step.state === 'complete' ? '✓' : step.state === 'na' ? '—' : index + 1}</span><strong>${esc(step.label)}</strong></div>`).join('')}</div>
+      <div class="revenue-stepper">${steps.map((step, index) => `<div class="revenue-step ${step.state}"><span>${step.state === 'complete' ? '✓' : step.state === 'na' ? '-' : index + 1}</span><strong>${esc(step.label)}</strong></div>`).join('')}</div>
       <div class="revenue-workspace-body">
         <div class="revenue-toolbar"><div>${pill(opportunity.stage,stageTone(opportunity.stage))}</div><div>${actionButtons(payload)}</div></div>
         <div class="revenue-summary-grid">

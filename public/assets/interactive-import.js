@@ -46,7 +46,7 @@ function formatMoney(value) {
 }
 
 function formatDate(value) {
-  if (!value) return '—';
+  if (!value) return '-';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return escapeHtml(value);
   return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(date);
@@ -160,10 +160,10 @@ function injectView() {
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="soft-btn" id="akariImportButton">⇧ Import workbook</button><button class="primary-btn" id="akariNewLeadButton">＋ New lead</button></div>
     </div>
     <div class="akari-leads-kpis">
-      <div class="akari-leads-kpi"><span>Total AKARI leads</span><strong id="akariLeadTotal">—</strong></div>
-      <div class="akari-leads-kpi"><span>High priority</span><strong id="akariLeadHigh">—</strong></div>
-      <div class="akari-leads-kpi"><span>With contacts</span><strong id="akariLeadContacts">—</strong></div>
-      <div class="akari-leads-kpi"><span>Pipeline value</span><strong id="akariLeadPipeline" class="finance-value">—</strong></div>
+      <div class="akari-leads-kpi"><span>Total AKARI leads</span><strong id="akariLeadTotal">-</strong></div>
+      <div class="akari-leads-kpi"><span>High priority</span><strong id="akariLeadHigh">-</strong></div>
+      <div class="akari-leads-kpi"><span>With contacts</span><strong id="akariLeadContacts">-</strong></div>
+      <div class="akari-leads-kpi"><span>Pipeline value</span><strong id="akariLeadPipeline" class="finance-value">-</strong></div>
     </div>
     <div class="akari-leads-toolbar">
       <input class="table-search" id="akariLeadSearch" placeholder="Search AKARI leads, X, website, Telegram or source…" />
@@ -312,15 +312,15 @@ function renderLeadTable() {
     tbody.innerHTML = '<tr><td colspan="10" style="height:120px;text-align:center;color:var(--muted)">No AKARI Leads match this view. Import the workbook or create the first lead.</td></tr>';
   } else {
     tbody.innerHTML = state.items.map((lead) => {
-      const channels = [lead.website ? 'Web' : '', lead.x_url ? 'X' : '', lead.telegram ? 'TG' : ''].filter(Boolean).join(' · ') || '—';
-      const contact = lead.primary_contact || lead.primary_contact_email || lead.primary_contact_telegram || '—';
+      const channels = [lead.website ? 'Web' : '', lead.x_url ? 'X' : '', lead.telegram ? 'TG' : ''].filter(Boolean).join(' · ') || '-';
+      const contact = lead.primary_contact || lead.primary_contact_email || lead.primary_contact_telegram || '-';
       return `<tr data-akari-lead-id="${escapeHtml(lead.id)}">
         <td><div class="project-cell"><div class="project-logo">${initials(lead.name)}</div><div class="project-name"><strong>${escapeHtml(lead.name)}</strong><span>${escapeHtml(lead.region || lead.original_status || 'AKARI Lead')}</span></div></div></td>
         <td><span class="pill ${lead.priority === 'HIGH' || lead.priority === 'URGENT' ? 'yellow' : ''}">${escapeHtml(titleCase(lead.priority))}</span></td>
         <td>${escapeHtml(lead.category || 'Uncategorized')}</td>
         <td>${escapeHtml(contact)}${Number(lead.contact_count || 0) > 1 ? ` <span class="pill">+${Number(lead.contact_count) - 1}</span>` : ''}</td>
         <td>${escapeHtml(channels)}</td>
-        <td>${escapeHtml(lead.source_name || '—')}</td>
+        <td>${escapeHtml(lead.source_name || '-')}</td>
         <td>${formatDate(lead.last_activity_at)}</td>
         <td>${formatDate(lead.next_follow_up_at)}</td>
         <td>${Number(lead.open_opportunities || 0)}</td>

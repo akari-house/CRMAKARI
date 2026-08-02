@@ -6,7 +6,7 @@
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[char]));
   const title = (value) => String(value || '').toLowerCase().split('_').map((part) => part ? `${part[0].toUpperCase()}${part.slice(1)}` : '').join(' ');
   const money = (value, currency = 'USD') => new Intl.NumberFormat('en-US', { style:'currency', currency:currency || 'USD', maximumFractionDigits:2 }).format(Number(value || 0));
-  const date = (value) => value ? new Intl.DateTimeFormat('en-GB', { day:'numeric', month:'short', year:'numeric' }).format(new Date(`${String(value).slice(0,10)}T12:00:00`)) : '—';
+  const date = (value) => value ? new Intl.DateTimeFormat('en-GB', { day:'numeric', month:'short', year:'numeric' }).format(new Date(`${String(value).slice(0,10)}T12:00:00`)) : '-';
   const isCanonicalFinancePage = () => $('#view-root .page-head h1')?.textContent?.trim() === 'Invoices & Finance';
 
   function tone(value) {
@@ -18,12 +18,12 @@
   }
 
   function pill(value, color = '') {
-    return `<span class="commercial-pill ${color}">${esc(title(value || '—'))}</span>`;
+    return `<span class="commercial-pill ${color}">${esc(title(value || '-'))}</span>`;
   }
 
   function invoiceTable(items) {
     if (!items.length) return '<div class="commercial-empty">No hardened invoice records yet.</div>';
-    return `<div class="commercial-table-wrap"><table class="commercial-table"><thead><tr><th>Invoice</th><th>Client</th><th>Total</th><th>Received</th><th>Outstanding</th><th>Status</th><th>Actions</th></tr></thead><tbody>${items.map((item) => `<tr><td><strong>${esc(item.invoiceNumber)}</strong><span>${esc(date(item.dueDate))}</span></td><td>${esc(item.projectName || '—')}</td><td>${money(item.total,item.currency)}</td><td>${money(item.received,item.currency)}</td><td>${money(item.outstanding,item.currency)}</td><td>${pill(item.displayStatus || item.status,tone(item.displayStatus || item.status))}</td><td><div class="commercial-row-actions"><button class="btn small" data-commercial-action="print-invoice" data-id="${esc(item.id)}">View</button>${item.outstanding > 0 && !['DRAFT','CANCELLED','CREDITED'].includes(item.status) ? `<button class="btn small primary" data-commercial-action="pay-invoice" data-id="${esc(item.id)}">Payment</button><button class="btn small" data-commercial-action="remind-invoice" data-id="${esc(item.id)}">Reminder</button><button class="btn small" data-commercial-action="credit-invoice" data-id="${esc(item.id)}">Credit</button>` : ''}${['DRAFT','INVOICED'].includes(item.status) && item.received <= 0 && item.credited <= 0 ? `<button class="btn small" data-commercial-action="cancel-invoice" data-id="${esc(item.id)}">Cancel</button>` : ''}${item.status === 'DRAFT' ? `<button class="btn small primary" data-commercial-action="issue-invoice" data-id="${esc(item.id)}">Issue</button>` : ''}</div></td></tr>`).join('')}</tbody></table></div>`;
+    return `<div class="commercial-table-wrap"><table class="commercial-table"><thead><tr><th>Invoice</th><th>Client</th><th>Total</th><th>Received</th><th>Outstanding</th><th>Status</th><th>Actions</th></tr></thead><tbody>${items.map((item) => `<tr><td><strong>${esc(item.invoiceNumber)}</strong><span>${esc(date(item.dueDate))}</span></td><td>${esc(item.projectName || '-')}</td><td>${money(item.total,item.currency)}</td><td>${money(item.received,item.currency)}</td><td>${money(item.outstanding,item.currency)}</td><td>${pill(item.displayStatus || item.status,tone(item.displayStatus || item.status))}</td><td><div class="commercial-row-actions"><button class="btn small" data-commercial-action="print-invoice" data-id="${esc(item.id)}">View</button>${item.outstanding > 0 && !['DRAFT','CANCELLED','CREDITED'].includes(item.status) ? `<button class="btn small primary" data-commercial-action="pay-invoice" data-id="${esc(item.id)}">Payment</button><button class="btn small" data-commercial-action="remind-invoice" data-id="${esc(item.id)}">Reminder</button><button class="btn small" data-commercial-action="credit-invoice" data-id="${esc(item.id)}">Credit</button>` : ''}${['DRAFT','INVOICED'].includes(item.status) && item.received <= 0 && item.credited <= 0 ? `<button class="btn small" data-commercial-action="cancel-invoice" data-id="${esc(item.id)}">Cancel</button>` : ''}${item.status === 'DRAFT' ? `<button class="btn small primary" data-commercial-action="issue-invoice" data-id="${esc(item.id)}">Issue</button>` : ''}</div></td></tr>`).join('')}</tbody></table></div>`;
   }
 
   function proposalList(items) {

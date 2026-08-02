@@ -4,7 +4,7 @@ import { requireTenant } from '../../../lib/permissions.js';
 import { parseFeatureFlags, parseProposal } from '../../../lib/commercial-hardening.js';
 
 const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[char]));
-const paragraphs = (value) => esc(value || '—').replaceAll('\n', '<br/>');
+const paragraphs = (value) => esc(value || '-').replaceAll('\n', '<br/>');
 const money = (value, currency) => new Intl.NumberFormat('en-US', { style:'currency', currency: currency || 'USD', maximumFractionDigits:2 }).format(Number(value || 0));
 
 export async function onRequestGet(context) {
