@@ -12,6 +12,11 @@
     scope.querySelectorAll?.('.mobile-bottom [data-route="day"] span').forEach((node) => {
       node.textContent = 'Tasks';
     });
+
+    scope.querySelectorAll?.('img.brand-lockup').forEach((image) => {
+      const source = image.getAttribute('src') || '';
+      if (source.startsWith('./assets/')) image.setAttribute('src', source.replace('./assets/', '/assets/'));
+    });
   }
 
   const observer = new MutationObserver((mutations) => {
@@ -19,7 +24,7 @@
       for (const node of mutation.addedNodes) {
         if (!(node instanceof Element)) continue;
         normalizeLabels(node);
-        if (node.matches?.('.nav-item--public[data-public-home], .mobile-bottom [data-route="day"]')) {
+        if (node.matches?.('.nav-item--public[data-public-home], .mobile-bottom [data-route="day"], img.brand-lockup')) {
           normalizeLabels(node.parentElement || document);
         }
       }
