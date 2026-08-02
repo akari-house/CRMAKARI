@@ -34,7 +34,7 @@
     dialog.classList.add('ak-modal-standard');
 
     const controls = [...dialog.querySelectorAll('input:not([type="hidden"]), select, textarea')]
-      .filter((control) => !control.disabled && control.getAttribute('aria-hidden') !== 'true');
+      .filter((control) => !control.disabled && (control instanceof HTMLSelectElement || control.getAttribute('aria-hidden') !== 'true'));
     const explicitWide = dialog.classList.contains('wide') || dialog.classList.contains('work-modal--wide');
     dialog.classList.toggle('ak-modal--wide', explicitWide || controls.length >= 8);
 
