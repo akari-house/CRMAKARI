@@ -84,7 +84,7 @@ The current Capital Room storage remains in tenant feature flags. This release r
 
 ## Release validation
 
-The release gate covers source validation, tenant-isolation boundaries, role enforcement, cross-tenant task relations, duplicate workflow prevention, the protected application shell, browser interaction and responsive behavior. Production deployment remains limited to the existing `crmakari` Cloudflare Pages project.
+The release gate covers source validation, tenant-isolation boundaries, role enforcement, cross-tenant task relations, duplicate workflow prevention, the protected application shell, browser interaction and responsive behavior. Dedicated browser tests cover fast task creation, task editing, relation changes, Board/List/Calendar/Agenda switching, partnership activation, fundraising work-plan creation and mobile overflow. Production deployment remains limited to the existing `crmakari` Cloudflare Pages project.
 
 ## Known controlled limitations
 
