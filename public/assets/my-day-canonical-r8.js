@@ -60,6 +60,17 @@
         return nativeFetch(input, init);
       }
 
+      let corePayload = null;
+      try {
+        corePayload = await coreResponse.clone().json();
+      } catch {
+        corePayload = null;
+      }
+      if (corePayload?.partial !== true || !Array.isArray(corePayload.tasks) || !Array.isArray(corePayload.members)) {
+        workRequests.delete(request.scope);
+        return nativeFetch(input, init);
+      }
+
       entry.coreServed = true;
       const fullUrl = new URL('/api/work-os', window.location.origin);
       fullUrl.searchParams.set('scope', request.scope);
