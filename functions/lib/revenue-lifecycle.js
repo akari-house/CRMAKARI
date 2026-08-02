@@ -57,14 +57,28 @@ export function parseEngagement(row) {
   const campaignCost = Number(row.campaign_cost || 0);
   const creatorCost = Number(row.creator_cost || 0);
   const otherCost = Number(row.other_cost || 0);
+  const dealModel = metadata.dealModel
+    || (metadata.commercialModel === 'NON_BILLABLE' ? 'PARTNERSHIP' : 'SERVICE');
+  const invoiceEligible = metadata.invoiceEligible !== undefined
+    ? Boolean(metadata.invoiceEligible)
+    : dealModel !== 'PARTNERSHIP';
   return {
     id: row.id,
     projectId: row.project_id,
     opportunityId: row.opportunity_id,
     name: row.name,
     status: row.status,
-    serviceType: metadata.serviceType || 'OTHER',
-    commercialModel: metadata.commercialModel || 'FIXED_FEE',
+    dealModel,
+    invoiceEligible,
+    partnershipIncluded: metadata.partnershipIncluded !== undefined
+      ? Boolean(metadata.partnershipIncluded)
+      : ['PARTNERSHIP', 'HYBRID'].includes(dealModel),
+    announcementRequested: Boolean(metadata.announcementRequested),
+    announcementDate: metadata.announcementDate || null,
+    valueContribution: metadata.valueContribution || null,
+    strategicValue: Number(metadata.strategicValue || 0),
+    serviceType: metadata.serviceType || (dealModel === 'PARTNERSHIP' ? 'STRATEGIC_PARTNERSHIP' : 'OTHER'),
+    commercialModel: metadata.commercialModel || (invoiceEligible ? 'FIXED_FEE' : 'NON_BILLABLE'),
     startDate: row.start_date,
     endDate: row.end_date,
     deliverables: row.deliverables_summary,
