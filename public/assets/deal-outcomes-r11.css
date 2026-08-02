@@ -92,7 +92,24 @@
 
 .deal-outcome-added[hidden],
 .deal-announcement-fields[hidden],
-.deal-outcome-form .revenue-field[hidden] {
+.deal-outcome-form [hidden] {
+  display: none !important;
+}
+
+/* Modal normalization may replace field classes after the form opens. These
+   relational selectors keep partnership-only visibility tied to the selected
+   outcome rather than to a particular wrapper class. */
+.deal-outcome-form:has(select[name="dealModel"] option[value="PARTNERSHIP"]:checked) label:has([name="finalValue"]),
+.deal-outcome-form:has(select[name="dealModel"] option[value="PARTNERSHIP"]:checked) label:has([name="currency"]),
+.deal-outcome-form:has(select[name="dealModel"] option[value="PARTNERSHIP"]:checked) label:has([name="serviceType"]),
+.deal-outcome-form:has(select[name="dealModel"] option[value="PARTNERSHIP"]:checked) label:has([name="commercialModel"]),
+.deal-outcome-form:has(select[name="dealModel"] option[value="PARTNERSHIP"]:checked) label:has([name="paymentTerms"]),
+.deal-outcome-form:has(select[name="dealModel"] option[value="PARTNERSHIP"]:checked) label:has([name="billingSchedule"]),
+.deal-outcome-form:has(select[name="dealModel"] option[value="PARTNERSHIP"]:checked) label:has([name="campaignCost"]),
+.deal-outcome-form:has(select[name="dealModel"] option[value="PARTNERSHIP"]:checked) label:has([name="creatorCost"]),
+.deal-outcome-form:has(select[name="dealModel"] option[value="PARTNERSHIP"]:checked) label:has([name="otherCost"]),
+.deal-outcome-form:has(select[name="dealModel"] option[value="PARTNERSHIP"]:checked) label:has([name="referralPartnerId"]),
+.deal-outcome-form:has(select[name="dealModel"] option[value="PARTNERSHIP"]:checked) label:has([name="referralPercentage"]) {
   display: none !important;
 }
 
