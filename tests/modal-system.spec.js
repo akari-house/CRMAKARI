@@ -28,6 +28,11 @@ function responseFor(url) {
 }
 
 async function openLeadModal(page) {
+  const menu = page.locator('.mobile-menu');
+  if (await menu.isVisible()) {
+    await menu.click();
+    await expect(page.locator('#sidebar')).toHaveClass(/open/);
+  }
   await page.locator('.sidebar [data-route="leads"]').click();
   await expect(page.getByRole('heading', { name:'AKARI Leads' })).toBeVisible();
   await page.getByRole('button', { name:/New lead/i }).click();
