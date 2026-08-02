@@ -1,7 +1,7 @@
 (()=>{'use strict';
 const state={payload:null,view:'board',scope:'mine',month:new Date(new Date().getFullYear(),new Date().getMonth(),1),project:'',owner:'',workstream:'',loading:false,renderKey:''};
 const $=(selector,root=document)=>root.querySelector(selector);const $$=(selector,root=document)=>[...root.querySelectorAll(selector)];
-const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#039;'}[char]));
+const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]));
 const title=value=>String(value||'').toLowerCase().split('_').map(part=>part?part[0].toUpperCase()+part.slice(1):'').join(' ');
 const isPage=name=>$('#view-root .page-head h1')?.textContent?.trim()===name;
 const today=()=>new Date().toISOString().slice(0,10);

@@ -13,7 +13,7 @@ const workPayload = {
       ownerName: 'Maya Marketing',
       status: 'TODO',
       priority: 'HIGH',
-      dueAt: '2030-08-05T14:00:00.000Z',
+      dueAt: '2026-08-05T14:00:00.000Z',
       projectId: 'prj_1',
       projectName: 'Project Alpha',
       opportunityId: 'opp_won',
@@ -33,7 +33,7 @@ const workPayload = {
       ownerName: 'Dina Design',
       status: 'IN_PROGRESS',
       priority: 'HIGH',
-      dueAt: '2030-08-06T16:00:00.000Z',
+      dueAt: '2026-08-06T16:00:00.000Z',
       projectId: 'prj_1',
       projectName: 'Project Alpha',
       opportunityId: 'opp_won',
@@ -55,11 +55,11 @@ const workPayload = {
   opportunities: [{ id: 'opp_won', projectId: 'prj_1', name: 'Strategic partnership', projectName: 'Project Alpha', stage: 'WON', ownerUserId: 'usr_owner' }],
   campaigns: [{ id: 'eng_1', projectId: 'prj_1', opportunityId: 'opp_won', name: 'Partnership activation', projectName: 'Project Alpha', status: 'ONBOARDING', ownerUserId: 'usr_owner' }],
   calendarEvents: [
-    { id: 'TASK:tsk_work_1', sourceId: 'tsk_work_1', type: 'TASK', title: 'Draft partnership quote', startsAt: '2030-08-05T14:00:00.000Z', date: '2030-08-05', projectId: 'prj_1', projectName: 'Project Alpha', relation: 'Strategic partnership', status: 'TODO', priority: 'HIGH', workstream: 'CONTENT', readOnly: false },
-    { id: 'INVESTOR_FOLLOW_UP:inv_1', sourceId: 'inv_1', type: 'INVESTOR_FOLLOW_UP', title: 'Investor follow-up: Horizon Ventures', startsAt: '2030-08-07T10:00:00.000Z', date: '2030-08-07', projectId: 'prj_1', projectName: 'Project Alpha', relation: 'Seed round', workstream: 'FUNDRAISING', readOnly: true },
+    { id: 'TASK:tsk_work_1', sourceId: 'tsk_work_1', type: 'TASK', title: 'Draft partnership quote', startsAt: '2026-08-05T14:00:00.000Z', date: '2026-08-05', projectId: 'prj_1', projectName: 'Project Alpha', relation: 'Strategic partnership', status: 'TODO', priority: 'HIGH', workstream: 'CONTENT', readOnly: false },
+    { id: 'INVESTOR_FOLLOW_UP:inv_1', sourceId: 'inv_1', type: 'INVESTOR_FOLLOW_UP', title: 'Investor follow-up: Horizon Ventures', startsAt: '2026-08-07T10:00:00.000Z', date: '2026-08-07', projectId: 'prj_1', projectName: 'Project Alpha', relation: 'Seed round', workstream: 'FUNDRAISING', readOnly: true },
   ],
   partnershipCandidates: [{ opportunityId: 'opp_won', opportunityName: 'Strategic partnership', projectId: 'prj_1', projectName: 'Project Alpha', campaignId: 'eng_1', campaignName: 'Partnership activation', ownerUserId: 'usr_owner' }],
-  fundraisingPlans: [{ id: 'room_1', projectId: 'prj_1', projectName: 'Project Alpha', roundName: 'Seed round', stage: 'OPEN', targetCloseDate: '2030-09-30' }],
+  fundraisingPlans: [{ id: 'room_1', projectId: 'prj_1', projectName: 'Project Alpha', roundName: 'Seed round', stage: 'OPEN', targetCloseDate: '2026-09-30' }],
   permissions: { canWrite: true, canManage: true, canFinance: true },
 };
 
