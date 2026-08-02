@@ -38,7 +38,7 @@
     dialog.classList.toggle('ak-modal--wide', explicitWide || controls.length >= 8);
 
     const heading = dialog.querySelector('h1, h2, h3');
-    if (heading && !dialog.hasAttribute('aria-labelledby')) {
+    if (heading && !dialog.hasAttribute('aria-labelledby') && !dialog.hasAttribute('aria-label')) {
       if (!heading.id) heading.id = `ak-modal-title-${crypto.randomUUID().slice(0, 8)}`;
       dialog.setAttribute('aria-labelledby', heading.id);
     }
