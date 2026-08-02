@@ -47,6 +47,10 @@ test('legacy home alias resolves to the canonical Dashboard URL and navigation i
   await expect(publicWebsite).not.toContainText(/^Home$/);
   await expect(publicWebsite).toHaveAttribute('href', '/');
   await expect(publicWebsite).toHaveAttribute('aria-label', 'Open the public CRM by AKARI website');
+
+  const brand = page.locator('.sidebar img.brand-lockup');
+  await expect(brand).toHaveAttribute('src', '/assets/brand/akari-crm-lockup.png');
+  await expect.poll(async () => brand.evaluate((image) => image.complete && image.naturalWidth > 0)).toBeTruthy();
 });
 
 test('Dashboard and Tasks keep clear protected URLs', async ({ page }) => {
