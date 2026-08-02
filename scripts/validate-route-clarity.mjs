@@ -9,7 +9,7 @@ for (const token of ["route==='home'?'dashboard'", "normalizeRoute(route)", "/${
   if (!router.includes(token)) throw new Error(`Tenant router missing ${token}`);
 }
 if (router.includes("route==='dashboard'?'home':route")) throw new Error('Dashboard still canonicalizes to /home');
-for (const token of ['Public Website', 'Open the public CRM by AKARI website', "[data-route=\"day\"] span"]) {
+for (const token of ['Public Website', 'Open the public CRM by AKARI website', "[data-route=\"day\"] span", 'img.brand-lockup', "replace('./assets/', '/assets/')"]) {
   if (!labels.includes(token)) throw new Error(`Route clarity runtime missing ${token}`);
 }
 for (const token of ['/assets/tenant-routing-r6.js?v=3', '/assets/route-clarity-r10.js?v=1']) {
