@@ -1,0 +1,105 @@
+/* Canonical My Day runtime: the legacy task board must never render alongside Work OS. */
+#view-root .task-board-panel,
+#view-root .my-day-support {
+  display: none !important;
+}
+
+.work-os-loading {
+  min-height: 320px;
+  display: grid;
+  place-items: center;
+}
+
+.work-os-loading-card {
+  width: min(520px, 100%);
+  display: grid;
+  gap: 8px;
+  padding: 28px;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 18px;
+  background: rgba(8,11,16,.9);
+  text-align: center;
+}
+
+.work-os-loading-card span {
+  color: #ffad62;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .14em;
+}
+
+.work-os-loading-card strong {
+  color: #f6f7fa;
+  font-size: 20px;
+}
+
+.work-os-loading-card p {
+  margin: 0;
+  color: #7f8a9b;
+}
+
+.work-card {
+  cursor: grab;
+  will-change: transform, opacity;
+}
+
+.work-card:active,
+.work-card.is-dragging {
+  cursor: grabbing;
+}
+
+.work-card__drag {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #697487;
+  padding: 4px 6px;
+  line-height: 1;
+  cursor: grab;
+  touch-action: none;
+}
+
+.work-card__drag:hover,
+.work-card__drag:focus-visible {
+  background: #1a2230;
+  color: #fff;
+  outline: none;
+}
+
+.work-card.is-dragging,
+.work-event.is-dragging {
+  opacity: .38;
+  transform: rotate(1deg) scale(.985);
+}
+
+.work-column.is-drop-target,
+.work-column__body.is-drop-target {
+  border-color: rgba(255,156,69,.7) !important;
+  background: rgba(255,156,69,.08) !important;
+  box-shadow: inset 0 0 0 2px rgba(255,156,69,.18);
+}
+
+.work-day.is-drop-target {
+  background: rgba(255,156,69,.12) !important;
+  box-shadow: inset 0 0 0 2px rgba(255,156,69,.55) !important;
+}
+
+body.work-is-dragging .work-column__body,
+body.work-is-dragging .work-day {
+  transition: background .14s ease, border-color .14s ease, box-shadow .14s ease;
+}
+
+@media (pointer: coarse) {
+  .work-card__drag {
+    padding: 8px;
+    font-size: 18px;
+  }
+
+  .work-card {
+    cursor: default;
+  }
+}
