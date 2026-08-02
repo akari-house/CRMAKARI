@@ -1,0 +1,18 @@
+:where(#modal-root,#commercial-modal-root,#work-os-modal-root) select {
+  color-scheme: dark !important;
+}
+
+:where(#modal-root,#commercial-modal-root,#work-os-modal-root) select option,
+:where(#modal-root,#commercial-modal-root,#work-os-modal-root) select optgroup {
+  background-color: #0d121a !important;
+  color: #f7f8fb !important;
+}
+
+:where(#modal-root,#commercial-modal-root,#work-os-modal-root) select option:disabled {
+  color: #7f8998 !important;
+}
+
+:where(#modal-root,#commercial-modal-root,#work-os-modal-root) select option:checked {
+  background: #263142 linear-gradient(0deg, #263142 0%, #263142 100%) !important;
+  color: #ffffff !important;
+}
