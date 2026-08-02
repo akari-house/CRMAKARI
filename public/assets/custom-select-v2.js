@@ -1,6 +1,7 @@
 (() => {
   const ROOT_SELECTOR = '#modal-root,#commercial-modal-root,#work-os-modal-root';
   const ENHANCED = 'akSelectEnhanced';
+  const controls = new Set();
   let openControl = null;
   let serial = 0;
 
@@ -19,11 +20,20 @@
     control.menu.hidden = true;
     control.wrapper.classList.remove('is-open');
     if (openControl === control) openControl = null;
-    if (restoreFocus) control.button.focus({ preventScroll: true });
+    if (restoreFocus && control.button.isConnected) control.button.focus({ preventScroll: true });
   }
 
   function closeAll(except = null) {
     if (openControl && openControl !== except) close(openControl);
+  }
+
+  function cleanupDisconnected() {
+    controls.forEach((control) => {
+      if (control.select.isConnected) return;
+      close(control);
+      control.menu.remove();
+      controls.delete(control);
+    });
   }
 
   function positionMenu(control) {
@@ -193,7 +203,7 @@
   }
 
   function enhance(select) {
-    if (!(select instanceof HTMLSelectElement) || select.dataset[ENHANCED] || select.multiple || Number(select.size) > 1 || select.dataset.nativeSelect === 'true') return;
+    if (!(select instanceof HTMLSelectElement) || !select.closest(ROOT_SELECTOR) || select.dataset[ENHANCED] || select.multiple || Number(select.size) > 1 || select.dataset.nativeSelect === 'true') return;
     select.dataset[ENHANCED] = 'true';
     const id = `ak-select-${++serial}`;
     const wrapper = document.createElement('div');
@@ -204,6 +214,8 @@
     button.setAttribute('aria-haspopup', 'listbox');
     button.setAttribute('aria-expanded', 'false');
     button.setAttribute('aria-controls', `${id}-menu`);
+    const accessibleLabel = select.getAttribute('aria-label') || select.labels?.[0]?.textContent?.trim() || select.name || 'Select option';
+    button.setAttribute('aria-label', accessibleLabel);
     const label = document.createElement('span');
     label.className = 'ak-select__value';
     const chevron = document.createElement('i');
@@ -214,6 +226,7 @@
     menu.id = `${id}-menu`;
     menu.className = 'ak-select__menu';
     menu.setAttribute('role', 'listbox');
+    menu.setAttribute('aria-label', accessibleLabel);
     menu.hidden = true;
     document.body.appendChild(menu);
 
@@ -224,6 +237,7 @@
     select.setAttribute('aria-hidden', 'true');
 
     const control = { select, wrapper, button, label, menu, open: false };
+    controls.add(control);
     wrapper._akSelectControl = control;
     button.addEventListener('click', () => control.open ? close(control) : open(control));
     button.addEventListener('keydown', (event) => onButtonKeydown(event, control));
@@ -231,11 +245,6 @@
     select.addEventListener('change', () => sync(control));
     select.form?.addEventListener('reset', () => setTimeout(() => sync(control)));
     new MutationObserver(() => {
-      if (!select.isConnected) {
-        close(control);
-        menu.remove();
-        return;
-      }
       buildMenu(control);
       sync(control);
     }).observe(select, { childList: true, subtree: true, attributes: true, attributeFilter: ['disabled', 'selected', 'label', 'hidden'] });
@@ -244,8 +253,8 @@
   }
 
   function scan(root = document) {
-    root.querySelectorAll?.(`${ROOT_SELECTOR} select`).forEach(enhance);
-    if (root.matches?.(`${ROOT_SELECTOR} select`)) enhance(root);
+    if (root instanceof HTMLSelectElement) enhance(root);
+    root.querySelectorAll?.('select').forEach(enhance);
   }
 
   document.addEventListener('pointerdown', (event) => {
@@ -259,9 +268,12 @@
   window.addEventListener('resize', () => openControl && positionMenu(openControl), { passive: true });
   window.addEventListener('scroll', () => openControl && positionMenu(openControl), { passive: true, capture: true });
 
-  const observer = new MutationObserver((records) => records.forEach((record) => record.addedNodes.forEach((node) => {
-    if (node.nodeType === Node.ELEMENT_NODE) scan(node);
-  })));
+  const observer = new MutationObserver((records) => {
+    records.forEach((record) => record.addedNodes.forEach((node) => {
+      if (node.nodeType === Node.ELEMENT_NODE) scan(node);
+    }));
+    cleanupDisconnected();
+  });
 
   function start() {
     scan(document);
