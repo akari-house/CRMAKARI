@@ -137,7 +137,7 @@ test('Work OS provides fast creation, editable relations and four execution view
 
 test('partnership and fundraising workflow starters create governed linked plans', async ({ page }) => {
   await page.getByRole('button', { name: 'Create announcement plan' }).click();
-  await expect(page.getByRole('heading', { name: 'Project Alpha' })).toBeVisible();
+  await expect(page.locator('#work-os-modal-root').getByRole('heading', { name: 'Project Alpha' })).toBeVisible();
   const partnership = page.locator('#work-partnership-form');
   await partnership.locator('select[name="relationshipOwnerId"]').selectOption('usr_owner');
   await partnership.locator('select[name="marketingOwnerId"]').selectOption('usr_marketing');
@@ -146,7 +146,7 @@ test('partnership and fundraising workflow starters create governed linked plans
   await expect.poll(() => actions.some((action) => action.action === 'start-partnership-activation' && action.opportunityId === 'opp_won')).toBeTruthy();
 
   await page.getByRole('button', { name: 'Create raise work plan' }).click();
-  await expect(page.getByRole('heading', { name: 'Project Alpha' })).toBeVisible();
+  await expect(page.locator('#work-os-modal-root').getByRole('heading', { name: 'Project Alpha' })).toBeVisible();
   const fundraising = page.locator('#work-fundraising-form');
   await fundraising.locator('select[name="fundraisingOwnerId"]').selectOption('usr_owner');
   await fundraising.locator('select[name="contentOwnerId"]').selectOption('usr_marketing');
