@@ -4,9 +4,16 @@ export async function onRequestGet(context){
   const url=new URL(context.request.url);
   const parts=url.pathname.split('/').filter(Boolean);
   const requestedSlug=String(parts[1]||'').toLowerCase();
-  if(!requestedSlug||requestedSlug!==String(auth.tenantSlug||'').toLowerCase()){
+
+  if(!requestedSlug){
+    const entryUrl=new URL('/enter-crm',url.origin);
+    return Response.redirect(entryUrl.toString(),302);
+  }
+
+  if(requestedSlug!==String(auth.tenantSlug||'').toLowerCase()){
     return new Response('You do not have access to this CRM workspace',{status:403});
   }
+
   const shellUrl=new URL('/app/index.html',url.origin);
   const response=await context.env.ASSETS.fetch(new Request(shellUrl.toString(),context.request));
   const headers=new Headers(response.headers);
