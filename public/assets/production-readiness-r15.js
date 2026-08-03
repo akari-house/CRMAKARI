@@ -216,13 +216,15 @@
     if (!isSettingsRoute()) return;
     const view = document.querySelector('#view-root');
     if (!view || !view.querySelector('h1, h2')) return;
-    let root = document.querySelector('#production-readiness-root');
+    let root = view.querySelector('#production-readiness-root');
     if (!root) {
       root = document.createElement('div');
       root.id = 'production-readiness-root';
       root.dataset.akariProductionReadiness = 'r15';
       view.appendChild(root);
     }
+    if (root.dataset.pr15Mounted === 'true') return;
+    root.dataset.pr15Mounted = 'true';
     load(root);
   }
 
