@@ -54,7 +54,7 @@ test('new lead opportunity remains visible after save and reload', async ({ page
         next_follow_up_at: body.nextFollowUpAt || null,
         owner_name: 'Muaz Test',
       });
-      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ item: records.at(-1) }) });
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 'opportunity_new', created: true }) });
       return;
     }
 
@@ -66,7 +66,7 @@ test('new lead opportunity remains visible after save and reload', async ({ page
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [], total: 0 }) });
   });
 
-  await page.goto('/app/akari-house/opportunities');
+  await page.goto('http://127.0.0.1:4173/app/akari-house/opportunities');
   await expect(page.getByRole('heading', { name: 'Opportunity Pipeline' })).toBeVisible();
   await page.getByRole('button', { name: 'New opportunity' }).click();
   await expect(page.getByRole('dialog').getByRole('heading', { name: 'New opportunity' })).toBeVisible();
