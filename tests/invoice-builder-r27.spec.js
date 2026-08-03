@@ -85,13 +85,7 @@ async function bootFinance(page, captures = []) {
   });
   await page.goto('http://127.0.0.1:4173/app/akari-house/home');
   await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening), Muaz/i })).toBeVisible();
-
-  const mobile = await page.evaluate(() => window.innerWidth <= 760);
-  if (mobile) {
-    await page.goto('http://127.0.0.1:4173/app/akari-house/finance');
-  } else {
-    await page.locator('.sidebar [data-route="finance"]').click();
-  }
+  await page.locator('.sidebar [data-route="finance"]').click();
   await expect(page.getByRole('heading', { name: 'Invoices & Finance' })).toBeVisible();
 }
 
@@ -184,8 +178,8 @@ test('invoice builder keeps labels separated and calculates exclusive inclusive 
 });
 
 test('invoice builder keeps its header footer and tax controls usable on mobile', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
   await bootFinance(page);
+  await page.setViewportSize({ width: 390, height: 844 });
   await openInvoice(page);
 
   const layout = await page.evaluate(() => {
