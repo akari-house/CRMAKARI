@@ -5,6 +5,7 @@
 #modal-root .ops-billing-profile-modal {
   display: grid !important;
   grid-template-rows: minmax(0, 1fr) !important;
+  overflow: hidden !important;
 }
 
 #modal-root .ops-billing-profile-modal > form {
@@ -27,14 +28,14 @@
   scrollbar-gutter: stable;
 }
 
-/* The original Operations forms use `.field`, while the shared modal system
-   previously covered only newer field wrapper names. */
-#modal-root .ak-modal-standard .field {
+/* The live CRM uses `.form-group`; older acceptance fixtures used `.field`.
+   Keep both supported so labels always sit above controls instead of overlapping them. */
+#modal-root .ak-modal-standard :is(.field, .form-group) {
   min-width: 0 !important;
   display: grid !important;
   grid-template-rows: auto auto !important;
   align-content: start !important;
-  gap: 8px !important;
+  gap: 7px !important;
   margin: 0 !important;
   padding: 0 !important;
   position: relative !important;
@@ -44,73 +45,97 @@
   box-shadow: none !important;
 }
 
-#modal-root .ak-modal-standard .field.full {
+#modal-root .ak-modal-standard :is(.field.full, .form-group.full) {
   grid-column: 1 / -1 !important;
 }
 
-#modal-root .ak-modal-standard .field > span {
+#modal-root .ak-modal-standard :is(.field > span, .form-group > label) {
   position: static !important;
   inset: auto !important;
   transform: none !important;
   display: block !important;
   width: auto !important;
-  min-height: 0 !important;
+  min-height: 17px !important;
   margin: 0 !important;
-  padding: 0 !important;
+  padding: 0 1px !important;
   border: 0 !important;
   border-radius: 0 !important;
   background: transparent !important;
-  color: #b8c0cd !important;
+  color: #c0c7d2 !important;
   font-size: 12px !important;
-  font-weight: 700 !important;
-  line-height: 1.35 !important;
+  font-weight: 720 !important;
+  line-height: 1.4 !important;
   letter-spacing: .01em !important;
   white-space: normal !important;
+  pointer-events: none !important;
 }
 
-#modal-root .ak-modal-standard .field :is(input, select, textarea) {
+#modal-root .ak-modal-standard :is(.field, .form-group) :is(input, select, textarea) {
   position: static !important;
   inset: auto !important;
   transform: none !important;
   width: 100% !important;
   min-width: 0 !important;
-  min-height: 48px !important;
+  min-height: 46px !important;
   margin: 0 !important;
-  padding: 12px 14px !important;
-  border: 1px solid #313a48 !important;
-  border-radius: 11px !important;
-  background: #080d14 !important;
+  padding: 11px 13px !important;
+  border: 1px solid #303946 !important;
+  border-radius: 10px !important;
+  background: #090e15 !important;
   color: #f7f8fb !important;
   font: inherit !important;
   font-size: 14px !important;
   line-height: 1.35 !important;
-  box-shadow: none !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.015) !important;
   outline: none !important;
 }
 
-#modal-root .ak-modal-standard .field :is(input, select, textarea):focus {
-  border-color: #f4d35e !important;
-  box-shadow: 0 0 0 3px rgba(244, 211, 94, .13) !important;
+#modal-root .ak-modal-standard :is(.field, .form-group) :is(input, select, textarea)::placeholder {
+  color: #667181 !important;
 }
 
-#modal-root .ak-modal-standard .field textarea {
-  min-height: 116px !important;
+#modal-root .ak-modal-standard :is(.field, .form-group) :is(input, select, textarea):hover {
+  border-color: #3b4655 !important;
+}
+
+#modal-root .ak-modal-standard :is(.field, .form-group) :is(input, select, textarea):focus {
+  border-color: #f4bd42 !important;
+  box-shadow: 0 0 0 3px rgba(244, 189, 66, .12) !important;
+}
+
+#modal-root .ak-modal-standard :is(.field, .form-group) textarea {
+  min-height: 108px !important;
   resize: vertical !important;
 }
 
 /* Billing profile */
 #modal-root .ops-billing-profile-modal {
-  width: min(1120px, calc(100vw - 64px)) !important;
-  height: min(840px, calc(100dvh - 64px)) !important;
-  max-height: calc(100dvh - 64px) !important;
+  width: min(1040px, calc(100vw - 72px)) !important;
+  height: min(780px, calc(100dvh - 72px)) !important;
+  max-height: calc(100dvh - 72px) !important;
+  border-color: rgba(255,255,255,.12) !important;
+  box-shadow: 0 28px 90px rgba(0,0,0,.55) !important;
 }
 
 #modal-root .ops-billing-profile-modal .modal-head {
   position: relative;
   z-index: 3;
-  min-height: 92px !important;
-  padding: 24px 30px 20px !important;
-  background: linear-gradient(180deg, #151b25 0%, #0d121a 100%) !important;
+  min-height: 88px !important;
+  padding: 22px 28px 18px !important;
+  background: linear-gradient(180deg, #151b24 0%, #10161f 100%) !important;
+  border-bottom: 1px solid rgba(255,255,255,.08) !important;
+}
+
+#modal-root .ops-billing-profile-modal .modal-head h2 {
+  font-size: clamp(20px, 2vw, 25px) !important;
+  line-height: 1.15 !important;
+}
+
+#modal-root .ops-billing-profile-modal .modal-head p {
+  margin-top: 7px !important;
+  max-width: 720px;
+  color: #a3adbb !important;
+  line-height: 1.45 !important;
 }
 
 #modal-root .ops-billing-profile-modal .modal-head .eyebrow {
@@ -121,28 +146,42 @@
   letter-spacing: .14em;
 }
 
+#modal-root .ops-billing-profile-modal .modal-head .close {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 11px !important;
+}
+
 #modal-root .ops-billing-profile-modal .modal-body {
-  padding: 24px 28px 30px !important;
-  background: #0b1017;
+  padding: 20px 24px 26px !important;
+  background: #0a0f16;
 }
 
 #modal-root .ops-billing-profile-modal .modal-foot {
-  min-height: 72px;
-  padding: 15px 28px !important;
-  background: #090e15 !important;
+  min-height: 68px;
+  padding: 13px 24px !important;
+  gap: 10px !important;
+  background: rgba(8,13,20,.98) !important;
+  border-top: 1px solid rgba(255,255,255,.08) !important;
+  box-shadow: 0 -10px 28px rgba(0,0,0,.18) !important;
+}
+
+#modal-root .ops-billing-profile-modal .modal-foot .btn {
+  min-height: 44px !important;
+  padding-inline: 18px !important;
 }
 
 .ops-billing-sections {
   display: grid;
-  gap: 18px;
+  gap: 14px;
 }
 
 .ops-billing-section {
   min-width: 0;
-  padding: 20px;
-  border: 1px solid rgba(255, 255, 255, .085);
-  border-radius: 16px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, .025), rgba(255, 255, 255, .012));
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, .075);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .018);
 }
 
 .ops-billing-section > header {
@@ -150,9 +189,9 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 18px;
-  margin-bottom: 17px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, .07);
+  margin-bottom: 15px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, .06);
 }
 
 .ops-billing-section > header strong {
@@ -165,24 +204,27 @@
 
 .ops-billing-section > header span {
   display: block;
-  max-width: 650px;
+  max-width: 680px;
   color: #8f99a8;
   font-size: 11px;
-  line-height: 1.5;
+  line-height: 1.45;
 }
 
 .ops-billing-section__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px 20px;
+  gap: 15px 18px;
   align-items: start;
 }
 
-.ops-billing-section--payment .ops-billing-section__grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.ops-billing-section__grid > :is(.field, .form-group):has([name="logoUrl"]),
+.ops-billing-section__grid > :is(.field, .form-group):has([name="addressLine1"]),
+.ops-billing-section__grid > :is(.field, .form-group):has([name="addressLine2"]),
+.ops-billing-section__grid > :is(.field, .form-group):has([name="paymentInstructions"]) {
+  grid-column: 1 / -1 !important;
 }
 
-.ops-billing-section--defaults .field:last-child {
+.ops-billing-section--defaults :is(.field, .form-group):last-child {
   grid-column: 1 / -1 !important;
 }
 
@@ -198,6 +240,7 @@
     width: 100vw !important;
     height: 100dvh !important;
     max-height: 100dvh !important;
+    border-radius: 0 !important;
   }
 
   #modal-root .ops-billing-profile-modal .modal-head {
@@ -206,25 +249,29 @@
   }
 
   #modal-root .ops-billing-profile-modal .modal-body {
-    padding: 18px !important;
+    padding: 14px !important;
+  }
+
+  #modal-root .ops-billing-profile-modal .modal-foot {
+    padding: 12px 14px calc(12px + env(safe-area-inset-bottom)) !important;
   }
 
   .ops-billing-section {
-    padding: 16px;
-    border-radius: 13px;
+    padding: 15px;
+    border-radius: 12px;
   }
 
   .ops-billing-section__grid {
     grid-template-columns: 1fr !important;
-    gap: 16px;
+    gap: 14px;
   }
 
-  .ops-billing-section .field.full,
-  .ops-billing-section--defaults .field:last-child {
+  .ops-billing-section :is(.field.full, .form-group.full),
+  .ops-billing-section--defaults :is(.field, .form-group):last-child {
     grid-column: auto !important;
   }
 
-  #modal-root .ak-modal-standard .field :is(input, select, textarea) {
+  #modal-root .ak-modal-standard :is(.field, .form-group) :is(input, select, textarea) {
     min-height: 50px !important;
     font-size: 16px !important;
   }
