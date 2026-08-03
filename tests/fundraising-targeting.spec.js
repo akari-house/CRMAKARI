@@ -103,7 +103,7 @@ test('targeting board separates expected cheques from published evidence and sur
   const workspace = page.getByLabel('Investor target workspace');
   await expect(workspace.getByRole('heading',{name:'North Star Ventures'})).toBeVisible();
   await expect(workspace.getByText('$100,000 – $1,000,000')).toBeVisible();
-  await expect(workspace.getByText('Private expected cheques', { exact:false })).toBeVisible();
+  await expect(workspace.getByText("Expected cheque is AKARI's private planning value", { exact:false })).toBeVisible();
   await expect(workspace.getByText('Granted',{exact:true})).toBeVisible();
 });
 
