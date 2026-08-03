@@ -185,6 +185,29 @@ AI must never directly:
 
 Audit records retain provider, model, purpose, disclosure policy, fallback usage, provider request reference and hashes of the input/output. Raw prompts and generated text are not copied into the general audit log.
 
+### 3.9 Investor Universe governance
+
+The Investor Universe is the canonical research layer for investor organisations and people. It does not automatically merge records or treat a similar name as proof of identity.
+
+Duplicate candidates are generated from:
+
+- exact normalized organisation names
+- matching website domains
+- high name-token similarity
+
+Every candidate remains `REVIEW_REQUIRED`. A future merge operation must be Owner/Admin controlled, show all dependent people, contact identities, claims, portfolio evidence and round targets, and preserve a reversible audit trail.
+
+Private contact methods remain masked in general list views. Contact values are excluded from general audit payloads and represented as redacted values.
+
+Evidence and conflict decisions follow controlled review states:
+
+```text
+ASSERTED → VERIFIED / STALE / DISPUTED
+UNKNOWN → NONE / POSSIBLE / CONFIRMED
+```
+
+A final conflict decision requires a written review note. Source review records confidence and redistribution status separately.
+
 ## 4. Normalized D1 model
 
 Migration `0002_fundraising_intelligence.sql` introduces tenant-scoped tables:
@@ -262,6 +285,30 @@ Finance-sensitive commitments, allocation, funds received and closing continue t
 - records metadata and content hashes in the audit log
 - does not mutate fundraising or CRM records
 
+### 6.3 Investor Universe
+
+`GET /api/fundraising/universe` returns one tenant-scoped operational view containing:
+
+- canonical investor organisations
+- investor people and contact identities
+- evidence sources and claims
+- portfolio evidence
+- round targets and explainable fit output
+- evidence, rights and portfolio-conflict review queues
+- non-destructive duplicate candidates
+
+When migration 0002 is unavailable, the endpoint projects existing Capital Room investors into a read-only compatibility view. This preserves production visibility while normalized writes remain disabled.
+
+`POST /api/fundraising/universe` is restricted to Owner, Admin and BD Manager for normal records and supports:
+
+- investor organisation create/update
+- investor person create/update
+- contact method create/update
+- evidence source and claim create/update
+- portfolio evidence create/update
+
+Source review, claim review and portfolio-conflict decisions require Owner or Admin. The API does not expose an automated merge action.
+
 ## 7. Audit and security
 
 Every mutation must record:
@@ -279,6 +326,8 @@ Required security invariants:
 - active membership validation for assigned owners
 - project/contact/entity references validated inside the same tenant
 - no cross-tenant canonical-person or investor merges
+- no automatic investor merge based on name or domain similarity
+- private investor contact values redacted from general audit payloads
 - no raw provider credentials in D1
 - no investor research dataset committed to this public repository
 - no automatic redistribution of third-party investor facts
@@ -313,11 +362,15 @@ AKARI stores source-specific rights and redistribution status for each investor 
 
 ### Release 6.2B — Investor Universe
 
+Implementation status: deployed code; normalized writes remain gated by production migration 0002.
+
 - investor organisation and person interface
+- canonical contact identities with private-value masking
 - evidence ledger
 - source-review queue
 - portfolio evidence and conflict review
-- duplicate detection and merge review
+- duplicate detection and merge review without automatic merging
+- read-only Capital Room compatibility mode
 
 ### Release 6.2C — Targeting and introductions
 
