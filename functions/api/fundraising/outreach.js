@@ -397,7 +397,7 @@ async function saveMeeting(db,auth,tenantId,body) {
   const ownerUserId = cleanText(body.ownerUserId ?? existing?.ownerUserId,120) || auth.userId;
   if (!(await activeMember(db,tenantId,ownerUserId))) throw statusError('Meeting owner must be an active workspace member');
   const meetingAt = validDate(body.meetingAt ?? existing?.meetingAt,'Meeting date',true);
-  const title = cleanText(body.title ?? existing?.title || `Investor meeting · ${target.investor_name}`,1000);
+  const title = cleanText((body.title ?? existing?.title) || `Investor meeting · ${target.investor_name}`,1000);
   const next = {
     id,
     projectId:target.project_id,
@@ -410,7 +410,7 @@ async function saveMeeting(db,auth,tenantId,body) {
     title,
     meetingAt,
     durationMinutes:Math.min(480,Math.max(15,Number(body.durationMinutes ?? existing?.durationMinutes ?? 30))),
-    timezone:cleanText(body.timezone ?? existing?.timezone || 'Europe/Berlin',100),
+    timezone:cleanText((body.timezone ?? existing?.timezone) || 'Europe/Berlin',100),
     meetingLink:cleanText(body.meetingLink ?? existing?.meetingLink,2000),
     agenda:cleanText(body.agenda ?? existing?.agenda,10000),
     brief:cleanText(body.brief ?? existing?.brief,20000),
