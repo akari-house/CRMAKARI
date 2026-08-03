@@ -69,7 +69,7 @@ test('outreach writes reject non-manager roles before database access',async()=>
 
 test('draft target resolution never accepts another tenant project',async()=>{
   const db=new FakeDB((method,call)=>{
-    const resolved=normalizedTargetResolver(method,call);if(resolved!==undefined)return resolved;
+    if(method==='all'&&/FROM fundraising_targets t/.test(call.sql))return[target];
     if(method==='first'&&/FROM projects WHERE tenant_id/.test(call.sql))return null;
     return null;
   });
