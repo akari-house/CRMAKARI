@@ -15,6 +15,9 @@ for (const token of ['.work-board', '.work-calendar', '.work-modal', '.work-auto
 for (const token of ['ensureCanonicalMyDay', 'task-board-panel', 'data-work-drag-handle', 'persistMove', "action: 'update-task'", 'pointerdown', 'ArrowRight', '/api/work-os-core', 'progressiveWorkFetch', 'scheduleFullHydration', "searchParams.set('full', '1')", 'Tasks are taking longer than expected']) if (!canonicalJs.includes(token)) throw new Error(`Canonical My Day runtime missing ${token}`);
 for (const token of ['#view-root .task-board-panel', '.work-card__drag', '.is-drop-target', '.work-os-loading-card', 'ak-work-spin']) if (!canonicalCss.includes(token)) throw new Error(`Canonical My Day CSS missing ${token}`);
 for (const token of ['/assets/work-os-v1.css?v=1', '/assets/work-os-v1.js?v=1', '/assets/my-day-canonical-r8.css?v=1', '/assets/my-day-canonical-r8.js?v=1']) if (!html.includes(token)) throw new Error(`Protected shell missing ${token}`);
-for (const token of ['akari-crm-shell-v40', './assets/my-day-canonical-r8.css?v=1', './assets/my-day-canonical-r8.js?v=1', 'runtime=v40']) if (!sw.includes(token)) throw new Error(`Service worker missing ${token}`);
+for (const token of ['./assets/my-day-canonical-r8.css?v=1', './assets/my-day-canonical-r8.js?v=1']) if (!sw.includes(token)) throw new Error(`Service worker missing ${token}`);
+const cacheVersion=sw.match(/const CACHE_NAME='akari-crm-shell-v(\d+)'/)?.[1];
+const runtimeVersions=[...sw.matchAll(/app\/index\.html\?runtime=v(\d+)/g)].map((match)=>match[1]);
+if(!cacheVersion||runtimeVersions.length<2||runtimeVersions.some((version)=>version!==cacheVersion))throw new Error('Service worker cache and runtime versions must match');
 for (const token of ['Partnership activation', 'Fundraising work plan', 'No production schema migration']) if (!docs.includes(token)) throw new Error(`Work OS documentation missing ${token}`);
 console.log('AKARI Work OS progressive loading validation passed');
