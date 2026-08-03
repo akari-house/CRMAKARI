@@ -44,9 +44,12 @@ for (const token of ['/assets/deal-outcomes-r11.css?v=1', '/assets/deal-outcomes
 }
 
 const worker = await readFile('public/sw.js', 'utf8');
-for (const token of ['akari-crm-shell-v40', 'app/index.html?runtime=v40', './assets/deal-outcomes-r11.css?v=1', './assets/deal-outcomes-r11.js?v=1']) {
+for (const token of ['./assets/deal-outcomes-r11.css?v=1', './assets/deal-outcomes-r11.js?v=1']) {
   if (!worker.includes(token)) throw new Error(`Service worker missing ${token}`);
 }
+const cacheVersion=worker.match(/const CACHE_NAME='akari-crm-shell-v(\d+)'/)?.[1];
+const runtimeVersions=[...worker.matchAll(/app\/index\.html\?runtime=v(\d+)/g)].map((match)=>match[1]);
+if(!cacheVersion||runtimeVersions.length<2||runtimeVersions.some((version)=>version!==cacheVersion))throw new Error('Service worker cache and runtime versions must match');
 
 const docs = await readFile('docs/DEAL_OUTCOMES_R11.md', 'utf8');
 for (const token of ['Strategic partnership', 'Paid service or campaign', 'Hybrid partnership and service', 'Optional social announcement activation', 'No production schema migration']) {
