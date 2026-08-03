@@ -116,7 +116,9 @@ test('desktop navigation and forms are clickable', async ({ page }) => {
 test('returning Dashboard after viewing Opportunities restores the rich dashboard', async ({ page }) => {
   await page.locator('.sidebar [data-route="opportunities"]').click();
   await expect(page.getByRole('heading', { name: 'Opportunity Pipeline' })).toBeVisible();
-  await expect(page.locator('#view-root .pipeline .stage')).toHaveCount(6);
+  await expect(page.locator('#view-root .pipeline .stage')).toHaveCount(8);
+  await expect(page.locator('[data-akari-early-stage="NEW"]')).toBeVisible();
+  await expect(page.locator('[data-akari-early-stage="RESEARCH"]')).toBeVisible();
   await expect(page.locator('#view-root .kanban')).toHaveCount(0);
 
   await page.locator('.sidebar [data-route="dashboard"]').click();
