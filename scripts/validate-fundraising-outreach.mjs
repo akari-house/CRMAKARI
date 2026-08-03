@@ -6,7 +6,7 @@ const files={
   css:await readFile('public/assets/fundraising-outreach-r20.css','utf8'),
   shell:await readFile('public/app/index.html','utf8'),
   worker:await readFile('public/sw.js','utf8'),
-  paper:await readFile('docs/BACKEND_TECHNICAL_PAPER.md','utf8'),
+  paper:await readFile('docs/FUNDRAISING_OUTREACH_R20.md','utf8'),
   tenantTest:await readFile('tests/fundraising-outreach-tenant-isolation.test.mjs','utf8'),
   browserTest:await readFile('tests/fundraising-outreach.spec.js','utf8'),
 };
@@ -56,7 +56,7 @@ for(const asset of ['/assets/fundraising-outreach-r20.css?v=1','/assets/fundrais
   if(!files.worker.includes(asset.replace('/assets/','./assets/')))throw new Error(`Service worker is missing ${asset}`);
 }
 
-for(const requirement of ['/api/fundraising/outreach','OpenAI/ChatGPT','Anthropic/Claude','exact-content approval','manual send','meeting brief','activity ledger','Release 6.2D'])if(!files.paper.toLowerCase().includes(requirement.toLowerCase()))throw new Error(`Backend technical paper is incomplete: missing ${requirement}`);
+for(const requirement of ['/api/fundraising/outreach','OpenAI/ChatGPT','Anthropic/Claude','exact-content approval','manual send','meeting brief','activity ledger','Release 6.2D'])if(!files.paper.toLowerCase().includes(requirement.toLowerCase()))throw new Error(`Fundraising outreach documentation is incomplete: missing ${requirement}`);
 
 for(const requirement of ['authenticated tenant','reject non-manager roles','another tenant project','resets exact-content approvals','redacts body','Owner/Admin controlled','require both approvals','blocked until a manual send','active member','requires notes outcome and next steps','block duplicate open work'])if(!files.tenantTest.includes(requirement))throw new Error(`Fundraising outreach tenant tests are incomplete: missing ${requirement}`);
 
