@@ -4,6 +4,7 @@ const files={
   domain:await readFile('functions/lib/fundraising-closing.js','utf8'),
   api:await readFile('functions/api/fundraising/closing.js','utf8'),
   ui:await readFile('public/assets/fundraising-closing-r5.js','utf8'),
+  stability:await readFile('public/assets/fundraising-closing-stability-r21.js','utf8'),
   css:await readFile('public/assets/fundraising-closing-r5.css','utf8'),
   shell:await readFile('public/app/index.html','utf8'),
   worker:await readFile('public/sw.js','utf8'),
@@ -56,9 +57,11 @@ for(const requirement of [
   'Record funds',
 ])if(!files.ui.includes(requirement))throw new Error(`Fundraising closing UI is incomplete: missing ${requirement}`);
 
+for(const requirement of ['__akariClosingStabilityInstalled','fundraising-closing-centre','__akariClosingLastHtml','Capital Room compatibility'])if(!files.stability.includes(requirement))throw new Error(`Fundraising closing stability guard is incomplete: missing ${requirement}`);
+
 for(const requirement of ['.fc-centre','.fc-rounds','.fc-tabs','.fc-checklist','.fc-blockers','.fc-ready','.fc-form','@media(max-width:760px)'])if(!files.css.includes(requirement))throw new Error(`Fundraising closing styling is incomplete: missing ${requirement}`);
 
-for(const asset of ['/assets/fundraising-closing-r5.css?v=38','/assets/fundraising-closing-r5.js?v=38']){
+for(const asset of ['/assets/fundraising-closing-r5.css?v=38','/assets/fundraising-closing-stability-r21.js?v=1','/assets/fundraising-closing-r5.js?v=38']){
   if(!files.shell.includes(asset))throw new Error(`Protected shell is missing ${asset}`);
   if(!files.worker.includes(asset.replace('/assets/','./assets/')))throw new Error(`Service worker is missing ${asset}`);
 }
