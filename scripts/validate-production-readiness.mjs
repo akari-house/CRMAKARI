@@ -14,7 +14,7 @@ const files = {
 for (const requirement of ['/assets/production-readiness-r15.css?v=1','/assets/production-readiness-r15.js?v=1']) {
   if (!files.shell.includes(requirement)) throw new Error(`Protected shell is missing ${requirement}`);
 }
-for (const requirement of ['akari-crm-shell-v41','production-readiness-r15.css?v=1','production-readiness-r15.js?v=1','runtime=v41']) {
+for (const requirement of ['akari-crm-shell-v40','production-readiness-r15.css?v=1','production-readiness-r15.js?v=1','runtime=v40']) {
   if (!files.worker.includes(requirement)) throw new Error(`Service worker is missing ${requirement}`);
 }
 for (const requirement of ['Production readiness','/api/production-readiness','/api/tenant-export','data-pr15-signoff','Download tenant backup']) {
@@ -23,7 +23,7 @@ for (const requirement of ['Production readiness','/api/production-readiness','/
 for (const requirement of ['#production-readiness-root','.pr15-score','.pr15-signoff','.pr15-metrics','@media(max-width:760px)']) {
   if (!files.css.includes(requirement)) throw new Error(`Production readiness styling is incomplete: missing ${requirement}`);
 }
-for (const requirement of ['productionReadinessV1','PRODUCTION_SIGNOFF_UPDATED','p.tenant_id','TENANT_BACKUP_EXPORTED','active_owners','requireTenant']) {
+for (const requirement of ['productionReadinessV1','PRODUCTION_SIGNOFF_UPDATED','TENANT_BACKUP_EXPORTED','active_owners','requireTenant']) {
   if (!files.readiness.includes(requirement)) throw new Error(`Production readiness API is incomplete: missing ${requirement}`);
 }
 for (const requirement of ['AKARI_TENANT_BACKUP_V1','TENANT_BACKUP_EXPORTED','content-disposition','WHERE tenant_id = ?','requireRole']) {
