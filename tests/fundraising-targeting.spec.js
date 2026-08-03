@@ -97,10 +97,10 @@ test('targeting board separates expected cheques from published evidence and sur
   await expect(page.getByText('North Star Ventures').first()).toBeVisible();
   await expect(page.getByText('$350,000').first()).toBeVisible();
   await expect(page.getByText('1 open tasks')).toBeVisible();
-  await expect(page.getByText('Overdue follow-ups')).toBeVisible();
-  await expect(page.getByText('Ready for introduction')).toBeVisible();
+  await expect(page.getByText('Overdue follow-ups').first()).toBeVisible();
+  await expect(page.getByText('Ready for introduction').first()).toBeVisible();
   await page.locator('[data-ft19-action="open-target"][data-id="target_a"]').first().click();
-  await expect(page.getByRole('heading',{name:'North Star Ventures'})).toBeVisible();
+  await expect(page.getByLabel('Investor target workspace').getByRole('heading',{name:'North Star Ventures'})).toBeVisible();
   await expect(page.getByText('$100,000 – $1,000,000')).toBeVisible();
   await expect(page.getByText('Private expected cheques', { exact:false })).toBeVisible();
   await expect(page.getByText('Granted')).toBeVisible();
@@ -179,7 +179,7 @@ test('targeting board and warm-path workspace avoid mobile page overflow',async 
   expect(overflow).toBeLessThanOrEqual(1);
   await expect(page.locator('[data-ft19-target="target_a"]')).toBeVisible();
   await page.locator('[data-ft19-action="open-target"][data-id="target_a"]').first().click();
-  await expect(page.getByRole('heading',{name:'North Star Ventures'})).toBeVisible();
+  await expect(page.getByLabel('Investor target workspace').getByRole('heading',{name:'North Star Ventures'})).toBeVisible();
   const modalOverflow=await page.evaluate(() => document.documentElement.scrollWidth-document.documentElement.clientWidth);
   expect(modalOverflow).toBeLessThanOrEqual(1);
 });
