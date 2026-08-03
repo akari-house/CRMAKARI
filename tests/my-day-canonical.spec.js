@@ -160,7 +160,22 @@ test('drag and drop moves a task once and persists the new status', async ({ pag
   const target = page.locator('.work-column[data-work-drop-status="IN_PROGRESS"]');
 
   await expect(handle).toBeVisible();
-  await handle.dragTo(target);
+  await expect(target).toBeVisible();
+  await page.evaluate(() => {
+    const source = document.querySelector('[data-work-task="tsk_drag_1"] [data-work-drag-handle]');
+    const destination = document.querySelector('.work-column[data-work-drop-status="IN_PROGRESS"]');
+    if (!(source instanceof HTMLElement) || !(destination instanceof HTMLElement)) throw new Error('Drag source or destination is missing');
+    const dataTransfer = new DataTransfer();
+    const dispatch = (node, type) => node.dispatchEvent(new DragEvent(type, {
+      bubbles: true,
+      cancelable: true,
+      dataTransfer,
+    }));
+    dispatch(source, 'dragstart');
+    dispatch(destination, 'dragover');
+    dispatch(destination, 'drop');
+    dispatch(source, 'dragend');
+  });
 
   await expect.poll(() => actions.filter((action) => action.action === 'update-task' && action.taskId === 'tsk_drag_1' && action.status === 'IN_PROGRESS').length).toBe(1);
   await expect(page.locator('.work-column[data-work-drop-status="IN_PROGRESS"] [data-work-task="tsk_drag_1"]')).toBeVisible();

@@ -14,8 +14,11 @@ for (const token of ['normalizeTaskNavigation', 'normalizeDialog', "controls.len
 for (const token of ['/assets/modal-system-r9.css?v=1', '/assets/modal-system-r9.js?v=1']) {
   if (!html.includes(token)) throw new Error(`Protected shell missing ${token}`);
 }
-for (const token of ['akari-crm-shell-v40', './assets/modal-system-r9.css?v=1', './assets/modal-system-r9.js?v=1', 'runtime=v40']) {
+for (const token of ['./assets/modal-system-r9.css?v=1', './assets/modal-system-r9.js?v=1']) {
   if (!sw.includes(token)) throw new Error(`Service worker missing ${token}`);
 }
+const cacheVersion=sw.match(/const CACHE_NAME='akari-crm-shell-v(\d+)'/)?.[1];
+const runtimeVersions=[...sw.matchAll(/app\/index\.html\?runtime=v(\d+)/g)].map((match)=>match[1]);
+if(!cacheVersion||runtimeVersions.length<2||runtimeVersions.some((version)=>version!==cacheVersion))throw new Error('Service worker cache and runtime versions must match');
 
 console.log('AKARI modal system, custom comboboxes and Tasks navigation validation passed');

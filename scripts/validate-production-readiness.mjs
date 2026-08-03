@@ -14,9 +14,12 @@ const files = {
 for (const requirement of ['/assets/production-readiness-r15.css?v=1','/assets/production-readiness-r15.js?v=1']) {
   if (!files.shell.includes(requirement)) throw new Error(`Protected shell is missing ${requirement}`);
 }
-for (const requirement of ['akari-crm-shell-v40','production-readiness-r15.css?v=1','production-readiness-r15.js?v=1','runtime=v40']) {
+for (const requirement of ['production-readiness-r15.css?v=1','production-readiness-r15.js?v=1']) {
   if (!files.worker.includes(requirement)) throw new Error(`Service worker is missing ${requirement}`);
 }
+const cacheVersion=files.worker.match(/const CACHE_NAME='akari-crm-shell-v(\d+)'/)?.[1];
+const runtimeVersions=[...files.worker.matchAll(/app\/index\.html\?runtime=v(\d+)/g)].map((match)=>match[1]);
+if(!cacheVersion||runtimeVersions.length<2||runtimeVersions.some((version)=>version!==cacheVersion))throw new Error('Service worker cache and runtime versions must match');
 for (const requirement of ['Production readiness','/api/production-readiness','/api/tenant-export','data-pr15-signoff','Download tenant backup']) {
   if (!files.ui.includes(requirement)) throw new Error(`Production readiness UI is incomplete: missing ${requirement}`);
 }
