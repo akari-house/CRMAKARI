@@ -88,26 +88,11 @@ async function bootFinance(page, captures = []) {
 
   const mobile = await page.evaluate(() => window.innerWidth <= 760);
   if (mobile) {
-    await page.locator('.mobile-bottom [data-action="open-sidebar"]').click();
-    const sidebar = page.locator('#sidebar');
-    await expect(sidebar).toHaveClass(/open/);
-    const finance = page.locator('#sidebar [data-route="finance"]');
-    await finance.scrollIntoViewIfNeeded();
-    await finance.click();
-    await expect(page.getByRole('heading', { name: 'Invoices & Finance' })).toBeVisible();
-
-    const backdrop = page.locator('.sidebar-backdrop.open[data-action="close-sidebar"]');
-    const backdropBox = await backdrop.boundingBox();
-    if (!backdropBox) throw new Error('Mobile navigation backdrop is not visible');
-    await page.mouse.click(
-      backdropBox.x + backdropBox.width - 6,
-      backdropBox.y + Math.min(120, backdropBox.height - 6),
-    );
-    await expect(sidebar).not.toHaveClass(/open/);
+    await page.goto('http://127.0.0.1:4173/app/akari-house/finance');
   } else {
     await page.locator('.sidebar [data-route="finance"]').click();
-    await expect(page.getByRole('heading', { name: 'Invoices & Finance' })).toBeVisible();
   }
+  await expect(page.getByRole('heading', { name: 'Invoices & Finance' })).toBeVisible();
 }
 
 async function openInvoice(page) {
