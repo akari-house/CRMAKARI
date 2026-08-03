@@ -27,12 +27,12 @@ for (const pattern of ['INVESTOR_PIPELINE_STAGES','investorFitScore','sanitizeIn
 }
 
 const intelligence = fs.readFileSync('functions/lib/fundraising-intelligence.js', 'utf8');
-for (const pattern of ['assessInvestorFit','calculateRoundEconomics','legacyCompatibilitySnapshot','fundFreshness','warmPath','conflict']) {
+for (const pattern of ['assessInvestorFit','calculateRoundEconomics','legacyCompatibilitySnapshot','LEGACY_COMPATIBILITY','fundFreshness','warmPath','conflict']) {
   if (!intelligence.includes(pattern)) throw new Error(`Fundraising intelligence model missing: ${pattern}`);
 }
 
 const intelligenceApi = fs.readFileSync('functions/api/fundraising/intelligence.js', 'utf8');
-for (const pattern of ['requireTenant','LEGACY_COMPATIBILITY','NORMALIZED_D1','migration 0002','upsert-organisation','upsert-person','upsert-source','upsert-claim','upsert-target','move-target','WHERE tenant_id = ?']) {
+for (const pattern of ['requireTenant','NORMALIZED_D1','migration 0002','upsert-organisation','upsert-person','upsert-source','upsert-claim','upsert-target','move-target','WHERE tenant_id = ?']) {
   if (!intelligenceApi.includes(pattern)) throw new Error(`Fundraising intelligence API missing: ${pattern}`);
 }
 
