@@ -87,7 +87,9 @@ test('Settings exposes production checks, tenant backup and controlled sign-off'
 test('production readiness remains usable without page-level mobile overflow', async ({ page }) => {
   await page.setViewportSize({ width:390, height:844 });
   await boot(page);
-  await page.goto('/app/akari-house/settings');
+  await page.locator('.mobile-bottom [data-action="open-sidebar"]').click();
+  await expect(page.locator('#sidebar')).toHaveClass(/open/);
+  await page.locator('#sidebar [data-route="settings"]').click();
   await expect(page.getByRole('heading', { name:'Settings & Profile' })).toBeVisible();
   await expect(page.getByRole('heading', { name:'Production readiness' })).toBeVisible();
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
