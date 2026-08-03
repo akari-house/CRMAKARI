@@ -7,7 +7,7 @@ const files = {
   css:await readFile('public/assets/fundraising-targeting-r19.css','utf8'),
   shell:await readFile('public/app/index.html','utf8'),
   worker:await readFile('public/sw.js','utf8'),
-  paper:await readFile('docs/BACKEND_TECHNICAL_PAPER.md','utf8'),
+  paper:await readFile('docs/FUNDRAISING_TARGETING_R19.md','utf8'),
   tenantTest:await readFile('tests/fundraising-targeting-tenant-isolation.test.mjs','utf8'),
   browserTest:await readFile('tests/fundraising-targeting.spec.js','utf8'),
 };
@@ -77,7 +77,7 @@ for (const requirement of [
   'follow-up task',
   'Release 6.2C',
 ]) {
-  if (!files.paper.toLowerCase().includes(requirement.toLowerCase())) throw new Error(`Backend technical paper is incomplete: missing ${requirement}`);
+  if (!files.paper.toLowerCase().includes(requirement.toLowerCase())) throw new Error(`Fundraising targeting documentation is incomplete: missing ${requirement}`);
 }
 
 for (const requirement of [
