@@ -67,7 +67,16 @@
 
   nativeReplace(history.state,'',`${location.pathname}${location.search}#/${moduleName}`);
   const clean=()=>nativeReplace(history.state,'',canonical(tenantSlug,moduleName)+location.search);
-  addEventListener('load',()=>setTimeout(clean,0),{once:true});
+  const cleanAfterBootstrap=()=>{
+    if(document.documentElement.dataset.akariInteractive==='ready'){clean();return;}
+    const observer=new MutationObserver(()=>{
+      if(document.documentElement.dataset.akariInteractive!=='ready')return;
+      observer.disconnect();
+      clean();
+    });
+    observer.observe(document.documentElement,{attributes:true,attributeFilter:['data-akari-interactive']});
+  };
+  addEventListener('load',cleanAfterBootstrap,{once:true});
   addEventListener('popstate',()=>{
     const p=location.pathname.split('/').filter(Boolean);
     if(p[0]!=='app'||p[1]!==tenantSlug)return;
