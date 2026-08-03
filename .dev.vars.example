@@ -1,3 +1,10 @@
 AUTH_MODE=demo
 DEFAULT_TENANT_SLUG=akari-house
 
+# Local development only. Production provider credentials belong in Cloudflare
+# Pages secrets and must never be committed or stored in D1.
+OPENAI_API_KEY=
+OPENAI_MODEL=
+ANTHROPIC_API_KEY=
+ANTHROPIC_MODEL=
+AI_TIMEOUT_MS=30000
