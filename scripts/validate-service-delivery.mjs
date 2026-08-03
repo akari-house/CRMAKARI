@@ -14,7 +14,7 @@ const html=await readFile('public/app/index.html','utf8');
 for(const requirement of ['/assets/service-delivery-v4.css?v=33','/assets/service-delivery-v4.js?v=33'])if(!html.includes(requirement))throw new Error(`Protected application shell is missing ${requirement}`);
 const worker=await readFile('public/sw.js','utf8');
 for(const requirement of ['./assets/service-delivery-v4.css?v=33','./assets/service-delivery-v4.js?v=33'])if(!worker.includes(requirement))throw new Error(`Service-worker shell is missing ${requirement}`);
-const cacheVersion=worker.match(/const\s+CACHE_NAME\s*=\s*'akari-crm-shell-v(\d+)'/)?.[1];
+const cacheVersion=worker.match(/const CACHE_NAME='akari-crm-shell-v(\d+)'/)?.[1];
 const runtimeVersions=[...worker.matchAll(/app\/index\.html\?runtime=v(\d+)/g)].map((match)=>match[1]);
 if(!cacheVersion||Number(cacheVersion)<40)throw new Error('Service-worker shell cache version is missing or stale');
 if(runtimeVersions.length<2||runtimeVersions.some((version)=>version!==cacheVersion))throw new Error('Service-worker cache and application runtime versions must match');
