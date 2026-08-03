@@ -89,14 +89,18 @@ async function bootFinance(page, captures = []) {
   const mobile = await page.evaluate(() => window.innerWidth <= 760);
   if (mobile) {
     await page.locator('.mobile-bottom [data-action="open-sidebar"]').click();
-    await expect(page.locator('#sidebar')).toHaveClass(/open/);
+    const sidebar = page.locator('#sidebar');
+    await expect(sidebar).toHaveClass(/open/);
     const finance = page.locator('#sidebar [data-route="finance"]');
     await finance.scrollIntoViewIfNeeded();
     await finance.click();
+    await expect(page.getByRole('heading', { name: 'Invoices & Finance' })).toBeVisible();
+    await page.locator('.sidebar-backdrop.open[data-action="close-sidebar"]').click({ force: true });
+    await expect(sidebar).not.toHaveClass(/open/);
   } else {
     await page.locator('.sidebar [data-route="finance"]').click();
+    await expect(page.getByRole('heading', { name: 'Invoices & Finance' })).toBeVisible();
   }
-  await expect(page.getByRole('heading', { name: 'Invoices & Finance' })).toBeVisible();
 }
 
 async function openInvoice(page) {
