@@ -1,0 +1,83 @@
+name: Read-only Access Diagnostics
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/readonly-access-diagnostics.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-access-app:
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'fix/post-deploy-smoke-sequencing'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment:
+      name: production
+    steps:
+      - name: Query matching Access applications
+        id: query
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          ACCESS_AUD: c588ec31c2f28826d192548846f060dd7fa9355b3bd20ddff59600c5d3596eaf
+        run: |
+          set +e
+          http_code=$(curl --silent --show-error --max-time 30 \
+            --header "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            --header "Content-Type: application/json" \
+            --output access-raw.json \
+            --write-out '%{http_code}' \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/access/apps?per_page=100")
+          curl_status=$?
+          echo "curl_status=${curl_status}" >> "${GITHUB_OUTPUT}"
+          echo "http_code=${http_code}" >> "${GITHUB_OUTPUT}"
+
+          if jq --arg aud "${ACCESS_AUD}" '
+            {
+              success: .success,
+              errors: (.errors // []),
+              applications: [
+                .result[]?
+                | select(
+                    (.aud // "") == $aud
+                    or ((.domain // "") | test("crm\\.akarihouse\\.com|crmakari\\.pages\\.dev"; "i"))
+                    or ([.destinations[]?.uri // ""] | any(test("crm\\.akarihouse\\.com|crmakari\\.pages\\.dev"; "i")))
+                  )
+                | {
+                    name,
+                    type,
+                    domain,
+                    aud,
+                    destinations,
+                    session_duration,
+                    app_launcher_visible
+                  }
+              ]
+            }
+          ' access-raw.json > access-diagnostics.json 2> access-diagnostics-error.txt; then
+            :
+          else
+            printf '%s\n' '{"success":false,"errors":[{"message":"Unable to sanitize Cloudflare Access response"}],"applications":[]}' > access-diagnostics.json
+          fi
+          rm -f access-raw.json
+          exit 0
+
+      - name: Upload sanitized Access diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloudflare-access-boundary
+          path: |
+            access-diagnostics.json
+            access-diagnostics-error.txt
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Report unsuccessful API access
+        if: steps.query.outputs.curl_status != '0' || steps.query.outputs.http_code != '200'
+        run: |
+          echo "Cloudflare Access inspection was not authorized or did not complete successfully."
+          exit 1
