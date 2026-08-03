@@ -15,6 +15,8 @@ const files = {
 
 for (const requirement of [
   "AI_PROVIDERS = ['OPENAI', 'ANTHROPIC']",
+  'OpenAI · ChatGPT models',
+  'Anthropic · Claude models',
   'https://api.openai.com/v1/responses',
   'https://api.anthropic.com/v1/messages',
   "'anthropic-version': '2023-06-01'",
@@ -51,12 +53,11 @@ for (const requirement of [
 }
 
 for (const requirement of [
-  'OpenAI · ChatGPT models',
-  'Anthropic · Claude models',
   '/api/ai/providers',
   'data-ai17-provider',
   'data-ai17-fallback',
   'Save AI configuration',
+  'provider.label',
 ]) {
   if (!files.ui.includes(requirement)) throw new Error(`AI provider UI is incomplete: missing ${requirement}`);
 }
