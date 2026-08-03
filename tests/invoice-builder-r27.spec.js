@@ -95,7 +95,14 @@ async function bootFinance(page, captures = []) {
     await finance.scrollIntoViewIfNeeded();
     await finance.click();
     await expect(page.getByRole('heading', { name: 'Invoices & Finance' })).toBeVisible();
-    await page.locator('.sidebar-backdrop.open[data-action="close-sidebar"]').click({ force: true });
+
+    const backdrop = page.locator('.sidebar-backdrop.open[data-action="close-sidebar"]');
+    const backdropBox = await backdrop.boundingBox();
+    if (!backdropBox) throw new Error('Mobile navigation backdrop is not visible');
+    await page.mouse.click(
+      backdropBox.x + backdropBox.width - 6,
+      backdropBox.y + Math.min(120, backdropBox.height - 6),
+    );
     await expect(sidebar).not.toHaveClass(/open/);
   } else {
     await page.locator('.sidebar [data-route="finance"]').click();
