@@ -100,10 +100,11 @@ test('targeting board separates expected cheques from published evidence and sur
   await expect(page.getByText('Overdue follow-ups').first()).toBeVisible();
   await expect(page.getByText('Ready for introduction').first()).toBeVisible();
   await page.locator('[data-ft19-action="open-target"][data-id="target_a"]').first().click();
-  await expect(page.getByLabel('Investor target workspace').getByRole('heading',{name:'North Star Ventures'})).toBeVisible();
-  await expect(page.getByText('$100,000 – $1,000,000')).toBeVisible();
-  await expect(page.getByText('Private expected cheques', { exact:false })).toBeVisible();
-  await expect(page.getByText('Granted')).toBeVisible();
+  const workspace = page.getByLabel('Investor target workspace');
+  await expect(workspace.getByRole('heading',{name:'North Star Ventures'})).toBeVisible();
+  await expect(workspace.getByText('$100,000 – $1,000,000')).toBeVisible();
+  await expect(workspace.getByText('Private expected cheques', { exact:false })).toBeVisible();
+  await expect(workspace.getByText('Granted',{exact:true})).toBeVisible();
 });
 
 test('target workspace updates private expected cheque and accountable next action',async ({page}) => {
