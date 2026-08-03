@@ -14,7 +14,7 @@ function mePayload() {
   };
 }
 
-test('every active commercial opportunity is visible even when its stored stage needs normalization', async ({ page }) => {
+test('every commercial opportunity remains visible across active and closed stages', async ({ page }) => {
   const items = [
     {
       id: 'opp_new', project_id: 'project_travls', project_name: 'TRAVLS', name: 'TRAVLS campaign',
@@ -30,6 +30,16 @@ test('every active commercial opportunity is visible even when its stored stage 
       id: 'opp_hold', project_id: 'project_three', project_name: 'Project Three', name: 'Paused partnership',
       service_type: 'PARTNERSHIP', stage: 'ON_HOLD', estimated_value: 5000, currency: 'USD',
       probability_percentage: 30, next_action: 'Review in September', owner_name: 'Muaz Test',
+    },
+    {
+      id: 'opp_won', project_id: 'project_four', project_name: 'Won Client', name: 'Won campaign',
+      service_type: 'MARKETING_CAMPAIGN', stage: 'WON', estimated_value: 10000, currency: 'USD',
+      probability_percentage: 100, next_action: 'Complete client onboarding', owner_name: 'Muaz Test',
+    },
+    {
+      id: 'opp_lost', project_id: 'project_five', project_name: 'Closed Prospect', name: 'Lost advisory deal',
+      service_type: 'ADVISORY', stage: 'LOST', estimated_value: 7500, currency: 'USD',
+      probability_percentage: 0, next_action: 'Record loss learning', owner_name: 'Muaz Test',
     },
   ];
 
@@ -51,13 +61,19 @@ test('every active commercial opportunity is visible even when its stored stage 
   await expect(page.getByRole('heading', { name: 'Opportunity Pipeline' })).toBeVisible();
 
   const pipeline = page.locator('#view-root .pipeline');
-  await expect(pipeline).toHaveAttribute('data-akari-opportunity-visibility', 'r25');
-  await expect(pipeline).toHaveAttribute('data-akari-opportunity-count', '3');
-  await expect(pipeline).toHaveAttribute('data-akari-visible-opportunity-count', '3');
+  await expect(pipeline).toHaveAttribute('data-akari-opportunity-visibility', 'r26');
+  await expect(pipeline).toHaveAttribute('data-akari-opportunity-count', '5');
+  await expect(pipeline).toHaveAttribute('data-akari-open-opportunity-count', '3');
+  await expect(pipeline).toHaveAttribute('data-akari-closed-opportunity-count', '2');
+  await expect(pipeline).toHaveAttribute('data-akari-visible-opportunity-count', '5');
 
   await expect(page.locator('[data-akari-stage="NEW"] [data-akari-opportunity-id="opp_new"]')).toContainText('TRAVLS campaign');
   await expect(page.locator('[data-akari-stage="VERBAL_CONFIRMATION"] [data-akari-opportunity-id="opp_verbal"]')).toContainText('Verbal confirmation deal');
   await expect(page.locator('[data-akari-stage="ON_HOLD"] [data-akari-opportunity-id="opp_hold"]')).toContainText('Paused partnership');
+  await expect(page.locator('[data-akari-stage="WON"] [data-akari-opportunity-id="opp_won"]')).toContainText('Won campaign');
+  await expect(page.locator('[data-akari-stage="LOST"] [data-akari-opportunity-id="opp_lost"]')).toContainText('Lost advisory deal');
+  await expect(page.locator('[data-akari-closed-stage="WON"]')).toBeVisible();
+  await expect(page.locator('[data-akari-closed-stage="LOST"]')).toBeVisible();
 });
 
 function liveBillingMarkup() {
