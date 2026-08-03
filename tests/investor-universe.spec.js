@@ -109,11 +109,11 @@ test('Investor Universe exposes organisations people evidence and review workflo
   await expect(page.getByText('alex@northstar.example')).toHaveCount(0);
 
   await page.locator('[data-iu18-tab="evidence"]').click();
-  await expect(page.getByText('North Star Fund III')).toBeVisible();
-  await expect(page.getByText('Seed,Series A')).toBeVisible();
+  await expect(page.getByRole('heading', { name:'North Star Fund III', exact:true })).toBeVisible();
+  await expect(page.getByText('["Seed","Series A"]', { exact:true })).toBeVisible();
 
   await page.locator('[data-iu18-tab="review"]').click();
-  await expect(page.getByText('Review queue')).toBeVisible();
+  await expect(page.getByRole('heading', { name:'Review queue', exact:true })).toBeVisible();
   await expect(page.getByText('Similar investor organisation names')).toBeVisible();
   await expect(page.getByText('Review only. No automated merge is performed.')).toBeVisible();
 });
