@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { onRequestGet, onRequestPost } from '../functions/api/fundraising/universe.js';
+import { onRequest as universeBoundary } from '../functions/api/fundraising/_middleware.js';
 
 class FakeDB {
   constructor(resolver) { this.resolver = resolver; this.calls = []; }
@@ -27,6 +28,11 @@ function context({ db, body, role = 'OWNER', tenantId = 'tenant_a' }) {
       method:'POST', headers:{ 'content-type':'application/json' }, body:JSON.stringify(body),
     }),
   };
+}
+
+async function post(options) {
+  const inner = context(options);
+  return universeBoundary({ ...inner, next:() => onRequestPost(inner) });
 }
 
 function schemaReady(method, call) {
@@ -93,7 +99,7 @@ test('missing migration returns a read-only tenant-scoped Capital Room compatibi
 
 test('Investor Universe writes reject non-manager roles before database access', async () => {
   const db = new FakeDB(() => { throw new Error('database must not be queried'); });
-  const response = await onRequestPost(context({ db, role:'BD_MEMBER', body:{ action:'upsert-organisation', name:'Fund A' } }));
+  const response = await post({ db, role:'BD_MEMBER', body:{ action:'upsert-organisation', name:'Fund A' } });
   assert.equal(response.status, 403);
   assert.match((await response.json()).error, /permission/i);
   assert.equal(db.calls.length, 0);
@@ -101,7 +107,7 @@ test('Investor Universe writes reject non-manager roles before database access',
 
 test('Investor Universe writes fail closed until migration 0002 is applied', async () => {
   const db = new FakeDB(() => { throw new Error('D1_ERROR: no such table: investor_organisations: SQLITE_ERROR'); });
-  const response = await onRequestPost(context({ db, body:{ action:'upsert-organisation', name:'Fund A' } }));
+  const response = await post({ db, body:{ action:'upsert-organisation', name:'Fund A' } });
   assert.equal(response.status, 503);
   assert.match((await response.json()).error, /migration 0002/i);
   assert.equal(db.calls.some((call) => /INSERT INTO investor_organisations/.test(call.sql)), false);
@@ -114,9 +120,9 @@ test('investor organisation duplicate checks, writes and audits remain tenant sc
     if (method === 'first' && /normalized_name = \? AND id != \?/.test(call.sql)) return null;
     return null;
   });
-  const response = await onRequestPost(context({ db, body:{
+  const response = await post({ db, body:{
     action:'upsert-organisation', name:'North Star Ventures', investorType:'VC', website:'https://northstar.example', minimumCheck:100000, maximumCheck:1000000,
-  } }));
+  } });
   assert.equal(response.status, 200);
   const duplicate = db.calls.find((call) => /normalized_name = \? AND id != \?/.test(call.sql));
   assert.equal(duplicate.bindings[0], 'tenant_a');
@@ -132,7 +138,7 @@ test('investor people and contacts reject references outside the authenticated t
     if (method === 'first' && /FROM investor_people WHERE tenant_id = \? AND id = \?/.test(call.sql)) return null;
     return null;
   });
-  const response = await onRequestPost(context({ db, body:{ action:'upsert-contact', personId:'person_tenant_b', kind:'WORK_EMAIL', value:'person@example.test' } }));
+  const response = await post({ db, body:{ action:'upsert-contact', personId:'person_tenant_b', kind:'WORK_EMAIL', value:'person@example.test' } });
   assert.equal(response.status, 404);
   assert.match((await response.json()).error, /not found in this workspace/i);
   const lookup = db.calls.find((call) => /FROM investor_people WHERE tenant_id = \? AND id = \?/.test(call.sql));
@@ -147,7 +153,7 @@ test('source and claim references are validated inside the authenticated tenant'
     if (method === 'first' && /FROM investor_sources WHERE tenant_id = \? AND id = \?/.test(call.sql)) return null;
     return null;
   });
-  const response = await onRequestPost(context({ db, body:{ action:'upsert-claim', entityType:'ORGANISATION', entityId:'org_a', field:'investment_stages', value:['Seed'], sourceId:'source_tenant_b' } }));
+  const response = await post({ db, body:{ action:'upsert-claim', entityType:'ORGANISATION', entityId:'org_a', field:'investment_stages', value:['Seed'], sourceId:'source_tenant_b' } });
   assert.equal(response.status, 404);
   assert.match((await response.json()).error, /source was not found/i);
   const sourceLookup = db.calls.find((call) => /FROM investor_sources WHERE tenant_id = \? AND id = \?/.test(call.sql));
@@ -160,7 +166,7 @@ test('evidence and conflict review actions remain Owner/Admin controlled', async
     if (schemaReady(method, call)) return { id:'schema_probe' };
     return null;
   });
-  const response = await onRequestPost(context({ db, role:'BD_MANAGER', body:{ action:'review-source', id:'source_a', confidenceStatus:'VERIFIED', redistributionStatus:'ALLOWED' } }));
+  const response = await post({ db, role:'BD_MANAGER', body:{ action:'review-source', id:'source_a', confidenceStatus:'VERIFIED', redistributionStatus:'ALLOWED' } });
   assert.equal(response.status, 403);
   assert.match((await response.json()).error, /permission/i);
   assert.equal(db.calls.some((call) => /UPDATE investor_sources/.test(call.sql)), false);
@@ -179,7 +185,7 @@ test('private contact values are redacted from the general audit record', async 
     if (method === 'first' && /person_id = \? AND kind = \? AND normalized_value/.test(call.sql)) return null;
     return null;
   });
-  const response = await onRequestPost(context({ db, body:{ action:'upsert-contact', id:'contact_a', personId:'person_a', kind:'WORK_EMAIL', value:'new-private@example.test', visibility:'PRIVATE', isPrimary:true } }));
+  const response = await post({ db, body:{ action:'upsert-contact', id:'contact_a', personId:'person_a', kind:'WORK_EMAIL', value:'new-private@example.test', visibility:'PRIVATE', isPrimary:true } });
   assert.equal(response.status, 200);
   const audit = db.calls.find((call) => /INSERT INTO audit_logs/.test(call.sql));
   assert.ok(audit);
@@ -195,7 +201,7 @@ test('final portfolio conflict decisions require a review note', async () => {
     if (method === 'first' && /FROM investor_organisations WHERE tenant_id = \? AND id = \?/.test(call.sql)) return { id:'org_a', conflict_status:'POSSIBLE' };
     return null;
   });
-  const response = await onRequestPost(context({ db, body:{ action:'set-conflict', id:'org_a', conflictStatus:'NONE', note:'' } }));
+  const response = await post({ db, body:{ action:'set-conflict', id:'org_a', conflictStatus:'NONE', note:'' } });
   assert.equal(response.status, 422);
   assert.match((await response.json()).error, /review note/i);
   assert.equal(db.calls.some((call) => /UPDATE investor_organisations SET conflict_status/.test(call.sql)), false);
