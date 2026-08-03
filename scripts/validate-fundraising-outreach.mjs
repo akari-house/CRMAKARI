@@ -43,9 +43,9 @@ for(const requirement of [
   'AI proposal',
   'Manual draft',
   'Record manual send',
-  'Founder approval',
-  'AKARI approval',
-  'Create investor follow-up task',
+  'approve-founder',
+  'approve-akari',
+  'Create outreach follow-up task',
   'Complete investor meeting',
 ])if(!files.ui.includes(requirement))throw new Error(`Fundraising outreach UI is incomplete: missing ${requirement}`);
 
