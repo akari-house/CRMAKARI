@@ -20,7 +20,7 @@ if (/SELECT[^;]*\bfunding_stage\b/i.test(fundraising)) throw new Error('Fundrais
 if (/SELECT[^;]*\btotal_funds_raised\b/i.test(fundraising)) throw new Error('Fundraising still selects the missing projects.total_funds_raised column');
 
 const css = await readFile('public/assets/launch-hardening-r13.css', 'utf8');
-for (const token of ['.ops-billing-profile-modal', '.ops-billing-section', '#modal-root .ak-modal-standard .field', 'grid-template-rows: auto minmax(0, 1fr) auto', 'overflow: auto']) {
+for (const token of ['.ops-billing-profile-modal', '.ops-billing-section', '#modal-root .ak-modal-standard :is(.field, .form-group)', 'grid-template-rows: auto minmax(0, 1fr) auto', 'overflow: auto']) {
   if (!css.includes(token)) throw new Error(`Launch hardening CSS missing ${token}`);
 }
 
@@ -35,7 +35,7 @@ for (const token of ['stableWorkFetch', 'waitForWorkIdle', 'work-is-dragging', "
 }
 
 const html = await readFile('public/app/index.html', 'utf8');
-for (const token of ['/assets/launch-hardening-r13.css?v=1', '/assets/work-os-interaction-stability-r13.js?v=1', '/assets/launch-hardening-r13.js?v=1']) {
+for (const token of ['/assets/launch-hardening-r13.css?v=2', '/assets/work-os-interaction-stability-r13.js?v=1', '/assets/launch-hardening-r13.js?v=1']) {
   if (!html.includes(token)) throw new Error(`Protected shell missing ${token}`);
 }
 if (html.indexOf('/assets/work-os-interaction-stability-r13.js?v=1') > html.indexOf('/assets/my-day-canonical-r8.js?v=1')) {
@@ -43,7 +43,7 @@ if (html.indexOf('/assets/work-os-interaction-stability-r13.js?v=1') > html.inde
 }
 
 const worker = await readFile('public/sw.js', 'utf8');
-for (const token of ['./assets/launch-hardening-r13.css?v=1', './assets/work-os-interaction-stability-r13.js?v=1', './assets/launch-hardening-r13.js?v=1']) {
+for (const token of ['./assets/launch-hardening-r13.css?v=2', './assets/work-os-interaction-stability-r13.js?v=1', './assets/launch-hardening-r13.js?v=1']) {
   if (!worker.includes(token)) throw new Error(`Service worker missing ${token}`);
 }
 
