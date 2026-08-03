@@ -85,7 +85,17 @@ async function bootFinance(page, captures = []) {
   });
   await page.goto('http://127.0.0.1:4173/app/akari-house/home');
   await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening), Muaz/i })).toBeVisible();
-  await page.locator('.sidebar [data-route="finance"]').click();
+
+  const mobile = await page.evaluate(() => window.innerWidth <= 760);
+  if (mobile) {
+    await page.locator('.mobile-bottom [data-action="open-sidebar"]').click();
+    await expect(page.locator('#sidebar')).toHaveClass(/open/);
+    const finance = page.locator('#sidebar [data-route="finance"]');
+    await finance.scrollIntoViewIfNeeded();
+    await finance.click();
+  } else {
+    await page.locator('.sidebar [data-route="finance"]').click();
+  }
   await expect(page.getByRole('heading', { name: 'Invoices & Finance' })).toBeVisible();
 }
 
@@ -107,6 +117,7 @@ test('invoice builder keeps labels separated and calculates exclusive inclusive 
     const dialog = document.querySelector('.ops-invoice-modal-r27');
     const header = dialog.querySelector('.modal-head').getBoundingClientRect();
     const body = dialog.querySelector('.modal-body').getBoundingClientRect();
+    const firstBodyContent = dialog.querySelector('.modal-body > :first-child').getBoundingClientRect();
     const fields = [...dialog.querySelectorAll('label.field')].slice(0, 12).map((field) => {
       const label = field.querySelector(':scope > span');
       const candidates = [...field.querySelectorAll(':scope > input, :scope > select, :scope > textarea, :scope > .ak-combobox, :scope > .ak-combobox .ak-combobox__trigger')];
@@ -125,10 +136,16 @@ test('invoice builder keeps labels separated and calculates exclusive inclusive 
         fieldBottom: fieldBox.bottom,
       };
     });
-    return { headerBottom: header.bottom, bodyTop: body.top, fields };
+    return {
+      headerBottom: header.bottom,
+      bodyTop: body.top,
+      firstBodyContentTop: firstBodyContent.top,
+      fields,
+    };
   });
 
   expect(geometry.bodyTop).toBeGreaterThanOrEqual(geometry.headerBottom - 1);
+  expect(geometry.firstBodyContentTop).toBeGreaterThanOrEqual(geometry.headerBottom + 20);
   for (const item of geometry.fields) {
     expect(item.controlTop - item.labelBottom).toBeGreaterThanOrEqual(6);
     expect(item.fieldBottom).toBeGreaterThanOrEqual(item.controlBottom - 1);
@@ -177,12 +194,18 @@ test('invoice builder keeps its header footer and tax controls usable on mobile'
 
   const layout = await page.evaluate(() => {
     const dialog = document.querySelector('.ops-invoice-modal-r27').getBoundingClientRect();
+    const header = document.querySelector('.ops-invoice-modal-r27 .modal-head').getBoundingClientRect();
+    const body = document.querySelector('.ops-invoice-modal-r27 .modal-body').getBoundingClientRect();
     const footer = document.querySelector('.ops-invoice-modal-r27 .modal-foot').getBoundingClientRect();
     return {
       viewportWidth: document.documentElement.clientWidth,
       pageScrollWidth: document.documentElement.scrollWidth,
       dialogLeft: dialog.left,
       dialogRight: dialog.right,
+      headerBottom: header.bottom,
+      bodyTop: body.top,
+      bodyBottom: body.bottom,
+      footerTop: footer.top,
       footerBottom: footer.bottom,
       viewportHeight: window.innerHeight,
     };
@@ -191,6 +214,8 @@ test('invoice builder keeps its header footer and tax controls usable on mobile'
   expect(layout.pageScrollWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
   expect(layout.dialogLeft).toBeGreaterThanOrEqual(0);
   expect(layout.dialogRight).toBeLessThanOrEqual(layout.viewportWidth + 1);
+  expect(layout.bodyTop).toBeGreaterThanOrEqual(layout.headerBottom - 1);
+  expect(layout.footerTop).toBeGreaterThanOrEqual(layout.bodyBottom - 1);
   expect(layout.footerBottom).toBeLessThanOrEqual(layout.viewportHeight + 1);
   await expect(page.locator('#ops-tax-mode')).toBeAttached();
   await expect(page.locator('#ops-form button[type="submit"]')).toBeVisible();
