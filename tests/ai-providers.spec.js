@@ -73,9 +73,12 @@ test('Settings offers both OpenAI ChatGPT models and Anthropic Claude models', a
   await expect(page.locator('#ai-providers-root input[type="password"]')).toHaveCount(0);
   await expect(page.getByText(/Cloudflare secrets/)).toBeVisible();
 
-  await page.locator('input[name="ai17-primary"][value="ANTHROPIC"]').check();
-  await page.locator('[data-ai17-enabled]').check();
-  await page.locator('[data-ai17-fallback]').check();
+  await page.locator('[data-ai17-provider="ANTHROPIC"] .ai17-primary-choice').click();
+  await page.locator('.ai17-enable').click();
+  await page.locator('.ai17-toggle-row').click();
+  await expect(page.locator('input[name="ai17-primary"][value="ANTHROPIC"]')).toBeChecked();
+  await expect(page.locator('[data-ai17-enabled]')).toBeChecked();
+  await expect(page.locator('[data-ai17-fallback]')).toBeChecked();
   await page.locator('[data-ai17-model="ANTHROPIC"]').fill('claude-production');
   await page.locator('[data-ai17-model="OPENAI"]').fill('gpt-production');
   await page.locator('[data-ai17-tokens]').fill('1600');
