@@ -39,10 +39,30 @@ function payloadFor(url, method) {
     };
   }
   if (path === '/api/projects?limit=100&offset=0') return { items: [project], total: 1, limit: 100 };
-  if (path === '/api/commercial/overview') return { metrics: {}, invoices: [], proposals: [], referrals: [] };
+  if (path === '/api/commercial/overview') return { metrics: {}, invoices: [], proposals: [], referrals: [], currency: 'USD' };
   if (path === '/api/profile') return { user: me.user };
   if (path === '/api/tasks?scope=mine' || path === '/api/tasks?scope=mine&includeCompleted=1') return { items: [], total: 0 };
-  if (path === '/api/dashboard') return { currency: 'USD', metrics: {} };
+  if (path === '/api/dashboard') {
+    return {
+      currency: 'USD',
+      metrics: {
+        monthlyTarget: 0,
+        revenueBooked: 0,
+        revenueCollected: 0,
+        netRevenue: 0,
+        weightedPipeline: 0,
+        activeOpportunities: 0,
+        yearToDateRevenue: 0,
+        activeCustomers: 1,
+        activeCampaigns: 0,
+        activePartners: 0,
+        outstandingPayments: 0,
+        referralRewardsDue: 0,
+      },
+    };
+  }
+  if (path === '/api/akari-leads?limit=8&offset=0') return { items: [], total: 0, categories: [], canWrite: true };
+  if (parsed.pathname.startsWith('/api/akari-leads')) return { items: [], total: 0, categories: [], canWrite: true };
   if (path === '/api/opportunities' || path === '/api/campaigns' || path === '/api/partners' || path === '/api/contacts') return { items: [], total: 0 };
   if (path === '/api/reports') return { pipelineByStage: [], revenueByMonth: [] };
   if (path === '/api/invoices' && method === 'POST') {
@@ -63,7 +83,9 @@ async function bootFinance(page, captures = []) {
       body: JSON.stringify(payloadFor(request.url(), request.method())),
     });
   });
-  await page.goto('http://127.0.0.1:4173/app/akari-house/finance');
+  await page.goto('http://127.0.0.1:4173/app/akari-house/home');
+  await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening), Muaz/i })).toBeVisible();
+  await page.locator('.sidebar [data-route="finance"]').click();
   await expect(page.getByRole('heading', { name: 'Invoices & Finance' })).toBeVisible();
 }
 
