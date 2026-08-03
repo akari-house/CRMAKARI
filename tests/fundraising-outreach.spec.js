@@ -53,10 +53,11 @@ test('controlled outreach clearly separates AI proposals approvals and manual se
   await boot(page);await openFundraising(page);
   await expect(page.getByText('Human approval controls are active')).toBeVisible();
   await expect(page.getByText(/AKARI never sends the message automatically/i)).toBeVisible();
-  await expect(page.getByText('OpenAI · gpt-model')).toBeVisible();
-  await expect(page.getByText('Founder')).toBeVisible();
-  await expect(page.getByText('AKARI')).toBeVisible();
-  await expect(page.locator('[data-fo20-action="mark-sent"]')).toBeVisible();
+  const draftCard=page.locator('[data-fo20-draft="draft_a"]');
+  await expect(draftCard.getByText('OpenAI · gpt-model',{exact:true})).toBeVisible();
+  await expect(draftCard.getByText('Founder',{exact:true})).toBeVisible();
+  await expect(draftCard.getByText('AKARI',{exact:true})).toBeVisible();
+  await expect(draftCard.locator('[data-fo20-action="mark-sent"]')).toBeVisible();
   await expect(page.getByText('Send now',{exact:true})).toHaveCount(0);
 });
 
@@ -81,7 +82,7 @@ test('ChatGPT or Claude proposal remains unsent and is saved with provider metad
   expect(aiCaptures[0]).toMatchObject({purpose:'FOLLOW_UP_DRAFT',disclosurePolicy:'SAFE_FOR_OUTREACH'});
   await expect(page.getByRole('heading',{name:'Create outreach draft'})).toBeVisible();
   await expect(page.locator('#fundraising-outreach-modal-root input[name="subject"]')).toHaveValue('Seed round follow-up');
-  await expect(page.locator('#fundraising-outreach-modal-root textarea[name="body"]')).toContainText('Hi Alex');
+  await expect(page.locator('#fundraising-outreach-modal-root textarea[name="body"]')).toHaveValue(/Hi Alex/);
   await page.locator('#fundraising-outreach-modal-root button[type="submit"]').click();
   await expect.poll(()=>captures.length).toBe(1);
   expect(captures[0].ai).toMatchObject({provider:'OPENAI',model:'gpt-model',fallbackUsed:false,requestId:'req_ai_1'});
