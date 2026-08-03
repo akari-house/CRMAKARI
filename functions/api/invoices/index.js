@@ -5,6 +5,8 @@ import { text } from '../../lib/revenue-lifecycle.js';
 import {
   INVOICE_MARKER,
   INVOICE_STATUSES,
+  INVOICE_TAX_MODES,
+  calculateInvoiceTax,
   parseInvoice,
   roundMoney,
   sanitizePaymentSchedule,
@@ -128,17 +130,35 @@ export async function onRequestPost(context) {
     const dueDate = text(body.dueDate, 10);
     const currency = (text(body.currency, 10) || 'USD').toUpperCase();
     const status = String(body.status || 'DRAFT').toUpperCase();
-    const taxRate = Number(body.taxRate || 0);
+    const requestedTaxRate = Number(body.taxRate || 0);
+    const requestedTaxMode = String(body.taxMode || '').trim().toUpperCase();
     if (!projectId) return error('Client project is required', 422);
     if (!INVOICE_STATUSES.has(status) || ['CANCELLED','CREDITED','PARTIALLY_CREDITED','OVERDUE'].includes(status)) return error('Invoice creation status is invalid', 422);
     if (status === 'INVOICED' && !dueDate) return error('Due date is required for an issued invoice', 422);
-    if (!Number.isFinite(taxRate) || taxRate < 0 || taxRate > 100) return error('Tax rate must be between 0 and 100', 422);
+    if (!Number.isFinite(requestedTaxRate) || requestedTaxRate < 0 || requestedTaxRate > 100) return error('Tax rate must be between 0 and 100', 422);
+    if (requestedTaxMode && !INVOICE_TAX_MODES.has(requestedTaxMode)) return error('Tax treatment must be inclusive, exclusive or no tax', 422);
     const lineItems = sanitizeLineItems(body.lineItems);
-    const subtotal = roundMoney(lineItems.reduce((sum, item) => sum + item.amount, 0));
-    const taxAmount = roundMoney(subtotal * taxRate / 100);
-    const total = roundMoney(subtotal + taxAmount);
+    const tax = calculateInvoiceTax(lineItems, requestedTaxRate, requestedTaxMode);
+    const {
+      taxMode,
+      pricesIncludeTax,
+      enteredSubtotal,
+      subtotal,
+      taxRate,
+      taxAmount,
+      total,
+    } = tax;
     const paymentSchedule = sanitizePaymentSchedule(body.paymentSchedule, total);
-    if (!context.env.DB) return json({ id: makeId('inv'), invoiceNumber: 'DEMO-0001', total, created: true, demo: true }, 201);
+    if (!context.env.DB) return json({
+      id: makeId('inv'),
+      invoiceNumber: 'DEMO-0001',
+      taxMode,
+      subtotal,
+      taxAmount,
+      total,
+      created: true,
+      demo: true,
+    }, 201);
 
     const project = await first(context.env.DB, `
       SELECT p.id, p.name, p.website, p.telegram,
@@ -224,8 +244,11 @@ export async function onRequestPost(context) {
       recipient,
       lineItems,
       paymentSchedule,
+      taxMode,
+      pricesIncludeTax,
+      enteredSubtotal,
       subtotal,
-      taxRate: roundMoney(taxRate),
+      taxRate,
       taxAmount,
       total,
       taxLabel: text(body.taxLabel, 500),
@@ -262,8 +285,33 @@ export async function onRequestPost(context) {
     await run(context.env.DB, `
       INSERT INTO audit_logs (id, tenant_id, user_id, action, entity_type, entity_id, after_data, created_at)
       VALUES (?, ?, ?, 'INVOICE_CREATED', 'INVOICE', ?, ?, ?)
-    `, [makeId('aud'), tenantId, auth.userId, id, JSON.stringify({ invoiceNumber, projectId, campaignId, opportunityId, total, currency, status, scheduleItems:paymentSchedule.length }), now]);
-    return json({ id, invoiceNumber, engagementId: campaignId, opportunityId, total, status, paymentSchedule, created: true }, 201);
+    `, [makeId('aud'), tenantId, auth.userId, id, JSON.stringify({
+      invoiceNumber,
+      projectId,
+      campaignId,
+      opportunityId,
+      taxMode,
+      taxRate,
+      subtotal,
+      taxAmount,
+      total,
+      currency,
+      status,
+      scheduleItems: paymentSchedule.length,
+    }), now]);
+    return json({
+      id,
+      invoiceNumber,
+      engagementId: campaignId,
+      opportunityId,
+      taxMode,
+      subtotal,
+      taxAmount,
+      total,
+      status,
+      paymentSchedule,
+      created: true,
+    }, 201);
   } catch (cause) {
     console.error('AKARI invoice creation error', cause);
     return error(cause.message || 'Invoice could not be created', Number(cause.status || 500));

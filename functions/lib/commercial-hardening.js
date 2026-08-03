@@ -5,8 +5,59 @@ export const INVOICE_MARKER = 'INVOICE_V1';
 export const CREDIT_NOTE_MARKER = 'AKARI_CREDIT_NOTE_V1';
 export const PROPOSAL_STATUSES = new Set(['DRAFT', 'INTERNAL_REVIEW', 'APPROVED', 'SENT', 'ACCEPTED', 'REJECTED', 'EXPIRED', 'SUPERSEDED']);
 export const INVOICE_STATUSES = new Set(['DRAFT', 'INVOICED', 'PARTIALLY_PAID', 'PAID', 'OVERDUE', 'CANCELLED', 'PARTIALLY_CREDITED', 'CREDITED']);
+export const INVOICE_TAX_MODES = new Set(['EXCLUSIVE', 'INCLUSIVE', 'NONE']);
 
 export const roundMoney = (value) => Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
+
+export function normalizeInvoiceTaxMode(value, taxRate = 0) {
+  const requested = String(value || '').trim().toUpperCase();
+  if (INVOICE_TAX_MODES.has(requested)) return requested;
+  return Number(taxRate || 0) > 0 ? 'EXCLUSIVE' : 'NONE';
+}
+
+export function calculateInvoiceTax(lineItems, requestedTaxRate = 0, requestedTaxMode = '') {
+  const taxMode = normalizeInvoiceTaxMode(requestedTaxMode, requestedTaxRate);
+  const taxRate = taxMode === 'NONE' ? 0 : roundMoney(requestedTaxRate);
+  const enteredSubtotal = roundMoney((Array.isArray(lineItems) ? lineItems : [])
+    .reduce((sum, item) => sum + Number(item?.amount || 0), 0));
+
+  if (taxMode === 'INCLUSIVE' && taxRate > 0) {
+    const subtotal = roundMoney(enteredSubtotal / (1 + taxRate / 100));
+    const taxAmount = roundMoney(enteredSubtotal - subtotal);
+    return {
+      taxMode,
+      pricesIncludeTax: true,
+      enteredSubtotal,
+      subtotal,
+      taxRate,
+      taxAmount,
+      total: enteredSubtotal,
+    };
+  }
+
+  if (taxMode === 'EXCLUSIVE') {
+    const taxAmount = roundMoney(enteredSubtotal * taxRate / 100);
+    return {
+      taxMode,
+      pricesIncludeTax: false,
+      enteredSubtotal,
+      subtotal: enteredSubtotal,
+      taxRate,
+      taxAmount,
+      total: roundMoney(enteredSubtotal + taxAmount),
+    };
+  }
+
+  return {
+    taxMode: 'NONE',
+    pricesIncludeTax: false,
+    enteredSubtotal,
+    subtotal: enteredSubtotal,
+    taxRate: 0,
+    taxAmount: 0,
+    total: enteredSubtotal,
+  };
+}
 
 export function parseProposal(row) {
   const metadata = parseJson(row?.description, {});
@@ -58,6 +109,8 @@ export function parseInvoice(row, receipts = [], credits = []) {
     })
     .reduce((sum, item) => sum + Number(item.amount || 0), 0));
   const outstanding = Math.max(0, roundMoney(total - received - credited));
+  const taxRate = Number(metadata.taxRate || 0);
+  const taxMode = normalizeInvoiceTaxMode(metadata.taxMode, taxRate);
   return {
     id: row?.id,
     projectId: row?.project_id,
@@ -71,7 +124,10 @@ export function parseInvoice(row, receipts = [], credits = []) {
     status: row?.status,
     currency: row?.currency || 'USD',
     subtotal: Number(metadata.subtotal ?? row?.amount ?? 0),
-    taxRate: Number(metadata.taxRate || 0),
+    enteredSubtotal: Number(metadata.enteredSubtotal ?? metadata.subtotal ?? row?.amount ?? 0),
+    taxMode,
+    pricesIncludeTax: metadata.pricesIncludeTax === true || taxMode === 'INCLUSIVE',
+    taxRate,
     taxAmount: Number(metadata.taxAmount || 0),
     total,
     received,
