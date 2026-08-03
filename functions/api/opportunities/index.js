@@ -1,5 +1,5 @@
 import { json, error, readJson } from '../../lib/response.js';
-import { all, first, run, makeId, nowIso } from '../../lib/db.js';
+import { all, first, makeId, nowIso } from '../../lib/db.js';
 import { requireTenant } from '../../lib/permissions.js';
 
 const WRITE_ROLES = new Set(['OWNER','ADMIN','BD_MANAGER','BD_MEMBER']);
@@ -9,6 +9,31 @@ const text = (value, max = 5000) => {
   const normalized = String(value).trim();
   return normalized ? normalized.slice(0, max) : null;
 };
+
+function persistenceError(message) {
+  const cause = new Error(message);
+  cause.status = 500;
+  return cause;
+}
+
+async function executeWriteBatch(db, statements) {
+  const prepared = statements.map(({ sql, bindings }) => db.prepare(sql).bind(...bindings));
+  if (typeof db.batch === 'function') {
+    await db.batch(prepared);
+    return;
+  }
+  for (const statement of prepared) await statement.run();
+}
+
+async function savedOpportunity(db, tenantId, id) {
+  return first(db, `
+    SELECT o.*, p.name AS project_name, u.full_name AS owner_name
+    FROM opportunities o
+    JOIN projects p ON p.id = o.project_id AND p.tenant_id = o.tenant_id
+    LEFT JOIN users u ON u.id = o.owner_user_id
+    WHERE o.tenant_id = ? AND o.id = ?
+  `, [tenantId, id]);
+}
 
 export async function onRequestGet(context) {
   try {
@@ -43,29 +68,59 @@ export async function onRequestPost(context) {
     if (!STAGES.has(stage)) return error('Invalid opportunity stage', 422);
     const probability = Math.min(Math.max(Number(body.probabilityPercentage || 10), 0), 100);
     if (!context.env.DB) return json({ id: makeId('opp'), created: true, demo: true }, 201);
+
     const project = await first(context.env.DB, 'SELECT id FROM projects WHERE tenant_id = ? AND id = ?', [tenantId, projectId]);
     if (!project) return error('Project not found in this workspace', 404);
+
     const id = makeId('opp');
+    const historyId = makeId('osh');
+    const auditId = makeId('aud');
     const now = nowIso();
-    await run(context.env.DB, `
-      INSERT INTO opportunities (
-        id, tenant_id, project_id, name, service_type, description, owner_user_id,
-        stage, estimated_value, currency, estimated_value_base_currency,
-        probability_percentage, expected_close_date, next_action, next_follow_up_at,
-        created_at, updated_at, created_by, updated_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [
-      id, tenantId, projectId, name, text(body.serviceType, 300), text(body.description, 10000),
-      auth.userId, stage, Number(body.estimatedValue || 0), text(body.currency, 10) || 'USD',
-      Number(body.estimatedValue || 0), probability, text(body.expectedCloseDate, 30),
-      text(body.nextAction, 2000), text(body.nextFollowUpAt, 100), now, now, auth.userId, auth.userId,
-    ]);
-    await run(context.env.DB, `INSERT INTO opportunity_stage_history (id, tenant_id, opportunity_id, previous_stage, new_stage, changed_by, changed_at, notes) VALUES (?, ?, ?, NULL, ?, ?, ?, 'Opportunity created')`, [makeId('osh'), tenantId, id, stage, auth.userId, now]);
+    const estimatedValue = Number(body.estimatedValue || 0);
+    const currency = text(body.currency, 10) || 'USD';
+    const statements = [
+      {
+        sql: `
+          INSERT INTO opportunities (
+            id, tenant_id, project_id, name, service_type, description, owner_user_id,
+            stage, estimated_value, currency, estimated_value_base_currency,
+            probability_percentage, expected_close_date, next_action, next_follow_up_at,
+            created_at, updated_at, created_by, updated_by
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `,
+        bindings: [
+          id, tenantId, projectId, name, text(body.serviceType, 300), text(body.description, 10000),
+          auth.userId, stage, estimatedValue, currency, estimatedValue, probability,
+          text(body.expectedCloseDate, 30), text(body.nextAction, 2000), text(body.nextFollowUpAt, 100),
+          now, now, auth.userId, auth.userId,
+        ],
+      },
+      {
+        sql: `INSERT INTO opportunity_stage_history (id, tenant_id, opportunity_id, previous_stage, new_stage, changed_by, changed_at, notes) VALUES (?, ?, ?, NULL, ?, ?, ?, 'Opportunity created')`,
+        bindings: [historyId, tenantId, id, stage, auth.userId, now],
+      },
+    ];
+
     if (!['WON','LOST','ON_HOLD'].includes(stage)) {
-      await run(context.env.DB, `UPDATE projects SET lifecycle_status = CASE WHEN lifecycle_status = 'LEAD' THEN 'ACTIVE_OPPORTUNITY' ELSE lifecycle_status END, updated_at = ?, updated_by = ? WHERE tenant_id = ? AND id = ?`, [now, auth.userId, tenantId, projectId]);
+      statements.push({
+        sql: `UPDATE projects SET lifecycle_status = CASE WHEN lifecycle_status = 'LEAD' THEN 'ACTIVE_OPPORTUNITY' ELSE lifecycle_status END, updated_at = ?, updated_by = ? WHERE tenant_id = ? AND id = ?`,
+        bindings: [now, auth.userId, tenantId, projectId],
+      });
     }
-    await run(context.env.DB, `INSERT INTO audit_logs (id, tenant_id, user_id, action, entity_type, entity_id, after_data, created_at) VALUES (?, ?, ?, 'OPPORTUNITY_CREATED', 'OPPORTUNITY', ?, ?, ?)`, [makeId('aud'), tenantId, auth.userId, id, JSON.stringify({ projectId, name, stage }), now]);
-    return json({ id, created: true }, 201);
+
+    statements.push({
+      sql: `INSERT INTO audit_logs (id, tenant_id, user_id, action, entity_type, entity_id, after_data, created_at) VALUES (?, ?, ?, 'OPPORTUNITY_CREATED', 'OPPORTUNITY', ?, ?, ?)`,
+      bindings: [auditId, tenantId, auth.userId, id, JSON.stringify({ projectId, name, stage }), now],
+    });
+
+    await executeWriteBatch(context.env.DB, statements);
+
+    const item = await savedOpportunity(context.env.DB, tenantId, id);
+    if (!item) {
+      throw persistenceError('Opportunity was not confirmed in the CRM database. Nothing was reported as created; please retry once.');
+    }
+
+    return json({ id, created: true, item }, 201);
   } catch (cause) {
     console.error('Opportunities POST error', cause);
     return error(cause.message || 'Opportunity could not be created', Number(cause.status || 500));
