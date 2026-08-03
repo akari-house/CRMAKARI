@@ -151,6 +151,40 @@ Fundraising knowledge and documents use one of four policies:
 
 This policy controls what can appear in message drafts, meeting briefs, diligence responses, agent context and investor-access views.
 
+### 3.8 Provider-neutral AI gateway
+
+AKARI supports both OpenAI models, presented in the product as **OpenAI · ChatGPT models**, and Anthropic models, presented as **Anthropic · Claude models**.
+
+The workspace chooses:
+
+- primary provider
+- optional fallback provider
+- model identifier for each provider
+- allowed proposal purposes
+- output-token limit
+
+Provider choice must not change the fundraising workflow, approval states, disclosure rules, audit model or stored business data. All providers operate through one governed proposal-only gateway.
+
+Credentials are Cloudflare secrets only:
+
+- `OPENAI_API_KEY`
+- `ANTHROPIC_API_KEY`
+
+Default model identifiers may be supplied through `OPENAI_MODEL` and `ANTHROPIC_MODEL`. Provider credentials must never be stored in D1, returned by an API, entered in a CRM form or committed to the repository.
+
+The AI gateway accepts only explicit governed context supplied by an authorised AKARI workflow. Disclosure policy is enforced before any provider call. Generated content remains a proposal requiring human review.
+
+AI must never directly:
+
+- send a message
+- grant data-room access
+- change CRM records
+- confirm a commitment
+- allocate or reconcile funds
+- close a fundraising round
+
+Audit records retain provider, model, purpose, disclosure policy, fallback usage, provider request reference and hashes of the input/output. Raw prompts and generated text are not copied into the general audit log.
+
 ## 4. Normalized D1 model
 
 Migration `0002_fundraising_intelligence.sql` introduces tenant-scoped tables:
@@ -191,6 +225,8 @@ No automatic conversion may run during a Pages deployment.
 
 ## 6. API boundary
 
+### 6.1 Fundraising intelligence
+
 The first normalized API is `/api/fundraising/intelligence`.
 
 GET:
@@ -210,6 +246,21 @@ POST is restricted to Owner, Admin and BD Manager and initially supports:
 - governed target stage movement
 
 Finance-sensitive commitments, allocation, funds received and closing continue to require finance access.
+
+### 6.2 AI provider controls
+
+`GET /api/ai/providers` returns the tenant's public provider configuration, model identifiers and provider readiness without exposing secrets.
+
+`POST /api/ai/providers` is restricted to Owner and Admin. It updates the tenant's provider choice, fallback policy, model identifiers, enabled purposes and output limit. The endpoint rejects any submitted API-key field.
+
+`POST /api/ai/propose` is restricted to Owner, Admin and BD Manager. It:
+
+- validates purpose and disclosure policy
+- calls the configured primary provider
+- uses the configured fallback only for provider availability, rate-limit or server failures
+- returns proposal text with `approvalRequired: true`
+- records metadata and content hashes in the audit log
+- does not mutate fundraising or CRM records
 
 ## 7. Audit and security
 
@@ -249,6 +300,16 @@ AKARI stores source-specific rights and redistribution status for each investor 
 - round economics
 - tenant and permission tests
 - backend technical paper
+
+### Release 6.2A.1 — dual AI provider gateway
+
+- OpenAI and Anthropic provider choices
+- optional provider fallback
+- Cloudflare-secret credential boundary
+- tenant-scoped provider settings
+- disclosure-aware proposal endpoint
+- metadata-only AI audit records
+- Settings interface and mobile acceptance
 
 ### Release 6.2B — Investor Universe
 
