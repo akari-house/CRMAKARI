@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const ACTIVE_STAGES = [
+  const CORE_STAGES = [
     'NEW',
     'RESEARCH',
     'CONTACTED',
@@ -10,10 +10,10 @@
     'QUALIFIED',
     'PROPOSAL',
     'NEGOTIATION',
-    'VERBAL_CONFIRMATION',
-    'ON_HOLD',
   ];
-  const ALL_STAGES = [...ACTIVE_STAGES.slice(0, 8), 'VERBAL_CONFIRMATION', 'WON', 'LOST', 'ON_HOLD'];
+  const CONDITIONAL_STAGES = ['VERBAL_CONFIRMATION', 'ON_HOLD'];
+  const ACTIVE_STAGES = [...CORE_STAGES, ...CONDITIONAL_STAGES];
+  const ALL_STAGES = [...CORE_STAGES, 'VERBAL_CONFIRMATION', 'WON', 'LOST', 'ON_HOLD'];
   const mountedPipelines = new WeakSet();
   let scheduled = false;
 
@@ -166,8 +166,10 @@
         .filter((item) => !['WON', 'LOST'].includes(item.stage)
           && !String(item.service_type || '').trim().toUpperCase().includes('FUNDRAISING'));
 
+      const populatedConditionalStages = CONDITIONAL_STAGES.filter((stage) => activeCommercial.some((item) => item.stage === stage));
+      const visibleStages = [...CORE_STAGES, ...populatedConditionalStages];
       const fragment = document.createDocumentFragment();
-      for (const stage of ACTIVE_STAGES) {
+      for (const stage of visibleStages) {
         fragment.appendChild(createStageColumn(stage, activeCommercial.filter((item) => item.stage === stage)));
       }
       pipeline.replaceChildren(fragment);
