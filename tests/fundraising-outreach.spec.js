@@ -54,7 +54,7 @@ test('controlled outreach clearly separates AI proposals approvals and manual se
   await expect(page.getByText('Human approval controls are active')).toBeVisible();
   await expect(page.getByText(/AKARI never sends the message automatically/i)).toBeVisible();
   const draftCard=page.locator('[data-fo20-draft="draft_a"]');
-  await expect(draftCard.getByText('OpenAI · gpt-model',{exact:true})).toBeVisible();
+  await expect(draftCard.getByText('OPENAI · gpt-model',{exact:true})).toBeVisible();
   await expect(draftCard.getByText('Founder',{exact:true})).toBeVisible();
   await expect(draftCard.getByText('AKARI',{exact:true})).toBeVisible();
   await expect(draftCard.locator('[data-fo20-action="mark-sent"]')).toBeVisible();
