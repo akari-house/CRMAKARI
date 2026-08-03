@@ -68,7 +68,7 @@ test('Settings exposes production checks, tenant backup and controlled sign-off'
   await expect(page.locator('.pr15-score')).toContainText('64%');
   await expect(page.getByText('895 project and relationship records are visible.')).toBeVisible();
   await expect(page.locator('[data-pr15-export]')).toHaveAttribute('href', '/api/tenant-export');
-  await expect(page.getByText('OWNER')).toBeVisible();
+  await expect(page.locator('.pr15-role b', { hasText:/^OWNER$/ })).toBeVisible();
 
   const card = page.locator('[data-pr15-signoff="accessBoundary"]');
   await card.locator('[data-pr15-completed]').check();
@@ -87,7 +87,8 @@ test('Settings exposes production checks, tenant backup and controlled sign-off'
 test('production readiness remains usable without page-level mobile overflow', async ({ page }) => {
   await page.setViewportSize({ width:390, height:844 });
   await boot(page);
-  await page.locator('[data-route="settings"]').first().click();
+  await page.goto('/app/akari-house/settings');
+  await expect(page.getByRole('heading', { name:'Settings & Profile' })).toBeVisible();
   await expect(page.getByRole('heading', { name:'Production readiness' })).toBeVisible();
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(1);
