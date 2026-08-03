@@ -1,0 +1,108 @@
+/* AKARI CRM billing layout R25: exact live form markup, non-overlapping field geometry. */
+
+#modal-root .ops-billing-profile-modal .ops-billing-section__grid {
+  grid-auto-flow: row !important;
+  grid-auto-rows: max-content !important;
+  align-items: start !important;
+  row-gap: 19px !important;
+  column-gap: 18px !important;
+}
+
+/* The live CRM renders each control as .form-group > label + control.
+   Use an explicit vertical stack and remove any inherited fixed sizing. */
+#modal-root .ops-billing-profile-modal .ops-billing-section__grid > :is(.form-group, .field) {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  gap: 8px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  align-self: start !important;
+  position: relative !important;
+  contain: none !important;
+}
+
+#modal-root .ops-billing-profile-modal .ops-billing-section__grid > .form-group > label,
+#modal-root .ops-billing-profile-modal .ops-billing-section__grid > .field > span {
+  display: block !important;
+  flex: 0 0 auto !important;
+  position: static !important;
+  inset: auto !important;
+  transform: none !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: 17px !important;
+  margin: 0 !important;
+  padding: 0 1px !important;
+  color: #c8ced8 !important;
+  font-size: 12px !important;
+  font-weight: 720 !important;
+  line-height: 1.4 !important;
+  letter-spacing: .005em !important;
+  white-space: normal !important;
+  pointer-events: none !important;
+}
+
+#modal-root .ops-billing-profile-modal .ops-billing-section__grid > :is(.form-group, .field) > :is(input, select, textarea, .ak-combobox) {
+  flex: 0 0 auto !important;
+  position: static !important;
+  inset: auto !important;
+  transform: none !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+}
+
+#modal-root .ops-billing-profile-modal .ops-billing-section__grid > :is(.form-group, .field) > :is(input, select, textarea) {
+  min-height: 47px !important;
+  padding: 12px 13px !important;
+  border: 1px solid #303a48 !important;
+  border-radius: 10px !important;
+  background: #080d14 !important;
+  color: #f6f8fb !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.015) !important;
+}
+
+#modal-root .ops-billing-profile-modal .ops-billing-section__grid > :is(.form-group, .field) > :is(input, select, textarea):focus {
+  border-color: #f5bd3f !important;
+  box-shadow: 0 0 0 3px rgba(245,189,63,.12) !important;
+}
+
+#modal-root .ops-billing-profile-modal .ops-billing-section__grid > :is(.form-group, .field) > small {
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+}
+
+#modal-root .ops-billing-profile-modal .ops-billing-section--address .ops-billing-section__grid > :is(.form-group, .field):has([name="phone"]),
+#modal-root .ops-billing-profile-modal .ops-billing-section__grid > :is(.form-group, .field):has([name="logoUrl"]),
+#modal-root .ops-billing-profile-modal .ops-billing-section__grid > :is(.form-group, .field):has([name="addressLine1"]),
+#modal-root .ops-billing-profile-modal .ops-billing-section__grid > :is(.form-group, .field):has([name="addressLine2"]),
+#modal-root .ops-billing-profile-modal .ops-billing-section__grid > :is(.form-group, .field):has([name="paymentInstructions"]) {
+  grid-column: 1 / -1 !important;
+}
+
+#modal-root .ops-billing-profile-modal .ops-billing-section {
+  padding: 18px 18px 20px !important;
+}
+
+#modal-root .ops-billing-profile-modal .ops-billing-section > header {
+  margin-bottom: 17px !important;
+}
+
+@media (max-width: 760px) {
+  #modal-root .ops-billing-profile-modal .ops-billing-section__grid {
+    grid-template-columns: 1fr !important;
+    row-gap: 17px !important;
+  }
+
+  #modal-root .ops-billing-profile-modal .ops-billing-section__grid > :is(.form-group, .field) {
+    grid-column: auto !important;
+  }
+}
