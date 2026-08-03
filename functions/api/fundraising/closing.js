@@ -11,6 +11,7 @@ import {
 } from '../../lib/fundraising-closing.js';
 
 const TECHNICAL_DB_ERROR = /(no such table|no such column|D1_ERROR|SQLITE_ERROR|database is locked|SQLITE_BUSY)/i;
+const FINANCE_ACTIONS = new Set(['save-commitment','record-funds','cancel-commitment','close-round']);
 
 function permissions(auth) {
   return {
@@ -54,6 +55,10 @@ export async function onRequestPost(context) {
     requireRole(auth, CLOSING_WRITE_ROLES);
     if (!context.env.DB) return error('D1 binding DB is not configured', 500);
     const body = await readJson(context.request);
+    const action = String(body.action || '').trim().toLowerCase();
+    if (FINANCE_ACTIONS.has(action) && !canViewFinance(auth)) {
+      return error('Finance permission is required for commitments, allocation, funds and closing', 403);
+    }
     return json(await executeClosingAction(context.env.DB, auth, tenantId, body));
   } catch (cause) {
     console.error('Fundraising closing write failed', cause);
