@@ -1,17 +1,68 @@
-import {json,error,readJson} from '../../lib/response.js';
-import {first,run,makeId,nowIso} from '../../lib/db.js';
-import {requireTenant,canViewFinance} from '../../lib/permissions.js';
-import {parseFundraisingFlags} from '../../lib/fundraising-os.js';
-const WRITE_ROLES=new Set(['OWNER','ADMIN','BD_MANAGER']);
-const FINANCE_ACTIONS=new Set(['upsert-commitment','record-funds','close-round']);
-const text=(v,m=2000)=>String(v??'').trim().slice(0,m);const number=v=>Math.max(0,Number(v||0));
-async function settings(db,tenantId){return first(db,'SELECT feature_flags_json FROM tenant_settings WHERE tenant_id = ? LIMIT 1',[tenantId]);}
-async function persist(db,auth,tenantId,flags,action,entityId,before,after){const payload=JSON.stringify(flags);const row=await settings(db,tenantId);if(row)await run(db,'UPDATE tenant_settings SET feature_flags_json = ?, updated_at = ? WHERE tenant_id = ?',[payload,nowIso(),tenantId]);else await run(db,'INSERT INTO tenant_settings (tenant_id,feature_flags_json,created_at,updated_at) VALUES (?, ?, ?, ?)',[tenantId,payload,nowIso(),nowIso()]);await run(db,"INSERT INTO audit_logs (id,tenant_id,user_id,action,entity_type,entity_id,before_data,after_data,created_at) VALUES (?, ?, ?, ?, 'FUNDRAISING_CLOSING', ?, ?, ?, ?)",[makeId('aud'),tenantId,auth.userId,action,entityId,JSON.stringify(before||{}),JSON.stringify(after||{}),nowIso()]);}
-function decorate(room){const commitments=Array.isArray(room.commitments)?room.commitments:[];const updates=Array.isArray(room.investorUpdates)?room.investorUpdates:[];const allocated=commitments.reduce((s,x)=>s+number(x.allocatedAmount),0);const committed=commitments.reduce((s,x)=>s+number(x.committedAmount),0);const received=commitments.reduce((s,x)=>s+number(x.receivedAmount),0);return{commitments,updates,summary:{investors:commitments.length,committed,allocated,received,remaining:Math.max(number(room.targetAmount)-received,0),fullyFunded:number(room.targetAmount)>0&&received>=number(room.targetAmount)}};}
-export async function onRequestGet(context){try{const auth=context.data.auth;const tenantId=requireTenant(auth);if(!context.env.DB)return error('D1 binding DB is not configured',500);const row=await settings(context.env.DB,tenantId);const {rooms}=parseFundraisingFlags(row?.feature_flags_json);return json({items:rooms.map(room=>({...room,...decorate(room)})),permissions:{canWrite:WRITE_ROLES.has(auth?.role),canFinance:canViewFinance(auth)}});}catch(cause){return error(cause.message||'Fundraising closing workspace could not be loaded',Number(cause.status||500));}}
-export async function onRequestPost(context){try{const auth=context.data.auth;const tenantId=requireTenant(auth);if(!WRITE_ROLES.has(auth?.role))return error('Owner, Admin or BD Manager permission is required',403);const body=await readJson(context.request);const action=text(body.action,80).toLowerCase();if(FINANCE_ACTIONS.has(action)&&!canViewFinance(auth))return error('Finance permission is required for commitments, funds received and round closing',403);if(!context.env.DB)return json({updated:true,demo:true});const row=await settings(context.env.DB,tenantId);const parsed=parseFundraisingFlags(row?.feature_flags_json);const roomIndex=parsed.rooms.findIndex(r=>r.id===text(body.roomId,120));if(roomIndex<0)return error('Capital Room was not found in this workspace',404);const room={...parsed.rooms[roomIndex],commitments:Array.isArray(parsed.rooms[roomIndex].commitments)?[...parsed.rooms[roomIndex].commitments]:[],investorUpdates:Array.isArray(parsed.rooms[roomIndex].investorUpdates)?[...parsed.rooms[roomIndex].investorUpdates]:[]};
-if(action==='upsert-commitment'){const input=body.item||{};const investor=room.investorPipeline?.find(x=>x.id===text(input.investorPipelineId,120));if(!investor)return error('Investor must exist in this Capital Room pipeline',422);const idx=room.commitments.findIndex(x=>x.id===input.id||x.investorPipelineId===investor.id);const existing=idx>=0?room.commitments[idx]:{};const item={id:text(existing.id||input.id||`commit_${crypto.randomUUID()}`,120),investorPipelineId:investor.id,investorName:investor.investorName,status:text(input.status||existing.status||'SOFT',40).toUpperCase(),committedAmount:number(input.committedAmount??existing.committedAmount),allocatedAmount:number(input.allocatedAmount??existing.allocatedAmount),receivedAmount:number(existing.receivedAmount),instrument:text(input.instrument||existing.instrument||room.roundType,100),signedInstrumentUrl:text(input.signedInstrumentUrl||existing.signedInstrumentUrl,2000),signedAt:text(input.signedAt||existing.signedAt,100),closingDate:text(input.closingDate||existing.closingDate,40),notes:text(input.notes||existing.notes,4000),updatedAt:nowIso(),createdAt:existing.createdAt||nowIso()};if(item.allocatedAmount>item.committedAmount)return error('Allocated amount cannot exceed committed amount',422);if(idx>=0)room.commitments[idx]=item;else room.commitments.push(item);parsed.rooms[roomIndex]=room;parsed.flags.fundraisingCapitalRooms=parsed.rooms;await persist(context.env.DB,auth,tenantId,parsed.flags,idx>=0?'COMMITMENT_UPDATED':'COMMITMENT_CREATED',item.id,existing,item);return json({updated:true,item,...decorate(room)});}
-if(action==='record-funds'){const idx=room.commitments.findIndex(x=>x.id===text(body.itemId,120));if(idx<0)return error('Commitment was not found',404);const before={...room.commitments[idx]};const receivedAmount=number(body.receivedAmount);if(receivedAmount>number(before.allocatedAmount||before.committedAmount))return error('Funds received cannot exceed the investor allocation',422);room.commitments[idx]={...before,receivedAmount,status:receivedAmount>=number(before.allocatedAmount||before.committedAmount)?'FUNDED':'PARTIALLY_FUNDED',fundsReceivedAt:text(body.fundsReceivedAt||nowIso(),100),transactionReference:text(body.transactionReference,500),updatedAt:nowIso()};parsed.rooms[roomIndex]=room;parsed.flags.fundraisingCapitalRooms=parsed.rooms;await persist(context.env.DB,auth,tenantId,parsed.flags,'FUNDS_RECEIVED_RECORDED',before.id,before,room.commitments[idx]);return json({updated:true,item:room.commitments[idx],...decorate(room)});}
-if(action==='close-round'){const state=decorate(room);if(state.summary.received<=0)return error('Round cannot close before funds are received',422);if(room.diligenceRequests?.some(x=>!['RESOLVED','CLOSED'].includes(x.status)))return error('Resolve open due-diligence requests before closing the round',422);room.stage='CLOSED';room.closedAt=text(body.closedAt||nowIso(),100);room.finalRaiseAmount=state.summary.received;room.closingNotes=text(body.closingNotes,8000);room.updatedAt=nowIso();parsed.rooms[roomIndex]=room;parsed.flags.fundraisingCapitalRooms=parsed.rooms;await persist(context.env.DB,auth,tenantId,parsed.flags,'FUNDRAISING_ROUND_CLOSED',room.id,parsed.rooms[roomIndex],room);return json({updated:true,room,...decorate(room)});}
-if(action==='upsert-update'){const input=body.item||{};const idx=room.investorUpdates.findIndex(x=>x.id===input.id);const existing=idx>=0?room.investorUpdates[idx]:{};const item={id:text(existing.id||input.id||`update_${crypto.randomUUID()}`,120),title:text(input.title||existing.title,500),period:text(input.period||existing.period,100),status:text(input.status||existing.status||'DRAFT',40).toUpperCase(),summary:text(input.summary||existing.summary,8000),kpis:text(input.kpis||existing.kpis,8000),asks:text(input.asks||existing.asks,4000),documentUrl:text(input.documentUrl||existing.documentUrl,2000),publishedAt:text(input.publishedAt||existing.publishedAt,100),updatedAt:nowIso(),createdAt:existing.createdAt||nowIso()};if(idx>=0)room.investorUpdates[idx]=item;else room.investorUpdates.push(item);parsed.rooms[roomIndex]=room;parsed.flags.fundraisingCapitalRooms=parsed.rooms;await persist(context.env.DB,auth,tenantId,parsed.flags,idx>=0?'INVESTOR_UPDATE_UPDATED':'INVESTOR_UPDATE_CREATED',item.id,existing,item);return json({updated:true,item,...decorate(room)});}
-return error('Fundraising closing action is not supported',404);}catch(cause){return error(cause.message||'Fundraising closing action failed',Number(cause.status||500));}}
+import { json, error, readJson } from '../../lib/response.js';
+import { requireTenant, requireRole, canViewFinance } from '../../lib/permissions.js';
+import {
+  closingSnapshot,
+  executeClosingAction,
+  CLOSING_WRITE_ROLES,
+  CLOSING_APPROVAL_ROLES,
+  COMMITMENT_STATUSES,
+  UPDATE_STATUSES,
+  PAYMENT_RAILS,
+} from '../../lib/fundraising-closing.js';
+
+const TECHNICAL_DB_ERROR = /(no such table|no such column|D1_ERROR|SQLITE_ERROR|database is locked|SQLITE_BUSY)/i;
+const FINANCE_ACTIONS = new Set(['save-commitment','record-funds','cancel-commitment','close-round']);
+
+function permissions(auth) {
+  return {
+    canWrite: CLOSING_WRITE_ROLES.includes(auth?.role),
+    canApprove: CLOSING_APPROVAL_ROLES.includes(auth?.role),
+    canFinance: canViewFinance(auth),
+  };
+}
+
+export async function onRequestGet(context) {
+  try {
+    const auth = context.data.auth;
+    const tenantId = requireTenant(auth);
+    if (!context.env.DB) return error('D1 binding DB is not configured', 500);
+    const snapshot = await closingSnapshot(context.env.DB, tenantId);
+    return json({
+      ...snapshot,
+      permissions: permissions(auth),
+      controls: {
+        commitmentStatuses: COMMITMENT_STATUSES,
+        updateStatuses: UPDATE_STATUSES,
+        paymentRails: PAYMENT_RAILS,
+      },
+      ai: {
+        required: false,
+        enabled: false,
+        message: 'AI is optional. Commitments, closing and investor updates work fully in manual mode.',
+      },
+    });
+  } catch (cause) {
+    console.error('Fundraising closing read failed', cause);
+    const message = String(cause?.message || '');
+    return error(TECHNICAL_DB_ERROR.test(message) ? 'Fundraising closing could not be loaded' : (message || 'Fundraising closing could not be loaded'), Number(cause?.status || 500));
+  }
+}
+
+export async function onRequestPost(context) {
+  try {
+    const auth = context.data.auth;
+    const tenantId = requireTenant(auth);
+    requireRole(auth, CLOSING_WRITE_ROLES);
+    if (!context.env.DB) return error('D1 binding DB is not configured', 500);
+    const body = await readJson(context.request);
+    const action = String(body.action || '').trim().toLowerCase();
+    if (FINANCE_ACTIONS.has(action) && !canViewFinance(auth)) {
+      return error('Finance permission is required for commitments, allocation, funds and closing', 403);
+    }
+    return json(await executeClosingAction(context.env.DB, auth, tenantId, body));
+  } catch (cause) {
+    console.error('Fundraising closing write failed', cause);
+    const message = String(cause?.message || '');
+    return error(TECHNICAL_DB_ERROR.test(message) ? 'Fundraising closing action failed' : (message || 'Fundraising closing action failed'), Number(cause?.status || 500));
+  }
+}
