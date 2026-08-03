@@ -9,7 +9,6 @@ class FakeDB{
 function context({db,body,role='OWNER',financeAccess=true,tenantId='tenant_a'}){return{env:{DB:db},data:{auth:{userId:'user_a',tenantId,tenantSlug:'tenant-a',role,financeAccess}},request:new Request('https://crm.test/api/fundraising/closing',body===undefined?{}:{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)})};}
 const round={id:'round_a',tenant_id:'tenant_a',project_id:'project_a',project_name:'Founder A',round_name:'Seed',stage:'COMMITMENTS',instrument:'SAFE',currency:'USD',target_amount:500000,valuation:5000000,owner_user_id:'user_a',source_model:'NORMALIZED',updated_at:'2026-08-03T10:00:00.000Z'};
 const commitment={id:'commit_a',tenant_id:'tenant_a',round_id:'round_a',target_id:'target_a',status:'SIGNED',committed_amount:250000,allocated_amount:200000,received_amount:100000,currency:'USD',instrument:'SAFE',signed_document_url:'https://docs.example/safe',signed_at:'2026-08-02T10:00:00.000Z',investor_name:'North Star Ventures',person_name:'Alex Partner',created_at:'2026-08-01T10:00:00.000Z',updated_at:'2026-08-03T10:00:00.000Z'};
-const target={id:'target_a',tenant_id:'tenant_a',round_id:'round_a',organisation_id:'org_a',investor_name:'North Star Ventures'};
 const normalized=(method,call)=>{
   if(method==='first'&&/SELECT id FROM fundraising_rounds/.test(call.sql))return{id:'round_a'};
   return undefined;
@@ -40,12 +39,12 @@ test('closing writes reject non-manager roles before database access',async()=>{
   assert.equal(db.calls.length,0);
 });
 
-test('commitment and funds actions require finance access',async()=>{
-  const db=new FakeDB((method,call)=>normalized(method,call)??null);
-  const response=await onRequestPost(context({db,financeAccess:false,body:{action:'save-commitment',roundId:'round_a',targetId:'target_a'}}));
+test('commitment and funds actions require finance access before database access',async()=>{
+  const db=new FakeDB(()=>{throw new Error('database must not be queried');});
+  const response=await onRequestPost(context({db,role:'BD_MANAGER',financeAccess:false,body:{action:'save-commitment',roundId:'round_a',targetId:'target_a'}}));
   assert.equal(response.status,403);
   assert.match((await response.json()).error,/Finance permission is required/i);
-  assert.equal(db.calls.some(call=>/INSERT INTO fundraising_commitments/.test(call.sql)),false);
+  assert.equal(db.calls.length,0);
 });
 
 test('normalized commitment target must belong to the selected tenant round',async()=>{
