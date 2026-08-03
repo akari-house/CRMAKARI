@@ -93,7 +93,10 @@ test('live billing form groups keep labels and controls in non-overlapping verti
   await page.addStyleTag({ url: '/assets/billing-layout-r25.css?v=1' });
   await page.addScriptTag({ url: '/assets/launch-hardening-r13.js?v=1' });
 
-  await expect(page.locator('.ops-billing-section')).toHaveCount(4);
+  await expect(page.getByText('Organisation identity', { exact: true })).toBeVisible();
+  await expect(page.getByText('Address and contact', { exact: true })).toBeVisible();
+  await expect(page.getByText('Tax and payment details', { exact: true })).toBeVisible();
+  await expect(page.getByText('Invoice defaults', { exact: true })).toBeVisible();
 
   const geometry = await page.evaluate(() => {
     const groups = [...document.querySelectorAll('.ops-billing-section__grid > .form-group')];
