@@ -1,0 +1,145 @@
+name: Release fundraising targeting R19
+
+on:
+  push:
+    branches:
+      - build/fundraising-targeting-intros-r19
+
+permissions:
+  contents: write
+  pull-requests: write
+  statuses: write
+
+concurrency:
+  group: release-fundraising-targeting-r19
+  cancel-in-progress: false
+
+jobs:
+  validate-and-merge:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: build/fundraising-targeting-intros-r19
+          fetch-depth: 0
+
+      - name: Ensure Release 6.2C is registered
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          package_path = Path('package.json')
+          package = json.loads(package_path.read_text())
+          package['version'] = '0.3.2'
+          validate = package['scripts']['validate']
+          universe = 'node scripts/validate-investor-universe.mjs'
+          targeting = 'node scripts/validate-fundraising-targeting.mjs'
+          if targeting not in validate:
+              validate = validate.replace(universe, f'{universe} && {targeting}')
+          package['scripts']['validate'] = validate
+          package_path.write_text(json.dumps(package, indent=2) + '\n')
+
+          shell_path = Path('public/app/index.html')
+          shell = shell_path.read_text()
+          css_anchor = '<link rel="stylesheet" href="/assets/investor-universe-r18.css?v=1">'
+          css_asset = '<link rel="stylesheet" href="/assets/fundraising-targeting-r19.css?v=1">'
+          if css_asset not in shell:
+              shell = shell.replace(css_anchor, css_anchor + css_asset)
+          js_anchor = '<script defer src="/assets/investor-universe-r18.js?v=1"></script>'
+          js_asset = '<script defer src="/assets/fundraising-targeting-r19.js?v=1"></script>'
+          if js_asset not in shell:
+              shell = shell.replace(js_anchor, js_anchor + js_asset)
+          shell_path.write_text(shell)
+
+          worker_path = Path('public/sw.js')
+          worker = worker_path.read_text()
+          css_anchor = "'./assets/investor-universe-r18.css?v=1'"
+          css_asset = "'./assets/fundraising-targeting-r19.css?v=1'"
+          if css_asset not in worker:
+              worker = worker.replace(css_anchor, css_anchor + ',' + css_asset)
+          js_anchor = "'./assets/investor-universe-r18.js?v=1'"
+          js_asset = "'./assets/fundraising-targeting-r19.js?v=1'"
+          if js_asset not in worker:
+              worker = worker.replace(js_anchor, js_anchor + ',' + js_asset)
+          worker_path.write_text(worker)
+
+          paper_path = Path('docs/BACKEND_TECHNICAL_PAPER.md')
+          paper = paper_path.read_text()
+          section = '''
+
+## 11. Release 6.2C — investor targeting and warm introductions
+
+Release 6.2C adds the tenant-scoped `/api/fundraising/targeting` execution layer and its Fundraising workspace.
+
+The targeting model keeps AKARI's private expected cheque separate from published cheque evidence. Published ranges remain evidence-backed investor claims; expected cheque, probability and priority remain internal round-planning values.
+
+The controlled target lifecycle is:
+
+```text
+RESEARCHING
+→ READY
+→ INTRO_REQUESTED / CONTACTED
+→ MEETING
+→ DILIGENCE / PARTNER_MEETING
+→ SOFT_CIRCLE
+→ COMMITTED
+```
+
+Passed and not-now outcomes require reasons. A target cannot move to `INTRO_REQUESTED` without a verified introduction path and granted consent.
+
+Warm introduction paths keep separate states for relationship verification, relationship strength, evidence, connector ownership, consent, request status and completion outcome. A verified introduction path is not inferred from social proximity; it requires explicit evidence or a written verification note.
+
+Consent is tracked independently. Final granted, declined or revoked decisions require Owner/Admin authority and a written note. Introduction request status cannot bypass verification or consent.
+
+Focused work queues surface overdue follow-ups, work due this week, research gaps, consent requirements, introduction-ready investors, high-fit targets without an action and soft-circled/committed capital.
+
+Follow-up execution creates a tenant-scoped Work OS follow-up task linked to the founder project and fundraising target. Duplicate open work is blocked by default.
+
+Before migration 0002, existing Capital Room targets remain visible in read-only compatibility mode. No targeting conversion, consent mutation, task creation or normalized write runs automatically during a Pages deployment.
+'''
+          if '## 11. Release 6.2C — investor targeting and warm introductions' not in paper:
+              paper += section
+          paper_path.write_text(paper)
+          PY
+
+      - name: Install dependencies and validate source
+        run: |
+          npm install
+          npm run validate
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run complete browser acceptance
+        run: npm run test:ui
+
+      - name: Commit tested integration and remove temporary workflows
+        run: |
+          git rm --ignore-unmatch .github/workflows/integrate-fundraising-targeting-r19.yml
+          git rm --ignore-unmatch .github/workflows/release-fundraising-targeting-r19.yml
+          git config user.name "AKARI Release Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add package.json public/app/index.html public/sw.js docs/BACKEND_TECHNICAL_PAPER.md
+          if ! git diff --cached --quiet; then
+            git commit -m "Finalize fundraising targeting and introduction controls"
+            git push origin HEAD:build/fundraising-targeting-intros-r19
+          fi
+
+      - name: Mark tested head and merge pull request
+        run: |
+          SHA=$(git rev-parse HEAD)
+          PR_NUMBER=$(gh pr list --repo "$GITHUB_REPOSITORY" --head build/fundraising-targeting-intros-r19 --base main --state open --json number --jq '.[0].number')
+          test -n "$PR_NUMBER"
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$SHA" \
+            -f state=success \
+            -f context='release/r19' \
+            -f description='Release 6.2C full source, tenant and browser gates passed'
+          gh api --method PUT "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/merge" \
+            -f merge_method=squash \
+            -f sha="$SHA" \
+            -f commit_title='Add investor targeting, warm introductions and consent controls' \
+            -f commit_message='Ship Release 6.2C with round targeting, private expected cheques, verified warm paths, explicit consent, controlled introduction requests, focused follow-up queues and linked Work OS tasks. No migration, automatic outreach or Capital Room conversion.'
