@@ -104,7 +104,7 @@ test('Investor Universe exposes organisations people evidence and review workflo
 
   await page.locator('[data-iu18-tab="people"]').click();
   await expect(page.getByText('Alex Partner')).toBeVisible();
-  await expect(page.getByText('Decision maker')).toBeVisible();
+  await expect(page.getByText('Decision maker', { exact:true })).toBeVisible();
   await expect(page.getByText('Private contact recorded')).toBeVisible();
   await expect(page.getByText('alex@northstar.example')).toHaveCount(0);
 
