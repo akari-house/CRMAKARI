@@ -1,0 +1,269 @@
+#modal-root .modal.ops-invoice-modal-r27 {
+  width: min(1100px, calc(100vw - 32px));
+  max-height: min(880px, calc(100vh - 32px));
+  overflow: hidden;
+}
+
+#modal-root .ops-invoice-modal-r27 > form {
+  display: flex;
+  min-height: 0;
+  max-height: inherit;
+  flex-direction: column;
+}
+
+#modal-root .ops-invoice-modal-r27 .modal-head,
+#modal-root .ops-invoice-modal-r27 .modal-foot {
+  position: relative;
+  z-index: 3;
+  flex: 0 0 auto;
+  background: #0d121b;
+}
+
+#modal-root .ops-invoice-modal-r27 .modal-head {
+  min-height: 104px;
+  align-items: flex-start;
+  padding: 24px 28px 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+#modal-root .ops-invoice-modal-r27 .modal-head h2 {
+  margin: 4px 0 0;
+  line-height: 1.15;
+}
+
+#modal-root .ops-invoice-modal-r27 .modal-head p {
+  max-width: 720px;
+  margin: 8px 0 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+#modal-root .ops-invoice-modal-r27 .modal-body {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 24px 28px 30px;
+  scroll-padding-top: 24px;
+}
+
+#modal-root .ops-invoice-modal-r27 .modal-foot {
+  min-height: 76px;
+  padding: 14px 28px;
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -16px 40px rgba(0,0,0,.22);
+}
+
+#modal-root .ops-invoice-modal-r27 .form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 22px;
+  align-items: start;
+}
+
+#modal-root .ops-invoice-modal-r27 label.field {
+  display: flex !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  height: auto !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  gap: 8px !important;
+  color: var(--text) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+#modal-root .ops-invoice-modal-r27 label.field.full {
+  grid-column: 1 / -1;
+}
+
+#modal-root .ops-invoice-modal-r27 label.field > span {
+  position: static !important;
+  display: block !important;
+  width: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: #c4cad6 !important;
+  font-size: 11px !important;
+  font-weight: 760 !important;
+  line-height: 1.35 !important;
+  letter-spacing: 0 !important;
+  transform: none !important;
+}
+
+#modal-root .ops-invoice-modal-r27 label.field > input,
+#modal-root .ops-invoice-modal-r27 label.field > select,
+#modal-root .ops-invoice-modal-r27 label.field > textarea,
+#modal-root .ops-invoice-modal-r27 label.field > .ak-combobox {
+  position: static !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  transform: none !important;
+}
+
+#modal-root .ops-invoice-modal-r27 label.field > input,
+#modal-root .ops-invoice-modal-r27 label.field > select,
+#modal-root .ops-invoice-modal-r27 label.field > textarea,
+#modal-root .ops-invoice-modal-r27 .ak-combobox__trigger {
+  min-height: 46px !important;
+  padding: 10px 13px !important;
+  border: 1px solid var(--line-strong) !important;
+  border-radius: 10px !important;
+  color: var(--text) !important;
+  background: #0b1018 !important;
+}
+
+#modal-root .ops-invoice-modal-r27 label.field > textarea {
+  min-height: 92px !important;
+  resize: vertical;
+}
+
+#modal-root .ops-invoice-modal-r27 label.field > input:focus,
+#modal-root .ops-invoice-modal-r27 label.field > select:focus,
+#modal-root .ops-invoice-modal-r27 label.field > textarea:focus,
+#modal-root .ops-invoice-modal-r27 .ak-combobox__trigger:focus {
+  border-color: rgba(255,176,32,.75) !important;
+  box-shadow: 0 0 0 3px rgba(255,176,32,.11) !important;
+  outline: 0 !important;
+}
+
+#modal-root .ops-invoice-modal-r27 .ops-invoice-section-intro {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  margin: 0 0 16px;
+}
+
+#modal-root .ops-invoice-modal-r27 .ops-invoice-section-intro strong {
+  display: block;
+  color: var(--text);
+  font-size: 13px;
+}
+
+#modal-root .ops-invoice-modal-r27 .ops-invoice-section-intro span {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted-2);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+#modal-root .ops-invoice-modal-r27 .ops-section-title {
+  margin-top: 30px;
+}
+
+#modal-root .ops-invoice-modal-r27 .table-shell {
+  overflow-x: auto;
+  border-color: var(--line-strong);
+}
+
+#modal-root .ops-invoice-modal-r27 .ops-lines {
+  min-width: 760px;
+}
+
+#modal-root .ops-invoice-modal-r27 .ops-lines th {
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+#modal-root .ops-invoice-modal-r27 .ops-lines td {
+  vertical-align: middle;
+}
+
+#modal-root .ops-invoice-modal-r27 .ops-invoice-options {
+  grid-template-columns: minmax(0,1fr) minmax(280px, 330px);
+  gap: 26px;
+  margin-top: 24px;
+}
+
+#modal-root .ops-invoice-modal-r27 .ops-tax-mode-field {
+  grid-column: 1 / -1;
+  padding: 14px !important;
+  border: 1px solid rgba(255,176,32,.22) !important;
+  border-radius: 12px !important;
+  background: rgba(255,176,32,.055) !important;
+}
+
+#modal-root .ops-invoice-modal-r27 .ops-tax-mode-field small {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+#modal-root .ops-invoice-modal-r27 .ops-tax-mode-field select {
+  background: #0b1018 !important;
+}
+
+#modal-root .ops-invoice-modal-r27 .ops-tax-disabled {
+  opacity: .58;
+}
+
+#modal-root .ops-invoice-modal-r27 .ops-tax-disabled input {
+  cursor: not-allowed;
+}
+
+#modal-root .ops-invoice-modal-r27 .ops-totals {
+  position: sticky;
+  top: 0;
+  border-color: var(--line-strong);
+  background: #0c111a;
+}
+
+#modal-root .ops-invoice-modal-r27 .ops-tax-treatment-note {
+  display: block;
+  margin: 2px 0 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  color: var(--muted);
+  background: rgba(255,255,255,.035);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+#modal-root .ops-invoice-modal-r27 .ops-totals [data-tax-mode-label] {
+  color: var(--yellow);
+}
+
+@media (max-width: 900px) {
+  #modal-root .modal.ops-invoice-modal-r27 {
+    width: calc(100vw - 18px);
+    max-height: calc(100vh - 18px);
+  }
+
+  #modal-root .ops-invoice-modal-r27 .modal-head,
+  #modal-root .ops-invoice-modal-r27 .modal-body,
+  #modal-root .ops-invoice-modal-r27 .modal-foot {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  #modal-root .ops-invoice-modal-r27 .ops-invoice-options {
+    grid-template-columns: 1fr;
+  }
+
+  #modal-root .ops-invoice-modal-r27 .ops-totals {
+    position: static;
+  }
+}
+
+@media (max-width: 640px) {
+  #modal-root .ops-invoice-modal-r27 .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #modal-root .ops-invoice-modal-r27 label.field.full,
+  #modal-root .ops-invoice-modal-r27 .ops-tax-mode-field {
+    grid-column: auto;
+  }
+
+  #modal-root .ops-invoice-modal-r27 .modal-head {
+    min-height: 96px;
+  }
+}
