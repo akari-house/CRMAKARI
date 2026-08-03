@@ -62,6 +62,36 @@ async function boot(page, captures = []) {
   await expect(page.getByRole('heading', { name:/Good (morning|afternoon|evening), Muaz/i })).toBeVisible();
 }
 
+async function mobileOverflowReport(page) {
+  return page.evaluate(() => {
+    const viewportWidth = document.documentElement.clientWidth;
+    const offenders = [...document.querySelectorAll('body *')].map((element) => {
+      const rect = element.getBoundingClientRect();
+      const style = getComputedStyle(element);
+      return {
+        tag:element.tagName,
+        id:element.id || '',
+        className:typeof element.className === 'string' ? element.className : '',
+        left:Math.round(rect.left),
+        right:Math.round(rect.right),
+        width:Math.round(rect.width),
+        display:style.display,
+        position:style.position,
+        minWidth:style.minWidth,
+        gridTemplateColumns:style.gridTemplateColumns,
+      };
+    }).filter((item) => item.right > viewportWidth + 1 || item.width > viewportWidth + 1)
+      .sort((a, b) => Math.max(b.right - viewportWidth, b.width - viewportWidth) - Math.max(a.right - viewportWidth, a.width - viewportWidth))
+      .slice(0, 12);
+    return {
+      amount:document.documentElement.scrollWidth - viewportWidth,
+      viewportWidth,
+      documentWidth:document.documentElement.scrollWidth,
+      offenders,
+    };
+  });
+}
+
 test('Settings offers both OpenAI ChatGPT models and Anthropic Claude models', async ({ page }) => {
   const captures = [];
   await boot(page, captures);
@@ -101,8 +131,8 @@ test('dual AI provider controls remain usable without mobile page overflow', asy
   await page.locator('.mobile-bottom [data-action="open-sidebar"]').click();
   await page.locator('#sidebar [data-route="settings"]').click();
   await expect(page.getByRole('heading', { name:'AI model providers' })).toBeVisible();
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-  expect(overflow).toBeLessThanOrEqual(1);
+  const overflow = await mobileOverflowReport(page);
+  expect(overflow.amount, JSON.stringify(overflow, null, 2)).toBeLessThanOrEqual(1);
   await expect(page.locator('[data-ai17-provider="OPENAI"]')).toBeVisible();
   await expect(page.locator('[data-ai17-provider="ANTHROPIC"]')).toBeVisible();
 });
