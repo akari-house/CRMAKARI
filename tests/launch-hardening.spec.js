@@ -19,7 +19,7 @@ test('billing profile uses grouped fields with a fixed header and footer', async
   await page.goto('/');
   await page.setContent(billingMarkup());
   await page.addStyleTag({ url:'/assets/modal-system-r9.css?v=1' });
-  await page.addStyleTag({ url:'/assets/launch-hardening-r13.css?v=1' });
+  await page.addStyleTag({ url:'/assets/launch-hardening-r13.css?v=2' });
   await page.addScriptTag({ url:'/assets/launch-hardening-r13.js?v=1' });
 
   const dialog = page.locator('#modal-root .modal');
@@ -37,23 +37,29 @@ test('billing profile uses grouped fields with a fixed header and footer', async
     const footer = dialog.querySelector('.modal-foot');
     const label = dialog.querySelector('.field > span');
     const input = dialog.querySelector('.field > input');
+    const section = label.closest('.ops-billing-section');
     const dialogBox = dialog.getBoundingClientRect();
     const headerBox = header.getBoundingClientRect();
     const bodyBox = body.getBoundingClientRect();
     const footerBox = footer.getBoundingClientRect();
     const labelBox = label.getBoundingClientRect();
     const inputBox = input.getBoundingClientRect();
+    const sectionBox = section.getBoundingClientRect();
     return {
       dialogTop:dialogBox.top,
       dialogBottom:dialogBox.bottom,
+      dialogWidth:dialogBox.width,
       headerTop:headerBox.top,
       headerBottom:headerBox.bottom,
       bodyTop:bodyBox.top,
       bodyBottom:bodyBox.bottom,
       footerTop:footerBox.top,
       footerBottom:footerBox.bottom,
+      labelTop:labelBox.top,
       labelBottom:labelBox.bottom,
+      labelHeight:labelBox.height,
       inputTop:inputBox.top,
+      sectionTop:sectionBox.top,
       dialogOverflow:getComputedStyle(dialog).overflow,
       bodyOverflow:getComputedStyle(body).overflowY,
       bodyScrollable:body.scrollHeight > body.clientHeight,
@@ -64,7 +70,10 @@ test('billing profile uses grouped fields with a fixed header and footer', async
   expect(geometry.bodyTop).toBeGreaterThanOrEqual(geometry.headerBottom - 1);
   expect(geometry.footerTop).toBeGreaterThanOrEqual(geometry.bodyBottom - 1);
   expect(geometry.footerBottom).toBeLessThanOrEqual(geometry.dialogBottom + 1);
-  expect(geometry.labelBottom).toBeLessThanOrEqual(geometry.inputTop + 1);
+  expect(geometry.labelTop).toBeGreaterThan(geometry.sectionTop);
+  expect(geometry.labelHeight).toBeGreaterThanOrEqual(15);
+  expect(geometry.inputTop - geometry.labelBottom).toBeGreaterThanOrEqual(5);
+  expect(geometry.dialogWidth).toBeLessThanOrEqual(1042);
   expect(geometry.dialogOverflow).toBe('hidden');
   expect(['auto','scroll']).toContain(geometry.bodyOverflow);
   expect(geometry.bodyScrollable).toBeTruthy();
