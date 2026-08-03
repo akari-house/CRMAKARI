@@ -68,7 +68,7 @@ if(!cacheVersion||runtimeVersions.length<2||runtimeVersions.some(version=>versio
 
 for(const requirement of ['Release 6.2E','Manual-first operating mode','without OpenAI, Anthropic, Kimi','Kimi K2.5','Commitment lifecycle','Closing controls','Funds ledger','Investor relations','No AI provider is required'])if(!files.paper.includes(requirement))throw new Error(`Fundraising closing documentation is incomplete: missing ${requirement}`);
 
-for(const requirement of ['authenticated tenant','reject non-manager roles','require finance access','selected tenant round','above the tenant commitment allocation','fully funded or cancelled','Owner or Admin controlled','active member of the same tenant','Legacy Capital Room remains operational'])if(!files.tenantTest.includes(requirement))throw new Error(`Fundraising closing tenant tests are incomplete: missing ${requirement}`);
+for(const requirement of ['authenticated tenant','reject non-manager roles','require finance access','selected tenant round','above the tenant commitment allocation','fully funded or cancelled','Owner or Admin controlled','active member of the same tenant','legacy Capital Room remains operational'])if(!files.tenantTest.includes(requirement))throw new Error(`Fundraising closing tenant tests are incomplete: missing ${requirement}`);
 
 for(const requirement of ['operational without an AI provider','allocation and instrument manually','cumulative manual receipt with transaction reference','below-target explanation and final notes','without AI','avoid mobile page overflow'])if(!files.browserTest.includes(requirement))throw new Error(`Fundraising closing browser coverage is incomplete: missing ${requirement}`);
 
