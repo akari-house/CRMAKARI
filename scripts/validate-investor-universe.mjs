@@ -59,7 +59,7 @@ for (const asset of ['/assets/investor-universe-r18.css?v=1','/assets/investor-u
   if (!files.worker.includes(asset.replace('/assets/','./assets/'))) throw new Error(`Service worker is missing ${asset}`);
 }
 
-for (const requirement of ['/api/fundraising/universe','canonical investor','evidence review','duplicate','compatibility mode','Release 6.2B']) {
+for (const requirement of ['/api/fundraising/universe','canonical investor','source review','claim review','duplicate','compatibility mode','Release 6.2B']) {
   if (!files.paper.toLowerCase().includes(requirement.toLowerCase())) throw new Error(`Backend technical paper is incomplete: missing ${requirement}`);
 }
 
