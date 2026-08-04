@@ -45,6 +45,14 @@ jobs:
             grep -q 'public-home-r6-core.js' "$script"
           }
 
+          validate_access_location() {
+            location="$1"
+            expected_host="$2"
+            printf '%s' "$location" | grep -Eq "^https://[^/]*cloudflareaccess\.com/cdn-cgi/access/login/${expected_host}(\?|$)"
+            printf '%s' "$location" | grep -Eq "[?&]kid=${ACCESS_AUD}([&#]|$)"
+            printf '%s' "$location" | grep -Eq '[?&]redirect_url='
+          }
+
           check_access_redirect() {
             url="$1"
             expected_host="$2"
@@ -57,26 +65,42 @@ jobs:
               301|302|303|307|308) ;;
               *) echo "Expected an Access redirect, received HTTP $status" >&2; exit 1 ;;
             esac
-            printf '%s' "$location" | grep -Eq "^https://[^/]*cloudflareaccess\.com/cdn-cgi/access/login/${expected_host}(\?|$)"
-            printf '%s' "$location" | grep -Eq "[?&]kid=${ACCESS_AUD}([&#]|$)"
-            printf '%s' "$location" | grep -Eq '[?&]redirect_url='
+            validate_access_location "$location" "$expected_host"
           }
 
           check_api_auth_boundary() {
             url="$1"
+            expected_host="$2"
             body=$(mktemp)
-            status=$(curl --silent --show-error --max-time 30 --header 'Accept: application/json' --output "$body" --write-out '%{http_code}' "$url")
+            headers=$(mktemp)
+            status=$(curl --silent --show-error --max-time 30 --header 'Accept: application/json' --dump-header "$headers" --output "$body" --write-out '%{http_code}' "$url")
             echo "$url returned HTTP $status"
-            test "$status" = "401"
-            grep -q 'Authentication required' "$body"
+
+            case "$status" in
+              401)
+                grep -q 'Authentication required' "$body"
+                echo "API protection confirmed by application authentication boundary."
+                ;;
+              301|302|303|307|308)
+                location=$(awk 'BEGIN{IGNORECASE=1} /^location:/ {sub(/\r$/, ""); print substr($0, index($0,$2))}' "$headers" | tail -n 1)
+                echo "API redirect location: $location"
+                validate_access_location "$location" "$expected_host"
+                echo "API protection confirmed by Cloudflare Access edge."
+                ;;
+              *)
+                echo "Expected HTTP 401 or a verified Access redirect, received HTTP $status" >&2
+                cat "$body" >&2
+                exit 1
+                ;;
+            esac
           }
 
           check_public_home "https://crmakari.pages.dev/"
           check_public_home "https://crm.akarihouse.com/"
           check_access_redirect "https://crmakari.pages.dev/app/" "crmakari.pages.dev"
           check_access_redirect "https://crm.akarihouse.com/app/" "crm.akarihouse.com"
-          check_api_auth_boundary "https://crmakari.pages.dev/api/akari-leads?limit=1&offset=0"
-          check_api_auth_boundary "https://crm.akarihouse.com/api/akari-leads?limit=1&offset=0"
+          check_api_auth_boundary "https://crmakari.pages.dev/api/akari-leads?limit=1&offset=0" "crmakari.pages.dev"
+          check_api_auth_boundary "https://crm.akarihouse.com/api/akari-leads?limit=1&offset=0" "crm.akarihouse.com"
 
           echo "Public invite-only homepage and protected CRM boundaries are healthy."
 
