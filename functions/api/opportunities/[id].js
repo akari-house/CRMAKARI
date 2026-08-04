@@ -4,6 +4,7 @@ import { requireTenant } from '../../lib/permissions.js';
 
 const WRITE_ROLES = new Set(['OWNER','ADMIN','BD_MANAGER','BD_MEMBER']);
 const STAGES = new Set(['NEW','RESEARCH','CONTACTED','REPLIED','DISCOVERY','QUALIFIED','PROPOSAL','NEGOTIATION','VERBAL_CONFIRMATION','WON','LOST','ON_HOLD']);
+const GOVERNED_STAGES = new Set(['WON', 'LOST', 'ON_HOLD']);
 
 export async function onRequestPatch(context) {
   try {
@@ -17,6 +18,19 @@ export async function onRequestPatch(context) {
     if (!existing) return error('Opportunity not found', 404);
     const stage = body.stage ? String(body.stage).toUpperCase() : existing.stage;
     if (!STAGES.has(stage)) return error('Invalid opportunity stage', 422);
+
+    if (stage !== existing.stage) {
+      if (['WON', 'LOST'].includes(existing.stage)) {
+        return error('Closed opportunities cannot be reopened through the stage selector', 409);
+      }
+      if (['WON', 'LOST'].includes(stage)) {
+        return error('Use the controlled close workflow to record the decision, evidence and commercial handoff', 409);
+      }
+      if (stage === 'ON_HOLD' || existing.stage === 'ON_HOLD') {
+        return error('Use the controlled hold workflow to record the reason, review date and next action', 409);
+      }
+    }
+
     const now = nowIso();
     await run(context.env.DB, `
       UPDATE opportunities SET
@@ -29,8 +43,6 @@ export async function onRequestPatch(context) {
         expected_close_date = COALESCE(?, expected_close_date),
         next_action = COALESCE(?, next_action),
         next_follow_up_at = COALESCE(?, next_follow_up_at),
-        won_at = CASE WHEN ? = 'WON' THEN COALESCE(won_at, ?) ELSE won_at END,
-        lost_at = CASE WHEN ? = 'LOST' THEN COALESCE(lost_at, ?) ELSE lost_at END,
         updated_at = ?, updated_by = ?
       WHERE tenant_id = ? AND id = ?
     `, [
@@ -39,12 +51,11 @@ export async function onRequestPatch(context) {
       body.estimatedValue === undefined ? null : Number(body.estimatedValue),
       body.probabilityPercentage === undefined ? null : Math.min(Math.max(Number(body.probabilityPercentage),0),100),
       body.expectedCloseDate || null, body.nextAction || null, body.nextFollowUpAt || null,
-      stage, now, stage, now, now, auth.userId, tenantId, id,
+      now, auth.userId, tenantId, id,
     ]);
     if (stage !== existing.stage) {
       await run(context.env.DB, `INSERT INTO opportunity_stage_history (id, tenant_id, opportunity_id, previous_stage, new_stage, changed_by, changed_at) VALUES (?, ?, ?, ?, ?, ?, ?)`, [makeId('osh'), tenantId, id, existing.stage, stage, auth.userId, now]);
     }
-    if (stage === 'WON') await run(context.env.DB, `UPDATE projects SET lifecycle_status = 'CLIENT', customer_since = COALESCE(customer_since, ?), updated_at = ?, updated_by = ? WHERE tenant_id = ? AND id = ?`, [now.slice(0,10), now, auth.userId, tenantId, existing.project_id]);
     await run(context.env.DB, `INSERT INTO audit_logs (id, tenant_id, user_id, action, entity_type, entity_id, before_data, after_data, created_at) VALUES (?, ?, ?, 'OPPORTUNITY_UPDATED', 'OPPORTUNITY', ?, ?, ?, ?)`, [makeId('aud'), tenantId, auth.userId, id, JSON.stringify({ stage: existing.stage }), JSON.stringify({ stage }), now]);
     return json({ id, updated: true, stage });
   } catch (cause) {
