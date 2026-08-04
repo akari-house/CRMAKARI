@@ -16,7 +16,7 @@ class FakeDB {
 function ctx({db,path,method='POST',body={},role='OWNER',params={id:'opp_a'},next}){ return {
   env:{DB:db,AUTH_MODE:'access'}, data:{auth:{userId:'user_a',tenantId:'tenant_a',tenantSlug:'tenant-a',role,financeAccess:true}}, params,
   request:new Request(`https://crm.test${path}`,{method,headers:{'content-type':'application/json'},body:method==='GET'?undefined:JSON.stringify(body)}),
-  next:next||async()=>new Response(JSON.stringify({ok:true}),{status:200,headers:{'content-type':'application/json'}}),
+  next:next || (async()=>new Response(JSON.stringify({ok:true}),{status:200,headers:{'content-type':'application/json'}})),
 }; }
 const opportunity={id:'opp_a',tenant_id:'tenant_a',project_id:'project_a',primary_contact_id:'contact_a',name:'Campaign',stage:'QUALIFIED',probability_percentage:60,owner_user_id:'user_a'};
 const proposalRow={
