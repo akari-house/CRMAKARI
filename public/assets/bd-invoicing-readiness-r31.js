@@ -15,10 +15,12 @@
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;',
   }[char]));
   const title = (value) => String(value || '')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/([A-Za-z])(\d+)/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .trim()
     .toLowerCase()
-    .split('_')
-    .map((part) => part ? `${part[0].toUpperCase()}${part.slice(1)}` : '')
-    .join(' ');
+    .replace(/^./, (char) => char.toUpperCase());
 
   async function request(path, options = {}) {
     const response = await fetch(path, {
