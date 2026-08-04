@@ -260,7 +260,7 @@ test('won deal becomes invoice-ready after saving the client profile and reuses 
   await expect(page.getByRole('dialog', { name: 'Revenue lifecycle workspace' })).toBeVisible();
   await expect(page.getByText('Commercial readiness', { exact: true })).toBeVisible();
   await expect(page.locator('.bd-next-action')).toContainText('Complete the client billing profile');
-  await expect(page.locator('.bd-commercial-readiness')).toContainText('Missing: AddressLine1, City');
+  await expect(page.locator('.bd-commercial-readiness')).toContainText('Missing: Address line 1, City');
 
   await page.locator('[data-client-billing-action="edit"]').first().click();
   const billingForm = page.locator('#bd-client-billing-form');
