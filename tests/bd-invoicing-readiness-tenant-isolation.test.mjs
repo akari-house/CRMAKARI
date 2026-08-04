@@ -125,7 +125,7 @@ test('BD members cannot modify client billing identity', async () => {
   }));
 
   assert.equal(response.status, 403);
-  assert.match((await responseBody(response)).error, /role does not allow/i);
+  assert.match((await responseBody(response)).error, /do not have permission/i);
   assert.equal(db.calls.length, 0);
 });
 
