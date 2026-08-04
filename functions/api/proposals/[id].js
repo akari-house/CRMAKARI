@@ -6,6 +6,8 @@ import { PROPOSAL_STATUSES, parseProposal } from '../../lib/commercial-hardening
 
 const WRITE_ROLES = new Set(['OWNER', 'ADMIN', 'BD_MANAGER', 'BD_MEMBER']);
 const APPROVER_ROLES = new Set(['OWNER', 'ADMIN', 'BD_MANAGER']);
+const DELIVERY_METHODS = new Set(['EMAIL', 'SIGNED_DOCUMENT', 'MEETING', 'TELEGRAM', 'OTHER']);
+const ACCEPTANCE_METHODS = new Set(['EMAIL', 'SIGNED_DOCUMENT', 'MEETING', 'TELEGRAM', 'OTHER']);
 const TRANSITIONS = {
   DRAFT: new Set(['INTERNAL_REVIEW', 'APPROVED', 'SUPERSEDED']),
   INTERNAL_REVIEW: new Set(['DRAFT', 'APPROVED', 'REJECTED', 'SUPERSEDED']),
@@ -16,6 +18,11 @@ const TRANSITIONS = {
   EXPIRED: new Set([]),
   SUPERSEDED: new Set([]),
 };
+
+function booleanValue(value) {
+  if (value === true || value === 1) return true;
+  return ['true', '1', 'yes', 'on'].includes(String(value || '').trim().toLowerCase());
+}
 
 async function loadProposal(db, tenantId, id) {
   return first(db, `
@@ -75,26 +82,58 @@ export async function onRequestPatch(context) {
     if (!row) return error('Proposal not found', 404);
     const item = parseProposal(row);
     const current = item.status;
-    if (target === current) return json({ updated: true, item });
-    if (!TRANSITIONS[current]?.has(target)) return error(`Proposal cannot move from ${current} to ${target}`, 409);
+    const evidenceEnrichment = current === 'ACCEPTED' && target === 'ACCEPTED';
+    if (target === current && !evidenceEnrichment) return json({ updated: true, item });
+    if (!evidenceEnrichment && !TRANSITIONS[current]?.has(target)) return error(`Proposal cannot move from ${current} to ${target}`, 409);
     if (['APPROVED', 'SENT', 'ACCEPTED', 'REJECTED', 'EXPIRED'].includes(target) && !APPROVER_ROLES.has(auth?.role)) {
       return error('Manager approval is required for this proposal status', 403);
     }
     if (target === 'SENT' && !qualificationComplete(row)) {
       return error('Complete the qualification checklist before sending a proposal', 422);
     }
-    if (target === 'ACCEPTED' && !text(body.acceptedBy, 300) && !row.primary_contact_name) {
-      return error('Record who accepted the proposal', 422);
+
+    const deliveryMethod = String(body.deliveryMethod || '').trim().toUpperCase();
+    const acceptanceMethod = String(body.acceptanceMethod || '').trim().toUpperCase();
+    if (target === 'SENT') {
+      if (!DELIVERY_METHODS.has(deliveryMethod)) return error('Record how the approved proposal was sent', 422);
+      if (!text(body.sentReference, 1500)) return error('Record the sent message, document or meeting reference', 422);
+    }
+    if (target === 'ACCEPTED') {
+      if (!text(body.acceptedBy, 300)) return error('Record who accepted the proposal', 422);
+      if (!text(body.acceptedAt, 100)) return error('Record when the proposal was accepted', 422);
+      if (!ACCEPTANCE_METHODS.has(acceptanceMethod)) return error('Record how the proposal was accepted', 422);
+      if (!text(body.acceptanceReference, 1500)) return error('Record the acceptance message, signed document or meeting reference', 422);
+      if (!booleanValue(body.termsConfirmed)) return error('Confirm that the accepted commercial terms match this proposal version', 422);
     }
     if (target === 'REJECTED' && !text(body.reason, 2000)) return error('Record why the proposal was rejected', 422);
 
     const now = nowIso();
     const metadata = { ...item.metadata, status: target, updatedBy: auth.userId, updatedAt: now };
-    if (target === 'APPROVED') Object.assign(metadata, { approvedBy: auth.userId, approvedAt: now });
-    if (target === 'SENT') Object.assign(metadata, { approvedBy: metadata.approvedBy || auth.userId, approvedAt: metadata.approvedAt || now, sentAt: now });
-    if (target === 'ACCEPTED') Object.assign(metadata, { acceptedBy: text(body.acceptedBy, 300) || row.primary_contact_name, acceptedAt: now });
+    if (target === 'APPROVED') Object.assign(metadata, {
+      approvedBy: auth.userId,
+      approvedAt: now,
+      approvalNotes: text(body.approvalNotes, 3000),
+    });
+    if (target === 'SENT') Object.assign(metadata, {
+      approvedBy: metadata.approvedBy || auth.userId,
+      approvedAt: metadata.approvedAt || now,
+      sentAt: text(body.sentAt, 100) || now,
+      deliveryMethod,
+      sentReference: text(body.sentReference, 1500),
+      sentNotes: text(body.sentNotes, 3000),
+    });
+    if (target === 'ACCEPTED') Object.assign(metadata, {
+      acceptedBy: text(body.acceptedBy, 300),
+      acceptedAt: text(body.acceptedAt, 100),
+      acceptanceMethod,
+      acceptanceReference: text(body.acceptanceReference, 1500),
+      acceptanceNotes: text(body.acceptanceNotes, 3000),
+      termsConfirmed: true,
+      evidenceRecordedBy: auth.userId,
+      evidenceRecordedAt: now,
+    });
     if (target === 'REJECTED') Object.assign(metadata, { rejectedReason: text(body.reason, 2000), rejectedAt: now });
-    if (target === 'EXPIRED') Object.assign(metadata, { expiredAt: now });
+    if (target === 'EXPIRED') Object.assign(metadata, { expiredAt: now, expiredReason: text(body.reason, 2000) });
     if (target === 'SUPERSEDED') Object.assign(metadata, { supersededAt: now });
 
     let nextAction = text(body.nextAction, 2000) || row.next_action;
@@ -110,7 +149,7 @@ export async function onRequestPatch(context) {
       WHERE tenant_id = ? AND id = ?
     `, [target, JSON.stringify(metadata), nextAction, text(body.followUpAt, 100), tenantId, row.id]);
 
-    if (['APPROVED', 'SENT', 'ACCEPTED'].includes(target)) await supersedeOthers(context.env.DB, tenantId, row.opportunity_id, row.id, now);
+    if (['APPROVED', 'SENT', 'ACCEPTED'].includes(target) && !evidenceEnrichment) await supersedeOthers(context.env.DB, tenantId, row.opportunity_id, row.id, now);
 
     if (stage !== row.opportunity_stage || nextAction !== row.next_action) {
       const probability = probabilityForStage(stage, row.probability_percentage);
@@ -119,7 +158,7 @@ export async function onRequestPatch(context) {
           proposal_sent_at = CASE WHEN ? = 'SENT' THEN ? ELSE proposal_sent_at END,
           updated_at = ?, updated_by = ?
         WHERE tenant_id = ? AND id = ?
-      `, [stage, probability, nextAction, target, now, now, auth.userId, tenantId, row.opportunity_id]);
+      `, [stage, probability, nextAction, target, metadata.sentAt || now, now, auth.userId, tenantId, row.opportunity_id]);
       if (stage !== row.opportunity_stage) {
         await run(context.env.DB, `
           INSERT INTO opportunity_stage_history
@@ -129,12 +168,27 @@ export async function onRequestPatch(context) {
       }
     }
 
+    const evidenceSummary = target === 'SENT'
+      ? { deliveryMethod: metadata.deliveryMethod, sentReference: metadata.sentReference, sentAt: metadata.sentAt }
+      : target === 'ACCEPTED'
+        ? { acceptedBy: metadata.acceptedBy, acceptedAt: metadata.acceptedAt, acceptanceMethod: metadata.acceptanceMethod, acceptanceReference: metadata.acceptanceReference, termsConfirmed: true }
+        : null;
     await run(context.env.DB, `
       INSERT INTO audit_logs (id, tenant_id, user_id, action, entity_type, entity_id, before_data, after_data, created_at)
       VALUES (?, ?, ?, 'PROPOSAL_STATUS_UPDATED', 'PROPOSAL', ?, ?, ?, ?)
-    `, [makeId('aud'), tenantId, auth.userId, row.id, JSON.stringify({ status: current }), JSON.stringify({ status: target, reason: metadata.rejectedReason || null }), now]);
+    `, [
+      makeId('aud'), tenantId, auth.userId, row.id,
+      JSON.stringify({ status: current }),
+      JSON.stringify({ status: target, reason: metadata.rejectedReason || null, evidence: evidenceSummary, evidenceEnrichment }),
+      now,
+    ]);
 
-    return json({ updated: true, item: { ...parseProposal({ ...row, description: JSON.stringify(metadata), outcome: target, next_action: nextAction }), status: target }, opportunityStage: stage });
+    return json({
+      updated: true,
+      evidenceEnriched: evidenceEnrichment,
+      item: { ...parseProposal({ ...row, description: JSON.stringify(metadata), outcome: target, next_action: nextAction }), status: target },
+      opportunityStage: stage,
+    });
   } catch (cause) {
     console.error('Proposal status update error', cause);
     return error(cause.message || 'Proposal status could not be updated', Number(cause.status || 500));
