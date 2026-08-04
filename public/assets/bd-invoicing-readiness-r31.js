@@ -325,7 +325,8 @@
   }
 
   function patchInvoiceRequest() {
-    if (window.fetch?.bdInvoicingR31 === 'ready') return;
+    if (window.__AKARI_BD_INVOICING_R31_FETCH_PATCHED__) return;
+    window.__AKARI_BD_INVOICING_R31_FETCH_PATCHED__ = true;
     const nativeFetch = window.fetch.bind(window);
 
     async function bdAwareFetch(input, init = {}) {
