@@ -92,7 +92,7 @@ test('BD managers can explicitly review the team queue without removing tenant s
   assert.match(db.calls[1].sql, /o\.tenant_id = \?/);
 });
 
-test('ranking is evidence-led and prioritises overdue, incomplete and commercial handoff work', () => {
+test('ranking is evidence-led and prioritises incomplete deal control before secondary symptoms', () => {
   const now = new Date('2026-08-04T12:00:00Z');
   const actions = rankCommandActions({
     now,
@@ -135,10 +135,12 @@ test('ranking is evidence-led and prioritises overdue, incomplete and commercial
   });
 
   assert.ok(actions.length >= 5);
-  assert.equal(actions[0].category, 'OPPORTUNITY_OVERDUE');
-  assert.ok(actions[0].score >= 110);
+  assert.equal(actions[0].category, 'OPPORTUNITY_RISK');
+  assert.equal(actions[0].entityId, 'opp_risk');
+  assert.ok(actions[0].score >= 120);
+  assert.match(actions[0].reason, /owner, primary contact, next action, expected close/i);
   assert.ok(actions.some((item) => item.category === 'UNASSIGNED' && item.entityId === 'lead_unassigned'));
-  assert.ok(actions.some((item) => item.category === 'OPPORTUNITY_RISK' && item.entityId === 'opp_risk'));
+  assert.ok(actions.some((item) => item.category === 'OPPORTUNITY_OVERDUE' && item.entityId === 'opp_risk'));
   assert.ok(actions.some((item) => item.category === 'PROPOSAL_FOLLOW_UP' && item.entityId === 'opp_risk'));
   const invoice = actions.find((item) => item.category === 'INVOICE_HANDOFF');
   assert.equal(invoice.entityId, 'opp_won');
