@@ -32,6 +32,6 @@ assert.match(css,/\.governance-modal/);
 assert.match(shell,/commercial-governance-r33\.css\?v=1/);
 assert.match(shell,/commercial-governance-r33\.js\?v=1/);
 assert.ok(shell.indexOf('commercial-governance-r33.js')<shell.indexOf('crm.js?v=22'));
-assert.match(worker,/akari-crm-shell-v53/);
+assert.match(worker,/akari-crm-shell-v54/);
 assert.match(worker,/commercial-governance-r33\.js\?v=1/);
 console.log('Commercial governance architecture validated.');
