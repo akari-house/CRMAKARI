@@ -1,7 +1,7 @@
 import { json, error, readJson } from '../../lib/response.js';
 import { all, first, run, makeId, nowIso } from '../../lib/db.js';
 import { requireTenant, canViewFinance } from '../../lib/permissions.js';
-import { text } from '../../lib/revenue-lifecycle.js';
+import { text, parseJson } from '../../lib/revenue-lifecycle.js';
 import {
   INVOICE_MARKER,
   INVOICE_STATUSES,
@@ -11,6 +11,9 @@ import {
   roundMoney,
   sanitizePaymentSchedule,
 } from '../../lib/commercial-hardening.js';
+
+const CLIENT_BILLING_MARKER = 'AKARI_CLIENT_BILLING_PROFILE_V1';
+const ISSUED_RECIPIENT_FIELDS = ['name', 'email', 'addressLine1', 'city', 'country'];
 
 function requireFinance(auth) {
   if (!canViewFinance(auth)) {
@@ -58,6 +61,46 @@ async function loadBillingProfile(db, tenantId) {
     baseCurrency: row?.base_currency || 'USD',
     billingProfile: flags.billingProfile || {},
   };
+}
+
+async function loadClientBillingProfile(db, tenantId, projectId) {
+  const row = await first(db, `
+    SELECT description
+    FROM activities
+    WHERE tenant_id = ?
+      AND project_id = ?
+      AND activity_type = 'CLIENT_BILLING_PROFILE'
+      AND description LIKE '%\"recordType\":\"AKARI_CLIENT_BILLING_PROFILE_V1\"%'
+    ORDER BY occurred_at DESC, created_at DESC
+    LIMIT 1
+  `, [tenantId, projectId]);
+  const metadata = parseJson(row?.description, {});
+  return metadata.recordType === CLIENT_BILLING_MARKER ? (metadata.profile || {}) : {};
+}
+
+function validateIssuedRecipient(recipient) {
+  const missing = ISSUED_RECIPIENT_FIELDS.filter((field) => !String(recipient?.[field] || '').trim());
+  if (missing.length) {
+    const labels = {
+      name: 'legal or billing name',
+      email: 'billing email',
+      addressLine1: 'address line 1',
+      city: 'city',
+      country: 'country',
+    };
+    const validationError = new Error(`Complete the client billing profile before issuing this invoice: ${missing.map((field) => labels[field]).join(', ')}`);
+    validationError.status = 422;
+    throw validationError;
+  }
+}
+
+function invoiceEligibility(campaign) {
+  const metadata = parseJson(campaign?.notes, {});
+  const dealModel = String(metadata.dealModel || '').toUpperCase();
+  const invoiceEligible = metadata.invoiceEligible !== undefined
+    ? Boolean(metadata.invoiceEligible)
+    : dealModel !== 'PARTNERSHIP';
+  return { invoiceEligible, dealModel };
 }
 
 async function nextInvoiceNumber(db, tenantId, prefix, invoiceDate) {
@@ -161,7 +204,7 @@ export async function onRequestPost(context) {
     }, 201);
 
     const project = await first(context.env.DB, `
-      SELECT p.id, p.name, p.website, p.telegram,
+      SELECT p.id, p.name, p.website, p.telegram, p.country,
              c.full_name AS contact_name, c.email AS contact_email
       FROM projects p
       LEFT JOIN contacts c ON c.project_id = p.id AND c.tenant_id = p.tenant_id AND c.is_primary_contact = 1
@@ -171,25 +214,38 @@ export async function onRequestPost(context) {
     if (!project) return error('Client project was not found', 404);
 
     let opportunityId = requestedOpportunityId;
+    let linkedCampaign = null;
     if (campaignId) {
-      const campaign = await first(context.env.DB, `
-        SELECT id, opportunity_id
-        FROM campaigns
-        WHERE tenant_id = ? AND id = ? AND project_id = ?
+      linkedCampaign = await first(context.env.DB, `
+        SELECT c.id, c.opportunity_id, c.status, c.notes,
+               o.stage AS opportunity_stage
+        FROM campaigns c
+        LEFT JOIN opportunities o
+          ON o.id = c.opportunity_id
+         AND o.tenant_id = c.tenant_id
+        WHERE c.tenant_id = ? AND c.id = ? AND c.project_id = ?
         LIMIT 1
       `, [tenantId, campaignId, projectId]);
-      if (!campaign) return error('Selected engagement does not belong to this client and workspace', 422);
-      if (opportunityId && campaign.opportunity_id && opportunityId !== campaign.opportunity_id) {
+      if (!linkedCampaign) return error('Selected engagement does not belong to this client and workspace', 422);
+      if (opportunityId && linkedCampaign.opportunity_id && opportunityId !== linkedCampaign.opportunity_id) {
         return error('Selected opportunity does not match the engagement', 422);
       }
-      opportunityId = campaign.opportunity_id || opportunityId;
+      opportunityId = linkedCampaign.opportunity_id || opportunityId;
+      if (status !== 'DRAFT') {
+        if (String(linkedCampaign.status || '').toUpperCase() === 'CANCELLED') return error('Cancelled engagements cannot be invoiced', 422);
+        if (String(linkedCampaign.opportunity_stage || '').toUpperCase() !== 'WON') return error('Issue the invoice from a won opportunity and active engagement', 422);
+        if (!invoiceEligibility(linkedCampaign).invoiceEligible) return error('This partnership engagement is marked as non-billable', 422);
+      }
     } else if (opportunityId) {
       const opportunity = await first(context.env.DB, `
-        SELECT id FROM opportunities
+        SELECT id, stage FROM opportunities
         WHERE tenant_id = ? AND id = ? AND project_id = ?
         LIMIT 1
       `, [tenantId, opportunityId, projectId]);
       if (!opportunity) return error('Selected opportunity does not belong to this client and workspace', 422);
+      if (status !== 'DRAFT' && String(opportunity.stage || '').toUpperCase() !== 'WON') {
+        return error('Issued commercial invoices must be linked to a won opportunity', 422);
+      }
     }
 
     const tenant = await loadBillingProfile(context.env.DB, tenantId);
@@ -215,18 +271,21 @@ export async function onRequestPost(context) {
       return error('Complete the organisation billing profile before creating an invoice', 422);
     }
 
+    const clientBillingProfile = await loadClientBillingProfile(context.env.DB, tenantId, projectId);
     const recipient = {
-      name: text(body.recipient?.name || project.name, 300),
-      contactName: text(body.recipient?.contactName || project.contact_name, 300),
-      email: text(body.recipient?.email || project.contact_email, 320),
-      addressLine1: text(body.recipient?.addressLine1, 500),
-      addressLine2: text(body.recipient?.addressLine2, 500),
-      city: text(body.recipient?.city, 200),
-      postalCode: text(body.recipient?.postalCode, 60),
-      country: text(body.recipient?.country, 120),
-      vatId: text(body.recipient?.vatId, 120),
+      name: text(body.recipient?.name || clientBillingProfile.legalName || project.name, 300),
+      contactName: text(body.recipient?.contactName || clientBillingProfile.contactName || project.contact_name, 300),
+      email: text(body.recipient?.email || clientBillingProfile.billingEmail || project.contact_email, 320),
+      addressLine1: text(body.recipient?.addressLine1 || clientBillingProfile.addressLine1, 500),
+      addressLine2: text(body.recipient?.addressLine2 || clientBillingProfile.addressLine2, 500),
+      city: text(body.recipient?.city || clientBillingProfile.city, 200),
+      postalCode: text(body.recipient?.postalCode || clientBillingProfile.postalCode, 60),
+      country: text(body.recipient?.country || clientBillingProfile.country || project.country, 120),
+      vatId: text(body.recipient?.vatId || clientBillingProfile.vatId, 120),
+      registrationNumber: text(body.recipient?.registrationNumber || clientBillingProfile.registrationNumber, 160),
     };
     if (!recipient.name) return error('Client billing name is required', 422);
+    if (status !== 'DRAFT') validateIssuedRecipient(recipient);
 
     const requestedNumber = text(body.invoiceNumber, 80);
     const invoiceNumber = requestedNumber || await nextInvoiceNumber(context.env.DB, tenantId, billingProfile.invoicePrefix || 'AKARI', invoiceDate);
@@ -298,6 +357,7 @@ export async function onRequestPost(context) {
       currency,
       status,
       scheduleItems: paymentSchedule.length,
+      clientBillingProfileUsed: Boolean(Object.keys(clientBillingProfile).length),
     }), now]);
     return json({
       id,

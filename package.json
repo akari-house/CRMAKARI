@@ -1,6 +1,6 @@
 {
   "name": "akari-crm",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "private": true,
   "type": "module",
   "description": "CRM by AKARI — tenant-isolated business development, campaign delivery, fundraising and revenue operations platform",
@@ -12,7 +12,7 @@
     "db:migrate:local": "wrangler d1 migrations apply akari-crm-local --local",
     "db:migrate:remote": "wrangler d1 migrations apply akari-crm-production --remote",
     "db:seed:local": "wrangler d1 execute akari-crm-local --local --file db/seed.sql",
-    "validate": "node scripts/validate.mjs && node scripts/validate-public-entry.mjs && node scripts/validate-service-delivery.mjs && node scripts/validate-fundraising-os.mjs && node scripts/validate-work-os.mjs && node scripts/validate-modal-system.mjs && node scripts/validate-route-clarity.mjs && node scripts/validate-deal-outcomes.mjs && node scripts/validate-launch-hardening.mjs && node scripts/validate-production-readiness.mjs && node scripts/validate-ai-providers.mjs && node scripts/validate-investor-universe.mjs && node scripts/validate-fundraising-targeting.mjs && node scripts/validate-fundraising-outreach.mjs && node scripts/validate-fundraising-closing.mjs && node scripts/validate-fundraising-strategy.mjs && npm run test:tenant"
+    "validate": "node scripts/validate.mjs && node scripts/validate-public-entry.mjs && node scripts/validate-service-delivery.mjs && node scripts/validate-fundraising-os.mjs && node scripts/validate-work-os.mjs && node scripts/validate-modal-system.mjs && node scripts/validate-route-clarity.mjs && node scripts/validate-deal-outcomes.mjs && node scripts/validate-launch-hardening.mjs && node scripts/validate-production-readiness.mjs && node scripts/validate-ai-providers.mjs && node scripts/validate-investor-universe.mjs && node scripts/validate-fundraising-targeting.mjs && node scripts/validate-fundraising-outreach.mjs && node scripts/validate-fundraising-closing.mjs && node scripts/validate-fundraising-strategy.mjs && node scripts/validate-bd-invoicing-readiness.mjs && npm run test:tenant"
   },
   "devDependencies": {
     "@playwright/test": "1.54.2",
