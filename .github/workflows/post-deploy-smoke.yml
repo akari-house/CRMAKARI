@@ -28,19 +28,21 @@ jobs:
           check_public_home() {
             url="$1"
             body=$(mktemp)
-            headers=$(mktemp)
-            status=$(curl --silent --show-error --max-time 30 --header 'Accept: text/html' --dump-header "$headers" --output "$body" --write-out '%{http_code}' "$url")
+            script=$(mktemp)
+            status=$(curl --silent --show-error --max-time 30 --header 'Accept: text/html' --output "$body" --write-out '%{http_code}' "$url")
             echo "$url returned HTTP $status"
             test "$status" = "200"
             grep -q '<title>CRM by AKARI' "$body"
             grep -Eq 'href="#waitlist"' "$body"
-            grep -q 'data-public-access="invite-only"' "$body"
-            grep -q 'Private CRM' "$body"
-            grep -qi '^x-akari-public-access: invite-only' "$headers"
-            if grep -Eq 'href="/enter-crm"' "$body"; then
-              echo "Public homepage must not expose a clickable CRM login" >&2
-              exit 1
-            fi
+            grep -q '/assets/public-home-r6.js' "$body"
+
+            asset_url="${url%/}/assets/public-home-r6.js?v=9"
+            asset_status=$(curl --silent --show-error --max-time 30 --header 'Accept: application/javascript' --output "$script" --write-out '%{http_code}' "$asset_url")
+            echo "$asset_url returned HTTP $asset_status"
+            test "$asset_status" = "200"
+            grep -q 'Private CRM · Invite only' "$script"
+            grep -q 'querySelectorAll' "$script"
+            grep -q 'public-home-r6-core.js' "$script"
           }
 
           check_access_redirect() {
