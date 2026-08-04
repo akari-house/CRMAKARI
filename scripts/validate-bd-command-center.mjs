@@ -6,6 +6,7 @@ const read = (path) => fs.readFileSync(new URL(`../${path}`, import.meta.url), '
 const endpoint = read('functions/api/bd-command-center/index.js');
 const ui = read('public/assets/bd-command-center-r32.js');
 const css = read('public/assets/bd-command-center-r32.css');
+const accessibility = read('public/assets/revenue-workspace-accessibility-r32.js');
 const shell = read('public/app/index.html');
 const worker = read('public/sw.js');
 
@@ -33,10 +34,15 @@ assert.match(ui, /data-bd-command-refresh/);
 assert.match(css, /\.bd-command-next/);
 assert.match(css, /\.bd-command-metrics/);
 assert.match(css, /@media \(max-width: 620px\)/);
+assert.match(accessibility, /Close revenue workspace/);
+assert.match(accessibility, /data-revenue-action="close"/);
+assert.match(accessibility, /MutationObserver/);
 
 assert.match(shell, /bd-command-center-r32\.css\?v=1/);
 assert.match(shell, /bd-command-center-r32\.js\?v=1/);
-assert.match(worker, /akari-crm-shell-v51/);
+assert.match(shell, /revenue-workspace-accessibility-r32\.js\?v=1/);
+assert.match(worker, /akari-crm-shell-v(?:5[2-9]|[6-9][0-9])/);
 assert.match(worker, /bd-command-center-r32\.js\?v=1/);
+assert.match(worker, /revenue-workspace-accessibility-r32\.js\?v=1/);
 
 console.log('BD daily command centre architecture validated.');
