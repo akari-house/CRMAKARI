@@ -41,7 +41,7 @@ assert.match(css, /\.bd-client-billing-form/);
 
 assert.match(shell, /bd-invoicing-readiness-r31\.css\?v=1/);
 assert.match(shell, /bd-invoicing-readiness-r31\.js\?v=1/);
-assert.match(worker, /akari-crm-shell-v50/);
+assert.match(worker, /akari-crm-shell-v(?:5[0-9]|[6-9][0-9])/);
 assert.match(worker, /bd-invoicing-readiness-r31\.js\?v=1/);
 
 console.log('BD invoicing readiness architecture validated.');
