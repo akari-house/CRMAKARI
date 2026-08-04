@@ -10,7 +10,7 @@ const opportunity = {
 const qualifiedWorkspace = {
   opportunity,
   proposals:[],negotiations:[],closures:[],engagements:[],finance:{invoices:[],receipts:[],referrals:[]},
-  permissions:{canWrite:true,canFinance:true},
+  permissions:{canWrite:true,canFinance:true,canApproveProposal:true},
 };
 const partnershipWorkspace = {
   opportunity:{...opportunity,stage:'WON',probability_percentage:100,project_lifecycle_status:'PARTNER',estimated_value:0},
@@ -27,7 +27,7 @@ const partnershipWorkspace = {
     metadata:{dealModel:'PARTNERSHIP',invoiceEligible:false,commercialModel:'NON_BILLABLE'},
   }],
   finance:{invoices:[],receipts:[],referrals:[]},
-  permissions:{canWrite:true,canFinance:true},
+  permissions:{canWrite:true,canFinance:true,canApproveProposal:true},
 };
 
 function responseFor(url, method, mode) {
@@ -76,44 +76,39 @@ async function boot(page, mode, captures) {
   await expect(page.getByLabel('Revenue lifecycle workspace')).toBeVisible();
 }
 
-test('won form distinguishes partnership, service and hybrid outcomes', async ({page}) => {
+test('controlled won form distinguishes partnership, service and hybrid outcomes', async ({page}) => {
   const captures=[];
   await boot(page,'qualified',captures);
   const workspace = page.getByLabel('Revenue lifecycle workspace');
   await workspace.getByRole('button',{name:'Mark won'}).click();
 
-  const form = page.locator('#revenue-active-form');
-  await expect(form.getByRole('heading',{name:'Close as won'})).toBeVisible();
+  const form = page.locator('#governance-active-form');
+  await expect(page.getByRole('dialog',{name:'Close opportunity as won'})).toBeVisible();
   const dealModel = form.locator('select[name="dealModel"]');
   await expect(dealModel).toHaveValue('SERVICE');
-  await expect(dealModel).toContainText('Paid service / campaign · invoice eligible');
+  await expect(dealModel).toContainText('Paid service');
+  await expect(dealModel).toContainText('Partnership');
+  await expect(dealModel).toContainText('Hybrid');
 
   await dealModel.selectOption('PARTNERSHIP');
-  await expect(form.locator('input[name="finalValue"]')).toBeHidden();
-  await expect(form.locator('input[name="campaignCost"]')).toBeHidden();
-  await expect(form.getByText('No invoice will be created.')).toBeVisible();
-  await expect(form.locator('textarea[name="deliverables"]').locator('..').locator('span')).toContainText('Partnership scope');
-
-  await form.locator('input[name="startDate"]').fill('2030-04-01');
+  await form.locator('input[name="finalValue"]').fill('0');
+  await form.locator('select[name="commercialModel"]').selectOption('PARTNERSHIP');
+  await form.locator('input[name="acceptedBy"]').fill('Alice Founder');
+  await form.locator('input[name="acceptanceReference"]').fill('Founder meeting confirmation');
+  await form.locator('input[name="termsConfirmed"]').check();
+  await form.locator('textarea[name="manualCloseReason"]').fill('Strategic partnership confirmed directly without a paid proposal.');
   await form.locator('textarea[name="deliverables"]').fill('Joint ecosystem introductions and distribution');
-  await form.locator('textarea[name="valueContribution"]').fill('Distribution, credibility and founder introductions');
-  await form.locator('input[name="createAnnouncementPlan"]').check();
-  await expect(form.locator('[data-announcement-fields]')).toBeVisible();
-  await form.locator('input[name="announcementDate"]').fill('2030-04-10');
-  await expect(form.locator('select[name="marketingOwnerId"] option')).toHaveCount(4);
-  await form.locator('select[name="marketingOwnerId"]').selectOption('usr_marketing');
-  await form.locator('select[name="designOwnerId"]').selectOption('usr_design');
-  await form.getByRole('button',{name:'Close partnership'}).click();
+  await form.locator('input[name="nextAction"]').fill('Plan first partnership activation');
+  await form.getByRole('button',{name:'Close as won'}).click();
 
   await expect.poll(() => captures.some((item) => item.path === '/api/opportunities/opp_1/close')).toBeTruthy();
   const sent = captures.find((item) => item.path === '/api/opportunities/opp_1/close').body;
   expect(sent.outcome).toBe('WON');
   expect(sent.dealModel).toBe('PARTNERSHIP');
   expect(sent.finalValue).toBe('0');
-  expect(sent.createAnnouncementPlan).toBe('true');
-  expect(sent.announcementDate).toBe('2030-04-10');
-  expect(sent.marketingOwnerId).toBe('usr_marketing');
-  expect(sent.designOwnerId).toBe('usr_design');
+  expect(sent.acceptedBy).toBe('Alice Founder');
+  expect(sent.termsConfirmed).toBe(true);
+  expect(sent.nextAction).toBe('Plan first partnership activation');
 });
 
 test('non-billable partnership removes invoice and payment actions from the lifecycle', async ({page}) => {
