@@ -51,6 +51,18 @@
     return payload;
   }
 
+  function refreshWorkspaceInPlace() {
+    const workspace = document.querySelector('#modal-root .revenue-workspace');
+    if (!workspace) return;
+    const refresh = [...workspace.querySelectorAll('button')]
+      .find((button) => String(button.textContent || '').trim().toLowerCase() === 'refresh');
+    if (refresh && !refresh.disabled) {
+      refresh.click();
+      return;
+    }
+    document.dispatchEvent(new CustomEvent('akari:revenue-workspace-refresh'));
+  }
+
   async function ensureEngagement(opportunityId, payload) {
     const stage = String(payload?.opportunity?.stage || '').toUpperCase();
     const engagements = Array.isArray(payload?.engagements) ? payload.engagements : [];
@@ -68,7 +80,7 @@
       if (!response.ok) throw new Error(result.error || `Engagement preparation failed (${response.status})`);
       completed.add(opportunityId);
       notify(result.alreadyExists ? 'Engagement connected.' : 'Client engagement created automatically.');
-      setTimeout(() => location.reload(), 650);
+      setTimeout(refreshWorkspaceInPlace, 300);
     } catch (error) {
       console.error('AKARI automatic engagement creation failed', error);
       notify(error.message || 'The client engagement could not be prepared automatically.', 'error');
