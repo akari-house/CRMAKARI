@@ -214,7 +214,7 @@ export async function onRequestPatch(context) {
       if (!Number.isFinite(amount) || amount <= 0) return error('Credit-note amount must be greater than zero', 422);
       if (['DRAFT', 'CANCELLED'].includes(row.status)) return error('This invoice cannot receive a credit note', 409);
       const available = roundMoney(invoice.total - invoice.credited - invoice.received);
-      if (amount > available + 0.005) return error('Credit-note amount exceeds the remaining creditable balance', 422);
+      if (amount > available + 0.005) return error('Credit-note amount exceeds the invoice total remaining creditable balance', 422);
       const count = await first(context.env.DB, `SELECT COUNT(*) AS value FROM payments WHERE tenant_id = ? AND payment_type = 'CREDIT_NOTE' AND notes LIKE ?`, [tenantId, `%\"invoiceId\":\"${row.id}\"%`]);
       const reference = `CN-${row.invoice_reference}-${String(Number(count?.value || 0) + 1).padStart(2, '0')}`;
       const creditId = makeId('crn');
