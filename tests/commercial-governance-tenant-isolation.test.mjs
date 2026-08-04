@@ -44,7 +44,7 @@ test('controlled hold requires manager evidence and writes stage history',async(
   const payload=await body(response);
   assert.equal(response.status,200); assert.equal(payload.stage,'ON_HOLD');
   assert.ok(db.calls.some((call)=>/INSERT INTO opportunity_stage_history/.test(call.sql)));
-  assert.ok(db.calls.some((call)=>/OPPORTUNITY_PLACED_ON_HOLD/.test(call.sql)));
+  assert.ok(db.calls.some((call)=>call.bindings.includes('OPPORTUNITY_PLACED_ON_HOLD')));
 });
 
 test('proposal acceptance requires explicit who, when, method, reference and terms confirmation',async()=>{
