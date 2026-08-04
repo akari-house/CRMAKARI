@@ -1,0 +1,209 @@
+.bd-commercial-readiness {
+  border-color: color-mix(in srgb, var(--yellow, #ffbf3f) 32%, var(--line, #2a303a));
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 191, 63, .08), transparent 34%),
+    var(--panel, #11161e);
+}
+
+.bd-commercial-readiness__head {
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.bd-next-action {
+  display: grid;
+  grid-template-columns: minmax(120px, .35fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 191, 63, .22);
+  border-radius: 14px;
+  background: rgba(255, 191, 63, .06);
+}
+
+.bd-next-action span {
+  color: var(--yellow, #ffbf3f);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.bd-next-action strong {
+  color: var(--text, #f6f7fb);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.bd-readiness-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.bd-readiness-item {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 10px;
+  min-height: 88px;
+  padding: 13px;
+  border: 1px solid var(--line, #2a303a);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, .018);
+}
+
+.bd-readiness-item > span {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  border: 1px solid var(--line, #2a303a);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.bd-readiness-item.is-complete > span {
+  border-color: rgba(73, 213, 151, .32);
+  color: #71e2ac;
+  background: rgba(73, 213, 151, .08);
+}
+
+.bd-readiness-item.is-open > span {
+  border-color: rgba(255, 191, 63, .28);
+  color: var(--yellow, #ffbf3f);
+  background: rgba(255, 191, 63, .07);
+}
+
+.bd-readiness-item strong,
+.bd-readiness-item small {
+  display: block;
+}
+
+.bd-readiness-item strong {
+  margin-bottom: 5px;
+  color: var(--text, #f6f7fb);
+  font-size: 12px;
+}
+
+.bd-readiness-item small {
+  color: var(--muted-2, #9aa3b2);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.bd-commercial-readiness__actions {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid var(--line, #2a303a);
+}
+
+.bd-client-billing-form {
+  width: min(940px, calc(100vw - 36px));
+  max-height: min(90vh, 900px);
+}
+
+.bd-client-billing-form .revenue-form-body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.bd-client-billing-grid {
+  grid-auto-rows: max-content;
+  align-items: start;
+}
+
+.bd-client-billing-grid > .revenue-field {
+  min-width: 0;
+  height: auto;
+  align-self: start;
+}
+
+.bd-profile-warning,
+.bd-profile-ready,
+.bd-invoice-profile-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 13px 15px;
+  border-radius: 13px;
+}
+
+.bd-profile-warning {
+  border: 1px solid rgba(255, 191, 63, .24);
+  background: rgba(255, 191, 63, .07);
+}
+
+.bd-profile-ready {
+  border: 1px solid rgba(73, 213, 151, .24);
+  background: rgba(73, 213, 151, .07);
+}
+
+.bd-profile-warning strong,
+.bd-profile-warning span,
+.bd-profile-ready strong,
+.bd-profile-ready span,
+.bd-invoice-profile-note strong,
+.bd-invoice-profile-note span {
+  display: block;
+}
+
+.bd-profile-warning strong,
+.bd-profile-ready strong,
+.bd-invoice-profile-note strong {
+  margin-bottom: 3px;
+  color: var(--text, #f6f7fb);
+  font-size: 12px;
+}
+
+.bd-profile-warning span,
+.bd-profile-ready span,
+.bd-invoice-profile-note span {
+  color: var(--muted-2, #9aa3b2);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.bd-invoice-profile-note {
+  grid-column: 1 / -1;
+  margin: 0;
+  border: 1px solid rgba(255, 191, 63, .2);
+  background: rgba(255, 191, 63, .055);
+}
+
+.bd-save-profile-check {
+  grid-column: 1 / -1;
+  margin-top: 4px;
+}
+
+@media (max-width: 980px) {
+  .bd-readiness-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .bd-next-action {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .bd-readiness-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bd-client-billing-form {
+    width: calc(100vw - 16px);
+    max-height: calc(100vh - 16px);
+  }
+
+  .bd-profile-warning,
+  .bd-profile-ready,
+  .bd-invoice-profile-note {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
