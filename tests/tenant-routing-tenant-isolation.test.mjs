@@ -11,13 +11,13 @@ const redirects=await readFile('public/_redirects','utf8');
 test('tenant slug is resolved from the protected route or API header',()=>{
   assert.match(middleware,/x-akari-tenant/);
   assert.match(middleware,/^.*\/app\\\/\(\[\^\/\]\+\).*$/m);
-  assert.match(middleware,/rows\.find\(row=>String\(row\.tenant_slug\)/);
+  assert.match(middleware,/rows\.find\(\(?row\)?\s*=>\s*String\(row\.tenant_slug\)/);
 });
 
 test('cross-tenant workspace access is rejected',()=>{
   assert.match(middleware,/You do not have access to this CRM workspace/);
-  assert.match(middleware,/WHERE lower\(u\.email\)=lower\(\?\)/);
-  assert.match(middleware,/tm\.status='ACTIVE'/);
+  assert.match(middleware,/WHERE\s+lower\(u\.email\)\s*=\s*lower\(\?\)/);
+  assert.match(middleware,/tm\.status\s*=\s*'ACTIVE'/);
 });
 
 test('app root redirects to the authenticated workspace resolver without loading assets',async()=>{
