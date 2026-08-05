@@ -4,23 +4,40 @@
   if (window.__akariInvoiceDateStabilityR37) return;
   window.__akariInvoiceDateStabilityR37 = true;
 
-  function stabilizeInitialDueDate() {
+  let timer = null;
+  let attempts = 0;
+  let governedDueDate = '';
+
+  function stop() {
+    if (timer) clearInterval(timer);
+    timer = null;
+    attempts = 0;
+    governedDueDate = '';
+  }
+
+  function inspectInvoiceForm() {
+    attempts += 1;
     const form = document.querySelector('#revenue-active-form');
-    if (!form || form.dataset.invoiceDateStabilityR37 === 'ready') return;
-    const heading = form.querySelector('header h3')?.textContent?.trim();
-    if (heading !== 'Create engagement invoice') return;
+    const heading = form?.querySelector('header h3')?.textContent?.trim();
+    if (!form || heading !== 'Create engagement invoice') {
+      if (attempts > 100) stop();
+      return;
+    }
+
     const dueDate = form.elements?.dueDate;
     if (!dueDate) return;
+    if (!governedDueDate) governedDueDate = dueDate.getAttribute('value') || dueDate.value || '';
 
-    const renderedDefault = dueDate.getAttribute('value');
-    if (renderedDefault && dueDate.value !== renderedDefault) dueDate.value = renderedDefault;
+    if (form.dataset.bdInvoiceReadinessR31 !== 'ready') return;
+    if (governedDueDate) dueDate.value = governedDueDate;
     form.dataset.invoiceDateStabilityR37 = 'ready';
+    stop();
   }
 
   function schedule() {
-    requestAnimationFrame(stabilizeInitialDueDate);
-    setTimeout(stabilizeInitialDueDate, 80);
-    setTimeout(stabilizeInitialDueDate, 220);
+    stop();
+    timer = setInterval(inspectInvoiceForm, 40);
+    inspectInvoiceForm();
   }
 
   document.addEventListener('click', schedule, true);
