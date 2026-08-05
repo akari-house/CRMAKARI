@@ -96,8 +96,11 @@
   css.rel = 'stylesheet';
   css.href = '/assets/revenue-lifecycle-ux-r37.css?v=1';
   document.head.appendChild(css);
-  const script = document.createElement('script');
-  script.defer = true;
-  script.src = '/assets/revenue-lifecycle-ux-r37.js?v=1';
-  document.head.appendChild(script);
+
+  ['/assets/revenue-lifecycle-ux-r37.js?v=1', '/assets/invoice-date-stability-r37.js?v=1'].forEach((src) => {
+    const script = document.createElement('script');
+    script.defer = true;
+    script.src = src;
+    document.head.appendChild(script);
+  });
 })();
