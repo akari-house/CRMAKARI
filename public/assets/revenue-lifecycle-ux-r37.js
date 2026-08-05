@@ -6,6 +6,7 @@
 
   const workspaceSnapshots = new Map();
   const nativeFetch = window.fetch.bind(window);
+  let enhancementScheduled = false;
 
   function workspaceId(pathname) {
     const match = pathname.match(/^\/api\/opportunities\/([^/]+)\/workspace$/);
@@ -20,14 +21,15 @@
 
   function activeInvoiceSummary(payload) {
     const invoices = Array.isArray(payload?.finance?.invoices) ? payload.finance.invoices : [];
-    const cancelled = invoices.filter((item) => ['CANCELLED', 'CANCELED', 'VOID'].includes(String(item.status || '').toUpperCase()));
-    const active = invoices.filter((item) => !['CANCELLED', 'CANCELED', 'VOID'].includes(String(item.status || '').toUpperCase()));
+    const cancelledStates = ['CANCELLED', 'CANCELED', 'VOID'];
+    const cancelled = invoices.filter((item) => cancelledStates.includes(String(item.status || '').toUpperCase()));
+    const active = invoices.filter((item) => !cancelledStates.includes(String(item.status || '').toUpperCase()));
     const outstanding = active.reduce((sum, item) => sum + Number(item.outstanding || 0), 0);
     const received = active.reduce((sum, item) => sum + Number(item.received || 0), 0);
     return { invoices, active, cancelled, outstanding, received };
   }
 
-  function replaceText(root, from, to) {
+  function replaceExactText(root, from, to) {
     [...root.querySelectorAll('*')].forEach((node) => {
       if (node.children.length === 0 && node.textContent.trim() === from) node.textContent = to;
     });
@@ -35,21 +37,35 @@
 
   function decorateWonWorkspace(root, payload) {
     if (!root || String(payload?.opportunity?.stage || '').toUpperCase() !== 'WON') return;
-    root.classList.add('revenue-post-won');
+    const summary = activeInvoiceSummary(payload);
+    const signature = [
+      payload.opportunity?.id || '',
+      payload.engagements?.length || 0,
+      summary.active.length,
+      summary.cancelled.length,
+      summary.outstanding,
+      payload.proposals?.length || 0,
+    ].join(':');
+    if (root.dataset.revenueUxR37 === signature) return;
 
+    root.classList.add('revenue-post-won');
     const panels = [...root.querySelectorAll('.revenue-panel')];
-    const qualification = panels.find((panel) => panel.querySelector('.revenue-panel-head strong')?.textContent.trim() === 'Qualification');
+
+    const qualification = panels.find((panel) => {
+      const heading = panel.querySelector('.revenue-panel-head strong')?.textContent.trim();
+      return heading === 'Qualification' || heading === 'Pre-sale qualification history';
+    });
     if (qualification) {
       qualification.classList.add('revenue-history-panel');
       const heading = qualification.querySelector('.revenue-panel-head strong');
       const copy = qualification.querySelector('.revenue-panel-head span');
-      const pill = qualification.querySelector('.revenue-pill');
+      const statusPill = qualification.querySelector('.revenue-pill');
       if (heading) heading.textContent = 'Pre-sale qualification history';
       if (copy) copy.textContent = 'Historical context is retained for audit and learning. It does not block post-sale delivery.';
-      if (pill) {
-        pill.textContent = 'Closed won';
-        pill.classList.remove('yellow');
-        pill.classList.add('green');
+      if (statusPill) {
+        statusPill.textContent = 'Closed won';
+        statusPill.classList.remove('yellow');
+        statusPill.classList.add('green');
       }
     }
 
@@ -60,21 +76,21 @@
       if (copy && !payload.proposals?.length) copy.textContent = 'No formal proposal was recorded. The won outcome remains the governing commercial record.';
     }
 
-    const summary = activeInvoiceSummary(payload);
-    replaceText(root, 'Invoice and collection', 'Invoice issued');
+    replaceExactText(root, 'Invoice and collection', 'Invoice issued');
+
     const readinessCards = [...root.querySelectorAll('.readiness-card, .commercial-readiness-card, [class*="readiness"] article, [class*="readiness"] .card')];
     readinessCards.forEach((card) => {
-      const text = card.textContent;
-      if (text.includes('Qualification')) {
-        const title = [...card.querySelectorAll('*')].find((node) => node.children.length === 0 && node.textContent.trim() === 'Qualification');
-        if (title) title.textContent = 'Pre-sale history';
+      const text = card.textContent || '';
+      if (text.includes('Qualification') || text.includes('Pre-sale history')) {
+        const cardTitle = [...card.querySelectorAll('*')].find((node) => node.children.length === 0 && ['Qualification', 'Pre-sale history'].includes(node.textContent.trim()));
+        if (cardTitle) cardTitle.textContent = 'Pre-sale history';
         const small = card.querySelector('small, p');
         if (small) small.textContent = 'Retained for context; not a delivery blocker.';
         card.classList.add('is-history');
       }
-      if (text.includes('Proposal')) {
-        const title = [...card.querySelectorAll('*')].find((node) => node.children.length === 0 && node.textContent.trim() === 'Proposal');
-        if (title) title.textContent = 'Commercial agreement';
+      if (text.includes('Proposal') || text.includes('Commercial agreement')) {
+        const cardTitle = [...card.querySelectorAll('*')].find((node) => node.children.length === 0 && ['Proposal', 'Commercial agreement'].includes(node.textContent.trim()));
+        if (cardTitle) cardTitle.textContent = 'Commercial agreement';
         const small = card.querySelector('small, p');
         if (small) small.textContent = payload.proposals?.length ? 'Proposal history is retained.' : 'Won outcome recorded without a formal proposal.';
         card.classList.add('is-history');
@@ -91,6 +107,8 @@
 
     const nextAction = root.querySelector('.commercial-readiness-next strong, [class*="readiness"] [class*="next"] strong');
     if (nextAction && summary.outstanding > 0) nextAction.textContent = `Collect or reconcile ${currency(summary.outstanding, payload.opportunity.currency)} outstanding.`;
+
+    if (qualification || readinessCards.length) root.dataset.revenueUxR37 = signature;
   }
 
   function ensureEconomicsSummary(form) {
@@ -129,6 +147,7 @@
         warning.textContent = '';
       }
     };
+
     [gross, campaign, creator, other].forEach((input) => input.addEventListener('input', update));
     update();
   }
@@ -144,8 +163,16 @@
         }
       }
     }
-    const form = document.querySelector('#revenue-active-form');
-    if (form && document.querySelector('h2, h3')?.textContent !== '') ensureEconomicsSummary(form);
+    ensureEconomicsSummary(document.querySelector('#revenue-active-form'));
+  }
+
+  function scheduleEnhancements() {
+    if (enhancementScheduled) return;
+    enhancementScheduled = true;
+    requestAnimationFrame(() => {
+      enhancementScheduled = false;
+      applyEnhancements();
+    });
   }
 
   window.fetch = async function revenueUxFetch(input, init = {}) {
@@ -157,8 +184,9 @@
       if (id && response.ok) {
         const payload = await response.clone().json();
         workspaceSnapshots.set(id, payload);
-        queueMicrotask(applyEnhancements);
-        setTimeout(applyEnhancements, 80);
+        scheduleEnhancements();
+        setTimeout(scheduleEnhancements, 100);
+        setTimeout(scheduleEnhancements, 280);
       }
     } catch (error) {
       console.warn('AKARI revenue UX enhancement could not inspect response', error);
@@ -166,9 +194,13 @@
     return response;
   };
 
-  const observer = new MutationObserver(() => applyEnhancements());
-  observer.observe(document.documentElement, { childList: true, subtree: true });
-  document.addEventListener('input', (event) => {
-    if (event.target.closest('#revenue-active-form')) ensureEconomicsSummary(event.target.closest('#revenue-active-form'));
+  document.addEventListener('click', () => {
+    scheduleEnhancements();
+    setTimeout(scheduleEnhancements, 100);
   });
+  document.addEventListener('input', (event) => {
+    const form = event.target.closest('#revenue-active-form');
+    if (form) ensureEconomicsSummary(form);
+  });
+  document.addEventListener('akari:revenue-workspace-refresh', scheduleEnhancements);
 })();
