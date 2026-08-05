@@ -1,13 +1,14 @@
 (() => {
   'use strict';
 
-  let opportunityId = '';
-  let checking = false;
-  let recoveredThisSession = false;
-  const $ = (selector, root = document) => root.querySelector(selector);
+  if (window.fetch?.akariWonEngagementGuard === 'ready') return;
+
+  const nativeFetch = window.fetch.bind(window);
+  const recoveryInFlight = new Set();
+  const completed = new Set();
 
   function notify(message, type = 'success') {
-    const root = $('#toast-root');
+    const root = document.querySelector('#toast-root');
     if (!root) return;
     const node = document.createElement('div');
     node.className = `toast ${type}`;
@@ -16,74 +17,102 @@
     setTimeout(() => node.remove(), 4200);
   }
 
-  async function request(path, options = {}) {
-    const response = await fetch(path, {
-      credentials:'same-origin',
-      ...options,
-      headers:{ 'content-type':'application/json', ...(options.headers || {}) },
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(payload.error || `Request failed (${response.status})`);
+  function opportunityIdFromWorkspacePath(pathname) {
+    const match = pathname.match(/^\/api\/opportunities\/([^/]+)\/workspace$/);
+    return match ? decodeURIComponent(match[1]) : '';
+  }
+
+  function postWinNextAction(payload) {
+    const readiness = payload.commercialReadiness || {};
+    if (!readiness.clientBillingReady) {
+      return ['Complete the client billing profile before issuing an invoice.', 'COMPLETE_CLIENT_BILLING'];
+    }
+    if (!readiness.engagementReady) {
+      return ['Preparing the client engagement…', 'CREATE_ENGAGEMENT'];
+    }
+    if (!readiness.issuerBillingReady) {
+      return ['Complete AKARI organisation billing details in Settings.', 'COMPLETE_ISSUER_BILLING'];
+    }
+    if (!readiness.invoiceCount) {
+      return ['Issue the first invoice from the won engagement.', 'CREATE_INVOICE'];
+    }
+    if (Number(readiness.outstanding || 0) > 0) {
+      return ['Collect or reconcile the outstanding invoice balance.', 'COLLECT_PAYMENT'];
+    }
+    return ['Confirm delivery, referral obligations and renewal follow-up.', 'COMPLETE_COMMERCIAL_CYCLE'];
+  }
+
+  function normalizeWonReadiness(payload) {
+    if (String(payload?.opportunity?.stage || '').toUpperCase() !== 'WON') return payload;
+    payload.commercialReadiness ||= {};
+    const [nextAction, nextActionCode] = postWinNextAction(payload);
+    payload.commercialReadiness.nextAction = nextAction;
+    payload.commercialReadiness.nextActionCode = nextActionCode;
     return payload;
   }
 
-  function correctWonReadiness(workspace, payload) {
-    if (String(payload.opportunity?.stage || '').toUpperCase() !== 'WON') return;
-    const readiness = payload.commercialReadiness || {};
-    const next = readiness.engagementReady
-      ? (readiness.invoiceCount ? 'Continue delivery and collection.' : 'Complete billing details and issue the first invoice.')
-      : 'Preparing the client engagement…';
-    workspace.querySelectorAll('*').forEach((node) => {
-      if (node.children.length) return;
-      const copy = String(node.textContent || '').trim();
-      if (copy === 'Complete qualification: need, decision-maker, timeline and budget.') node.textContent = next;
-    });
+  function refreshWorkspaceInPlace() {
+    const workspace = document.querySelector('#modal-root .revenue-workspace');
+    if (!workspace) return;
+    const refresh = [...workspace.querySelectorAll('button')]
+      .find((button) => String(button.textContent || '').trim().toLowerCase() === 'refresh');
+    if (refresh && !refresh.disabled) {
+      refresh.click();
+      return;
+    }
+    document.dispatchEvent(new CustomEvent('akari:revenue-workspace-refresh'));
   }
 
-  async function inspectWorkspace() {
-    const workspace = $('#modal-root .revenue-workspace');
-    if (!workspace || !opportunityId || checking || recoveredThisSession) return;
-    if (workspace.dataset.engagementAutoChecked === opportunityId) return;
-    checking = true;
+  async function ensureEngagement(opportunityId, payload) {
+    const stage = String(payload?.opportunity?.stage || '').toUpperCase();
+    const engagements = Array.isArray(payload?.engagements) ? payload.engagements : [];
+    if (stage !== 'WON' || engagements.length || recoveryInFlight.has(opportunityId) || completed.has(opportunityId)) return;
+
+    recoveryInFlight.add(opportunityId);
     try {
-      const payload = await request(`/api/opportunities/${encodeURIComponent(opportunityId)}/workspace`);
-      workspace.dataset.engagementAutoChecked = opportunityId;
-      correctWonReadiness(workspace, payload);
-      const stage = String(payload.opportunity?.stage || '').toUpperCase();
-      const engagements = payload.engagements || [];
-      if (stage !== 'WON' || engagements.length) return;
-
-      const head = workspace.querySelector('.revenue-workspace-head, .modal-head');
-      const status = document.createElement('span');
-      status.dataset.engagementAutoStatus = 'true';
-      status.className = 'commercial-pill yellow';
-      status.textContent = 'Preparing engagement…';
-      head?.appendChild(status);
-
-      const result = await request(`/api/opportunities/${encodeURIComponent(opportunityId)}/recover-engagement`, {
+      const response = await nativeFetch(`/api/opportunities/${encodeURIComponent(opportunityId)}/recover-engagement`, {
         method:'POST',
+        credentials:'same-origin',
+        headers:{ 'content-type':'application/json' },
         body:'{}',
       });
-      recoveredThisSession = true;
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || `Engagement preparation failed (${response.status})`);
+      completed.add(opportunityId);
       notify(result.alreadyExists ? 'Engagement connected.' : 'Client engagement created automatically.');
-      setTimeout(() => location.reload(), 650);
+      setTimeout(refreshWorkspaceInPlace, 300);
     } catch (error) {
-      console.warn('AKARI automatic engagement creation failed', error);
+      console.error('AKARI automatic engagement creation failed', error);
       notify(error.message || 'The client engagement could not be prepared automatically.', 'error');
     } finally {
-      checking = false;
+      recoveryInFlight.delete(opportunityId);
     }
   }
 
-  document.addEventListener('click', (event) => {
-    const open = event.target.closest('[data-revenue-action="open"][data-id]');
-    if (open) {
-      opportunityId = open.dataset.id || '';
-      recoveredThisSession = false;
-    }
-  }, true);
+  async function guardedFetch(input, init = {}) {
+    const response = await nativeFetch(input, init);
+    try {
+      const method = String(init.method || input?.method || 'GET').toUpperCase();
+      const url = new URL(typeof input === 'string' ? input : input.url, location.href);
+      const opportunityId = method === 'GET' ? opportunityIdFromWorkspacePath(url.pathname) : '';
+      if (!opportunityId || !response.ok) return response;
 
-  new MutationObserver(inspectWorkspace).observe(document.documentElement, { childList:true, subtree:true });
-  document.addEventListener('DOMContentLoaded', inspectWorkspace);
-  document.addEventListener('akari:route-rendered', inspectWorkspace);
+      const payload = await response.clone().json();
+      normalizeWonReadiness(payload);
+      queueMicrotask(() => ensureEngagement(opportunityId, payload));
+
+      return new Response(JSON.stringify(payload), {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+      });
+    } catch (error) {
+      console.warn('AKARI won engagement guard could not inspect the workspace response', error);
+      return response;
+    }
+  }
+
+  guardedFetch.akariWonEngagementGuard = 'ready';
+  guardedFetch.nativeFetch = nativeFetch;
+  window.fetch = guardedFetch;
 })();
