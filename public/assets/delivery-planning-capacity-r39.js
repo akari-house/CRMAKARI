@@ -119,4 +119,19 @@
     if (event.target.closest('[data-delivery-action]')) setTimeout(queue, 0);
   }, true);
   renderWorkspace();
+
+  if (!document.querySelector('link[data-delivery-governance-r40]')) {
+    const style = document.createElement('link');
+    style.rel = 'stylesheet';
+    style.href = '/assets/delivery-approvals-dependencies-r40.css?v=1';
+    style.dataset.deliveryGovernanceR40 = 'true';
+    document.head.appendChild(style);
+  }
+  if (!document.querySelector('script[data-delivery-governance-r40]')) {
+    const script = document.createElement('script');
+    script.src = '/assets/delivery-approvals-dependencies-r40.js?v=1';
+    script.defer = true;
+    script.dataset.deliveryGovernanceR40 = 'true';
+    document.head.appendChild(script);
+  }
 })();
