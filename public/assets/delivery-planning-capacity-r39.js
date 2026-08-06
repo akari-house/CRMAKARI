@@ -120,18 +120,18 @@
   }, true);
   renderWorkspace();
 
-  if (!document.querySelector('link[data-delivery-governance-r40]')) {
-    const style = document.createElement('link');
-    style.rel = 'stylesheet';
-    style.href = '/assets/delivery-approvals-dependencies-r40.css?v=1';
-    style.dataset.deliveryGovernanceR40 = 'true';
-    document.head.appendChild(style);
-  }
-  if (!document.querySelector('script[data-delivery-governance-r40]')) {
-    const script = document.createElement('script');
-    script.src = '/assets/delivery-approvals-dependencies-r40.js?v=1';
-    script.defer = true;
-    script.dataset.deliveryGovernanceR40 = 'true';
-    document.head.appendChild(script);
-  }
+  const assets = [
+    ['link', 'delivery-governance-r40', '/assets/delivery-approvals-dependencies-r40.css?v=1'],
+    ['script', 'delivery-governance-r40', '/assets/delivery-approvals-dependencies-r40.js?v=1'],
+    ['link', 'delivery-closeout-r41', '/assets/delivery-closeout-renewal-r41.css?v=1'],
+    ['script', 'delivery-closeout-r41', '/assets/delivery-closeout-renewal-r41.js?v=1']
+  ];
+  assets.forEach(([type, key, url]) => {
+    if (document.querySelector(`${type}[data-${key}]`)) return;
+    const asset = document.createElement(type);
+    if (type === 'link') { asset.rel = 'stylesheet'; asset.href = url; }
+    else { asset.src = url; asset.defer = true; }
+    asset.dataset[key.replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = 'true';
+    document.head.appendChild(asset);
+  });
 })();
