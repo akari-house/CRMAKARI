@@ -1,9 +1,6 @@
-name: UI Acceptance
+name: UI Acceptance (legacy manual)
 
 on:
-  push:
-    branches: [main]
-  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -12,20 +9,17 @@ permissions:
 jobs:
   browser:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Install dependencies and validate source
-        run: |
-          npm install
-          npm run validate
-      - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
-      - name: Click-test production UI
-        run: npm run test:ui
+          cache: npm
+      - run: npm install
+      - run: npm run validate
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:ui
       - name: Upload browser diagnostics
         if: failure()
         uses: actions/upload-artifact@v4
