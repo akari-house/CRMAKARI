@@ -1,6 +1,7 @@
 (() => {
   'use strict';
 
+  // PR #77 workflow trigger: no runtime behavior change.
   if (window.__akariInvoiceDateStabilityR37) return;
   window.__akariInvoiceDateStabilityR37 = true;
 
