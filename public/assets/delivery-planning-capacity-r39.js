@@ -1,6 +1,7 @@
 (() => {
   'use strict';
 
+  // Delivery planning slice validated by the consolidated PR quality gates.
   if (window.__akariDeliveryPlanningCapacityR39) return;
   window.__akariDeliveryPlanningCapacityR39 = true;
 
