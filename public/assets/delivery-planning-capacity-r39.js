@@ -16,12 +16,7 @@
       const owner = clean(meta.split('·')[0]) || 'Unassigned';
       const dueText = meta.match(/Due\s+(.+?)(?:\s+·|$)/i)?.[1] || '';
       const due = dueText && dueText !== '-' ? asDate(dueText) : null;
-      return {
-        title, owner, due, status,
-        waiting:/(WAITING|REVIEW|APPROVAL|SUBMITTED)/.test(status),
-        blocked:/(BLOCKED|DECLINED|DISPUTED)/.test(status),
-        complete:/(COMPLETE|COMPLETED|DONE|APPROVED|PUBLISHED|PAID)/.test(status),
-      };
+      return { title, owner, due, status, waiting:/(WAITING|REVIEW|APPROVAL|SUBMITTED)/.test(status), blocked:/(BLOCKED|DECLINED|DISPUTED)/.test(status), complete:/(COMPLETE|COMPLETED|DONE|APPROVED|PUBLISHED|PAID)/.test(status) };
     });
   }
 
@@ -59,9 +54,7 @@
 
   let queued = false;
   const queue = () => { if (queued) return; queued = true; requestAnimationFrame(()=>{ queued=false; renderWorkspace(); }); };
-  new MutationObserver((mutations)=>{
-    if (mutations.some((mutation)=>[...mutation.addedNodes].some((node)=>node.nodeType===1&&(node.matches?.('.delivery-workspace')||node.querySelector?.('.delivery-workspace'))))) queue();
-  }).observe(document.body,{childList:true,subtree:true});
+  new MutationObserver((mutations)=>{ if (mutations.some((mutation)=>[...mutation.addedNodes].some((node)=>node.nodeType===1&&(node.matches?.('.delivery-workspace')||node.querySelector?.('.delivery-workspace'))))) queue(); }).observe(document.body,{childList:true,subtree:true});
   document.addEventListener('click',(event)=>{ if(event.target.closest('[data-delivery-action]')) setTimeout(queue,0); },true);
   renderWorkspace();
 
@@ -78,6 +71,8 @@
     ['script','campaign-gtm-tracking-r44','/assets/campaign-gtm-tracking-r44.js?v=1'],
     ['link','campaign-executive-r45','/assets/campaign-executive-intelligence-r45.css?v=1'],
     ['script','campaign-executive-r45','/assets/campaign-executive-intelligence-r45.js?v=1'],
+    ['link','campaign-report-builder-r46','/assets/campaign-report-builder-r46.css?v=1'],
+    ['script','campaign-report-builder-r46','/assets/campaign-report-builder-r46.js?v=1'],
   ];
   assets.forEach(([type,key,url])=>{
     if (document.querySelector(`${type}[data-${key}]`)) return;
