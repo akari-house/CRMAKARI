@@ -11,6 +11,7 @@ import {
 } from '../../lib/campaign-reporting-history.js';
 
 const MANAGER_ROLES = new Set(['OWNER','ADMIN','BD_MANAGER']);
+const dateOnly = (value) => /^\d{4}-\d{2}-\d{2}$/.test(String(value || '')) ? String(value) : null;
 
 async function loadCampaign(db, tenantId, id) {
   return first(db, `
@@ -31,6 +32,21 @@ function publicItem(row, history) {
     targetCompletionDate: row.end_date,
     status: row.status,
     ...reportingHistorySummary(history),
+  };
+}
+
+function asOfTracking(tracking, periodDate) {
+  return {
+    ...tracking,
+    socialUpdates: (tracking.socialUpdates || []).filter((item) => String(item.dataDate || '') <= periodDate),
+    creatorPosts: (tracking.creatorPosts || []).filter((item) => String(item.dataDate || '') <= periodDate),
+  };
+}
+
+function asOfGtmTracking(tracking, periodDate) {
+  return {
+    ...tracking,
+    activities: (tracking.activities || []).filter((item) => String(item.dataDate || '') <= periodDate),
   };
 }
 
@@ -76,11 +92,15 @@ export async function onRequestPatch(context) {
 
     if (action === 'capture-snapshot') {
       const type = String(body.snapshot?.type || 'WEEKLY').toUpperCase();
-      const periodDate = String(body.snapshot?.periodDate || nowIso().slice(0,10));
+      const periodDate = dateOnly(body.snapshot?.periodDate) || nowIso().slice(0,10);
+      if (periodDate > nowIso().slice(0,10)) return error('Reporting snapshots cannot be captured for a future date', 422);
+      if (row.start_date && periodDate < row.start_date) return error('Reporting snapshot date cannot be before the campaign start date', 422);
       const duplicate = history.snapshots.find((item) => item.type === type && item.periodDate === periodDate);
       if (duplicate) return error('A snapshot already exists for this reporting type and date', 409);
-      const { tracking } = parseCampaignTracking(row.notes);
-      const { tracking:gtmTracking } = parseCampaignGtmTracking(row.notes);
+      const { tracking:rawTracking } = parseCampaignTracking(row.notes);
+      const { tracking:rawGtmTracking } = parseCampaignGtmTracking(row.notes);
+      const tracking = asOfTracking(rawTracking, periodDate);
+      const gtmTracking = asOfGtmTracking(rawGtmTracking, periodDate);
       const trackingSummary = campaignTrackingSummary(tracking, row.start_date, periodDate);
       const gtmSummary = gtmTrackingSummary(gtmTracking, periodDate);
       history.snapshots.push(buildCampaignSnapshot({
