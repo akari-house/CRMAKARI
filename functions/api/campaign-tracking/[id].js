@@ -7,6 +7,8 @@ import {
   sanitizeOverview,
   sanitizeTarget,
   sanitizeSocialUpdate,
+  sanitizeCreatorAssignment,
+  sanitizeCreatorPost,
   campaignTrackingSummary,
 } from '../../lib/campaign-tracking.js';
 
@@ -44,12 +46,11 @@ function publicItem(row, tracking) {
     startDate:row.start_date,
     targetCompletionDate:row.end_date,
     status:row.status,
-    overview:{
-      ...tracking.overview,
-      projectWebsite:tracking.overview.projectWebsite || row.project_website || '',
-    },
+    overview:{ ...tracking.overview, projectWebsite:tracking.overview.projectWebsite || row.project_website || '' },
     targets:tracking.targets,
     socialUpdates:[...tracking.socialUpdates].sort((a,b) => String(b.dataDate).localeCompare(String(a.dataDate))),
+    creatorAssignments:tracking.creatorAssignments,
+    creatorPosts:[...tracking.creatorPosts].sort((a,b) => String(b.dataDate).localeCompare(String(a.dataDate))),
     summary:campaignTrackingSummary(tracking, row.start_date),
     updatedAt:tracking.updatedAt || row.updated_at,
   };
@@ -61,10 +62,7 @@ async function persist(db, auth, tenantId, row, root, tracking, action, before) 
   tracking.createdBy ||= auth.userId;
   tracking.updatedAt = now;
   tracking.updatedBy = auth.userId;
-  await run(db, `
-    UPDATE campaigns SET notes = ?, updated_at = ?, updated_by = ?
-    WHERE tenant_id = ? AND id = ?
-  `, [serializeCampaignTracking(root, tracking), now, auth.userId, tenantId, row.id]);
+  await run(db, `UPDATE campaigns SET notes = ?, updated_at = ?, updated_by = ? WHERE tenant_id = ? AND id = ?`, [serializeCampaignTracking(root, tracking), now, auth.userId, tenantId, row.id]);
   await run(db, `
     INSERT INTO audit_logs (id, tenant_id, user_id, action, entity_type, entity_id, before_data, after_data, created_at)
     VALUES (?, ?, ?, ?, 'CAMPAIGN_TRACKING', ?, ?, ?, ?)
@@ -79,13 +77,7 @@ export async function onRequestGet(context) {
     const row = await loadCampaign(context.env.DB, tenantId, context.params.id);
     if (!row) return error('Campaign engagement not found', 404);
     const { tracking } = parseCampaignTracking(row.notes);
-    return json({
-      item:publicItem(row, tracking),
-      permissions:{
-        canWrite:WRITE_ROLES.has(auth?.role),
-        canManage:MANAGER_ROLES.has(auth?.role),
-      },
-    });
+    return json({ item:publicItem(row, tracking), permissions:{ canWrite:WRITE_ROLES.has(auth?.role), canManage:MANAGER_ROLES.has(auth?.role) } });
   } catch (cause) {
     return error(cause.message || 'Campaign tracking workspace could not be loaded', Number(cause.status || 500));
   }
@@ -110,25 +102,47 @@ export async function onRequestPatch(context) {
       const targetInput = body.target || {};
       const index = tracking.targets.findIndex((item) => item.platform === String(targetInput.platform || '').toUpperCase());
       const target = sanitizeTarget(targetInput, index >= 0 ? tracking.targets[index] : {});
-      if (index >= 0) tracking.targets[index] = target;
-      else tracking.targets.push(target);
+      if (index >= 0) tracking.targets[index] = target; else tracking.targets.push(target);
     } else if (action === 'upsert-social-update') {
       const updateInput = body.update || {};
-      const duplicateIndex = tracking.socialUpdates.findIndex((item) =>
-        item.platform === String(updateInput.platform || '').toUpperCase() && item.dataDate === updateInput.dataDate && item.id !== updateInput.id
-      );
+      const duplicateIndex = tracking.socialUpdates.findIndex((item) => item.platform === String(updateInput.platform || '').toUpperCase() && item.dataDate === updateInput.dataDate && item.id !== updateInput.id);
       if (duplicateIndex >= 0) return error('An update already exists for this platform and reporting date', 409);
       const index = updateInput.id ? tracking.socialUpdates.findIndex((item) => item.id === updateInput.id) : -1;
       const update = sanitizeSocialUpdate(updateInput, row.start_date, index >= 0 ? tracking.socialUpdates[index] : {});
       update.enteredBy ||= auth.userId;
-      if (index >= 0) tracking.socialUpdates[index] = update;
-      else tracking.socialUpdates.push(update);
+      if (index >= 0) tracking.socialUpdates[index] = update; else tracking.socialUpdates.push(update);
     } else if (action === 'delete-social-update') {
       if (!MANAGER_ROLES.has(auth?.role)) return error('Owner, Admin or BD Manager permission is required', 403);
-      const id = String(body.id || '');
-      const index = tracking.socialUpdates.findIndex((item) => item.id === id);
+      const index = tracking.socialUpdates.findIndex((item) => item.id === String(body.id || ''));
       if (index < 0) return error('Owned-social update was not found', 404);
       tracking.socialUpdates.splice(index, 1);
+    } else if (action === 'upsert-creator-assignment') {
+      const input = body.assignment || {};
+      const index = input.id ? tracking.creatorAssignments.findIndex((item) => item.id === input.id) : -1;
+      const assignment = sanitizeCreatorAssignment(input, index >= 0 ? tracking.creatorAssignments[index] : {}, tracking.overview);
+      if (index >= 0) tracking.creatorAssignments[index] = assignment; else tracking.creatorAssignments.push(assignment);
+    } else if (action === 'delete-creator-assignment') {
+      if (!MANAGER_ROLES.has(auth?.role)) return error('Owner, Admin or BD Manager permission is required', 403);
+      const id = String(body.id || '');
+      const index = tracking.creatorAssignments.findIndex((item) => item.id === id);
+      if (index < 0) return error('Tracked creator was not found', 404);
+      tracking.creatorAssignments.splice(index, 1);
+      tracking.creatorPosts = tracking.creatorPosts.filter((post) => post.assignmentId !== id);
+    } else if (action === 'upsert-creator-post') {
+      const input = body.post || {};
+      const assignment = tracking.creatorAssignments.find((item) => item.id === String(input.assignmentId || ''));
+      if (!assignment) return error('Tracked creator assignment was not found', 422);
+      const duplicate = tracking.creatorPosts.find((item) => item.url === String(input.url || '').trim() && item.id !== input.id);
+      if (duplicate) return error('This creator post URL is already tracked', 409);
+      const index = input.id ? tracking.creatorPosts.findIndex((item) => item.id === input.id) : -1;
+      const post = sanitizeCreatorPost(input, assignment, row.start_date, index >= 0 ? tracking.creatorPosts[index] : {});
+      post.enteredBy ||= auth.userId;
+      if (index >= 0) tracking.creatorPosts[index] = post; else tracking.creatorPosts.push(post);
+    } else if (action === 'delete-creator-post') {
+      if (!MANAGER_ROLES.has(auth?.role)) return error('Owner, Admin or BD Manager permission is required', 403);
+      const index = tracking.creatorPosts.findIndex((item) => item.id === String(body.id || ''));
+      if (index < 0) return error('Tracked creator post was not found', 404);
+      tracking.creatorPosts.splice(index, 1);
     } else {
       return error('Campaign tracking action is invalid', 422);
     }

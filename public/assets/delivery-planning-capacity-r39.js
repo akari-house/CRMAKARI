@@ -72,6 +72,8 @@
     ['script','delivery-closeout-r41','/assets/delivery-closeout-renewal-r41.js?v=1'],
     ['link','campaign-tracking-r42','/assets/campaign-tracking-r42.css?v=1'],
     ['script','campaign-tracking-r42','/assets/campaign-tracking-r42.js?v=1'],
+    ['link','campaign-creator-tracking-r43','/assets/campaign-creator-tracking-r43.css?v=1'],
+    ['script','campaign-creator-tracking-r43','/assets/campaign-creator-tracking-r43.js?v=1'],
   ];
   assets.forEach(([type,key,url])=>{
     if (document.querySelector(`${type}[data-${key}]`)) return;
