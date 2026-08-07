@@ -40,11 +40,11 @@ for (const [file, tokens] of checks) {
 }
 
 const api = fs.readFileSync('functions/api/campaign-reporting-history/[id].js', 'utf8');
-if (!api.includes("MANAGER_ROLES")) throw new Error('Snapshot capture and deletion must remain manager controlled');
+if (!api.includes('MANAGER_ROLES')) throw new Error('Snapshot capture and deletion must remain manager controlled');
 if (!api.includes("periodDate > nowIso().slice(0,10)")) throw new Error('Future reporting snapshots must be rejected');
-if (!api.includes("periodDate < row.start_date")) throw new Error('Pre-campaign snapshots must be rejected');
+if (!api.includes('periodDate < row.start_date')) throw new Error('Pre-campaign snapshots must be rejected');
 
 const model = fs.readFileSync('functions/lib/campaign-reporting-history.js', 'utf8');
-if (!model.includes('previous?.rollingReach28?.total')) throw new Error('Period-over-period reach delta is missing');
+if (!model.includes('previous.rollingReach28?.total')) throw new Error('Period-over-period reach delta is missing');
 
 console.log('Campaign reporting history validation passed.');
