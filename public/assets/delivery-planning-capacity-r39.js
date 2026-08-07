@@ -76,6 +76,8 @@
     ['script','campaign-creator-tracking-r43','/assets/campaign-creator-tracking-r43.js?v=1'],
     ['link','campaign-gtm-tracking-r44','/assets/campaign-gtm-tracking-r44.css?v=1'],
     ['script','campaign-gtm-tracking-r44','/assets/campaign-gtm-tracking-r44.js?v=1'],
+    ['link','campaign-executive-r45','/assets/campaign-executive-intelligence-r45.css?v=1'],
+    ['script','campaign-executive-r45','/assets/campaign-executive-intelligence-r45.js?v=1'],
   ];
   assets.forEach(([type,key,url])=>{
     if (document.querySelector(`${type}[data-${key}]`)) return;
