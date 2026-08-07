@@ -18,7 +18,7 @@ jobs:
     env:
       STATUS_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
     steps:
-      - name: Verify public homepage and protected CRM boundary
+      - name: Verify public Pages entry and protected custom-domain boundary
         shell: bash
         env:
           ACCESS_AUD: c588ec31c2f28826d192548846f060dd7fa9355b3bd20ddff59600c5d3596eaf
@@ -95,14 +95,18 @@ jobs:
             esac
           }
 
+          # Pages.dev remains the public invite-only landing page.
           check_public_home "https://crmakari.pages.dev/"
-          check_public_home "https://crm.akarihouse.com/"
+
+          # The custom production domain is intentionally protected by Cloudflare Access,
+          # including its root route. Validate the redirect instead of expecting HTTP 200.
+          check_access_redirect "https://crm.akarihouse.com/" "crm.akarihouse.com"
           check_access_redirect "https://crmakari.pages.dev/app/" "crmakari.pages.dev"
           check_access_redirect "https://crm.akarihouse.com/app/" "crm.akarihouse.com"
           check_api_auth_boundary "https://crmakari.pages.dev/api/akari-leads?limit=1&offset=0" "crmakari.pages.dev"
           check_api_auth_boundary "https://crm.akarihouse.com/api/akari-leads?limit=1&offset=0" "crm.akarihouse.com"
 
-          echo "Public invite-only homepage and protected CRM boundaries are healthy."
+          echo "Public Pages entry and protected production CRM boundaries are healthy."
 
       - name: Mark deployment smoke success
         if: success()
@@ -115,7 +119,7 @@ jobs:
             --header "Accept: application/vnd.github+json" \
             --header "X-GitHub-Api-Version: 2022-11-28" \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${STATUS_SHA}" \
-            --data '{"state":"success","context":"deployment/smoke","description":"Public invite-only entry and protected CRM boundary are healthy","target_url":"https://crm.akarihouse.com"}'
+            --data '{"state":"success","context":"deployment/smoke","description":"Public Pages entry and protected CRM boundary are healthy","target_url":"https://crm.akarihouse.com"}'
 
       - name: Mark deployment smoke failure
         if: failure()
