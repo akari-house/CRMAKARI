@@ -39,6 +39,7 @@ function asOfTracking(tracking, periodDate) {
   return {
     ...tracking,
     socialUpdates: (tracking.socialUpdates || []).filter((item) => String(item.dataDate || '') <= periodDate),
+    creatorAssignments: (tracking.creatorAssignments || []).filter((item) => !item.createdAt || String(item.createdAt).slice(0,10) <= periodDate),
     creatorPosts: (tracking.creatorPosts || []).filter((item) => String(item.dataDate || '') <= periodDate),
   };
 }
