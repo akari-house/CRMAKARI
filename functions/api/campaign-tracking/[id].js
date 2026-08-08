@@ -1,5 +1,5 @@
 import { json, error, readJson } from '../../lib/response.js';
-import { first, run, makeId, nowIso } from '../../lib/db.js';
+import { first, all, run, makeId, nowIso } from '../../lib/db.js';
 import { requireTenant } from '../../lib/permissions.js';
 import {
   parseCampaignTracking,
@@ -14,6 +14,7 @@ import {
 
 const WRITE_ROLES = new Set(['OWNER','ADMIN','BD_MANAGER','BD_MEMBER']);
 const MANAGER_ROLES = new Set(['OWNER','ADMIN','BD_MANAGER']);
+const DELIVERY_PARTNER_TYPES = new Set(['DELIVERY_PARTNER','CREATOR_AGENCY','KOL_AGENCY','AGENCY','SERVICE_PROVIDER','INTERNAL','OTHER']);
 
 function requireWrite(auth) {
   if (!WRITE_ROLES.has(auth?.role)) {
@@ -35,7 +36,34 @@ async function loadCampaign(db, tenantId, id) {
   `, [tenantId, id]);
 }
 
-function publicItem(row, tracking) {
+async function loadDeliveryPartners(db, tenantId) {
+  const rows = await all(db, `
+    SELECT id,name,partner_type,status,website,x_url,contact_name
+    FROM partners
+    WHERE tenant_id = ? AND status IN ('ACTIVE','DORMANT')
+    ORDER BY name COLLATE NOCASE
+  `, [tenantId]);
+  return rows.filter((row) => DELIVERY_PARTNER_TYPES.has(String(row.partner_type || 'OTHER').toUpperCase()));
+}
+
+function enrichTracking(tracking, partners) {
+  const byId = new Map((partners || []).map((partner) => [partner.id, partner]));
+  return {
+    ...tracking,
+    creatorAssignments:(tracking.creatorAssignments || []).map((assignment) => {
+      const partner = assignment.agencyPartnerId ? byId.get(assignment.agencyPartnerId) : null;
+      return {
+        ...assignment,
+        agencyName:partner?.name || assignment.agencyName || '',
+        agencyPartnerType:partner?.partner_type || null,
+        agencyPartnerStatus:partner?.status || null,
+      };
+    }),
+  };
+}
+
+function publicItem(row, tracking, partners = []) {
+  const resolvedTracking = enrichTracking(tracking, partners);
   return {
     id:row.id,
     name:row.name,
@@ -46,13 +74,13 @@ function publicItem(row, tracking) {
     startDate:row.start_date,
     targetCompletionDate:row.end_date,
     status:row.status,
-    overview:{ ...tracking.overview, projectWebsite:tracking.overview.projectWebsite || row.project_website || '' },
-    targets:tracking.targets,
-    socialUpdates:[...tracking.socialUpdates].sort((a,b) => String(b.dataDate).localeCompare(String(a.dataDate))),
-    creatorAssignments:tracking.creatorAssignments,
-    creatorPosts:[...tracking.creatorPosts].sort((a,b) => String(b.dataDate).localeCompare(String(a.dataDate))),
-    summary:campaignTrackingSummary(tracking, row.start_date),
-    updatedAt:tracking.updatedAt || row.updated_at,
+    overview:{ ...resolvedTracking.overview, projectWebsite:resolvedTracking.overview.projectWebsite || row.project_website || '' },
+    targets:resolvedTracking.targets,
+    socialUpdates:[...resolvedTracking.socialUpdates].sort((a,b) => String(b.dataDate).localeCompare(String(a.dataDate))),
+    creatorAssignments:resolvedTracking.creatorAssignments,
+    creatorPosts:[...resolvedTracking.creatorPosts].sort((a,b) => String(b.dataDate).localeCompare(String(a.dataDate))),
+    summary:campaignTrackingSummary(resolvedTracking, row.start_date),
+    updatedAt:resolvedTracking.updatedAt || row.updated_at,
   };
 }
 
@@ -77,7 +105,8 @@ export async function onRequestGet(context) {
     const row = await loadCampaign(context.env.DB, tenantId, context.params.id);
     if (!row) return error('Campaign engagement not found', 404);
     const { tracking } = parseCampaignTracking(row.notes);
-    return json({ item:publicItem(row, tracking), permissions:{ canWrite:WRITE_ROLES.has(auth?.role), canManage:MANAGER_ROLES.has(auth?.role) } });
+    const deliveryPartners = await loadDeliveryPartners(context.env.DB, tenantId);
+    return json({ item:publicItem(row, tracking, deliveryPartners), deliveryPartners, permissions:{ canWrite:WRITE_ROLES.has(auth?.role), canManage:MANAGER_ROLES.has(auth?.role) } });
   } catch (cause) {
     return error(cause.message || 'Campaign tracking workspace could not be loaded', Number(cause.status || 500));
   }
@@ -119,7 +148,19 @@ export async function onRequestPatch(context) {
     } else if (action === 'upsert-creator-assignment') {
       const input = body.assignment || {};
       const index = input.id ? tracking.creatorAssignments.findIndex((item) => item.id === input.id) : -1;
-      const assignment = sanitizeCreatorAssignment(input, index >= 0 ? tracking.creatorAssignments[index] : {}, tracking.overview);
+      const previous = index >= 0 ? tracking.creatorAssignments[index] : {};
+      const partnerId = String(input.agencyPartnerId ?? previous.agencyPartnerId ?? '').trim();
+      let partner = null;
+      if (partnerId) {
+        partner = await first(context.env.DB, `SELECT id,name,partner_type,status FROM partners WHERE tenant_id = ? AND id = ? AND status IN ('ACTIVE','DORMANT') LIMIT 1`, [tenantId, partnerId]);
+        if (!partner) return error('Selected delivery partner was not found in this workspace', 422);
+        if (!DELIVERY_PARTNER_TYPES.has(String(partner.partner_type || 'OTHER').toUpperCase())) return error('Selected partner is not configured as a delivery partner', 422);
+        input.agencyName = partner.name;
+      } else if (Object.prototype.hasOwnProperty.call(input, 'agencyPartnerId')) {
+        input.agencyName = '';
+      }
+      const assignment = sanitizeCreatorAssignment(input, previous, tracking.overview);
+      assignment.agencyPartnerId = partnerId || null;
       if (index >= 0) tracking.creatorAssignments[index] = assignment; else tracking.creatorAssignments.push(assignment);
     } else if (action === 'delete-creator-assignment') {
       if (!MANAGER_ROLES.has(auth?.role)) return error('Owner, Admin or BD Manager permission is required', 403);
@@ -148,7 +189,8 @@ export async function onRequestPatch(context) {
     }
 
     await persist(context.env.DB, auth, tenantId, row, root, tracking, `CAMPAIGN_TRACKING_${action.toUpperCase().replaceAll('-', '_')}`, before);
-    return json({ updated:true, item:publicItem(row, tracking) });
+    const deliveryPartners = await loadDeliveryPartners(context.env.DB, tenantId);
+    return json({ updated:true, item:publicItem(row, tracking, deliveryPartners), deliveryPartners });
   } catch (cause) {
     return error(cause.message || 'Campaign tracking could not be updated', Number(cause.status || 500));
   }
