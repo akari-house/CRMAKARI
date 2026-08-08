@@ -81,6 +81,8 @@
     ['script','campaign-reporting-control-r49','/assets/campaign-reporting-control-r49.js?v=1'],
     ['link','campaign-period-view-r50','/assets/campaign-period-view-r50.css?v=1'],
     ['script','campaign-period-view-r50','/assets/campaign-period-view-r50.js?v=1'],
+    ['link','campaign-partner-performance-r52','/assets/campaign-delivery-partner-performance-r52.css?v=1'],
+    ['script','campaign-partner-performance-r52','/assets/campaign-delivery-partner-performance-r52.js?v=1'],
   ];
   assets.forEach(([type,key,url])=>{
     if (document.querySelector(`${type}[data-${key}]`)) return;
