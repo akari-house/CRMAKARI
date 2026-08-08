@@ -87,6 +87,7 @@
   }
 
   function render(id, payload) {
+    if (!payload?.item) return;
     const workspace = document.querySelector('.delivery-workspace');
     const body = workspace?.querySelector('.delivery-workspace-body');
     if (!body || workspace.dataset.trackingR42 === id) return;
@@ -126,7 +127,12 @@
   async function load(id, force = false) {
     if (!id) return;
     if (!force && state.has(id)) return render(id,state.get(id));
-    try { const payload = await api(id); state.set(id,payload); render(id,payload); }
+    try {
+      const payload = await api(id);
+      if (!payload?.item) return;
+      state.set(id,payload);
+      render(id,payload);
+    }
     catch (cause) { console.warn('[AKARI campaign tracking]',cause); }
   }
 
