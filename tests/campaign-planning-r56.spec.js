@@ -64,8 +64,9 @@ test('Campaign Planning turns recommendations into an approved canonical talent 
 
   await panel.locator('[data-rec="social:X:alice"] [data-add]').click();
   await expect(panel.locator('.campaign-plan-table-r56').getByText('Alice Creator')).toBeVisible();
-  await expect(panel.locator('.campaign-plan-kpis-r56').getByText('$250')).toBeVisible();
-  await expect(panel.getByText('1 posts')).toBeVisible();
+  const cashKpi=panel.locator('.campaign-plan-kpis-r56 article').filter({hasText:'Cash allocation'});
+  await expect(cashKpi.getByText('$250')).toBeVisible();
+  await expect(panel.locator('.campaign-plan-table-r56').getByText('1 posts')).toBeVisible();
 
   await panel.getByRole('button',{name:'Submit for approval'}).click();
   await expect(panel.locator('.campaign-plan-status-r56').getByText('Ready For Approval')).toBeVisible();
@@ -73,6 +74,6 @@ test('Campaign Planning turns recommendations into an approved canonical talent 
 
   await panel.getByRole('button',{name:'Approve plan'}).click();
   await expect(panel.locator('.campaign-plan-status-r56').getByText('Approved')).toBeVisible();
-  await expect(panel.getByText('r8.5f-test1234')).toBeVisible();
+  await expect(panel.locator('.campaign-plan-footer-r56').getByText('r8.5f-test1234')).toBeVisible();
   await expect(panel.locator('.campaign-plan-table-r56').getByText('Locked')).toBeVisible();
 });
