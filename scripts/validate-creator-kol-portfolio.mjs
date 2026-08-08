@@ -17,6 +17,7 @@ for (const [file,tokens] of required) {
 const urlIdentity=creatorIdentity({platform:'X',profileUrl:'https://x.com/AkariCreator'});
 const handleIdentity=creatorIdentity({platform:'X',handle:'@AkariCreator'});
 if (urlIdentity.key !== handleIdentity.key) throw new Error('X profile URL and handle must resolve to the same deterministic contributor identity');
+if (creatorIdentity({id:'a1',platform:'X',name:'Creator One'}).key !== creatorIdentity({id:'a2',platform:'X',name:'Creator One'}).key) throw new Error('Name-only fallback grouping must remain deterministic for equivalent assignments');
 
 const campaigns=[
   {
@@ -39,8 +40,5 @@ if (item.agencies.length !== 2) throw new Error('Agency history aggregation fail
 if (item.bestPlatform?.name !== 'X' || item.bestContentType?.name !== 'Thread') throw new Error('Best platform/content intelligence failed');
 if (Math.abs(item.trackedAllocationValue - 220) > 0.001) throw new Error('Tracked allocation valuation failed');
 if (item.history.length !== 2) throw new Error('Full per-campaign contributor history is missing');
-
-const modelSource=fs.readFileSync('functions/lib/creator-kol-portfolio-intelligence.js','utf8');
-if (modelSource.includes('Math.random')) throw new Error('Portfolio identity grouping must remain deterministic');
 
 console.log('Creator / KOL portfolio intelligence validation passed.');
