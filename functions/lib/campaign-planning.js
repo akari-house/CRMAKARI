@@ -1,4 +1,8 @@
 import { nowIso } from './db.js';
+import {
+  parseCampaignCompensation,
+  campaignCompensationFingerprint,
+} from './campaign-compensation.js';
 
 export const CAMPAIGN_PLAN_STATUSES = ['DRAFT','READY_FOR_APPROVAL','APPROVED','REJECTED'];
 export const CAMPAIGN_PLAN_OBJECTIVES = ['BALANCED','REACH','ENGAGEMENT','RELIABILITY'];
@@ -39,6 +43,7 @@ export function parseCampaignPlanning(root = {}) {
       addedAt:text(item?.addedAt, 80) || null,
       addedBy:text(item?.addedBy, 120) || null,
     })).filter((item) => item.assignmentId) : [],
+    compensation:parseCampaignCompensation(existing.compensation),
     submittedAt:text(existing.submittedAt, 80) || null,
     submittedBy:text(existing.submittedBy, 120) || null,
     approvedAt:text(existing.approvedAt, 80) || null,
@@ -111,6 +116,7 @@ function fnv1a(value) {
 }
 
 export function campaignPlanFingerprint(tracking = {}, planning = {}) {
+  const compensation = parseCampaignCompensation(planning.compensation);
   const payload = JSON.stringify({
     objective:planning.objective || 'BALANCED',
     platform:planning.platform || 'ALL',
@@ -119,6 +125,7 @@ export function campaignPlanFingerprint(tracking = {}, planning = {}) {
     region:planning.region || 'ALL',
     budgetUsd:number(planning.budgetUsd),
     selections:stableSelection(tracking),
+    compensationFingerprint:campaignCompensationFingerprint(tracking, compensation),
   });
   return `r8.5f-${fnv1a(payload)}`;
 }
@@ -129,7 +136,12 @@ export function buildCampaignPlanSummary(tracking = {}, planning = {}) {
   const cashAllocation = selections.reduce((sum, item) => sum + number(item.allocatedUsd), 0);
   const tokenAllocation = selections.reduce((sum, item) => sum + number(item.allocatedTokens), 0);
   const estimatedTokenValue = tokenAllocation * tokenPrice;
-  const estimatedPlanCost = cashAllocation + estimatedTokenValue;
+  const compensation = parseCampaignCompensation(planning.compensation);
+  const compensationFingerprint = campaignCompensationFingerprint(tracking, compensation);
+  const compensationEnabled = Boolean(compensation.enabled);
+  const compensationCalculationCurrent = !compensationEnabled || Boolean(compensation.lastAppliedFingerprint) && compensation.lastAppliedFingerprint === compensationFingerprint;
+  const reservedBonusPoolUsd = compensationEnabled ? number(compensation.bonusPoolUsdt) : 0;
+  const estimatedPlanCost = cashAllocation + estimatedTokenValue + reservedBonusPoolUsd;
   const budgetUsd = number(planning.budgetUsd);
   const partnerIds = new Set(selections.map((item) => item.agencyPartnerId).filter(Boolean));
   const currentFingerprint = campaignPlanFingerprint(tracking, planning);
@@ -150,11 +162,22 @@ export function buildCampaignPlanSummary(tracking = {}, planning = {}) {
     tokenAllocation,
     tokenPrice,
     estimatedTokenValue,
+    reservedBonusPoolUsd,
     estimatedPlanCost,
     budgetUsd,
     remainingBudget:budgetUsd - estimatedPlanCost,
     budgetUtilization:budgetUsd > 0 ? (estimatedPlanCost / budgetUsd) * 100 : 0,
     budgetReconciled:budgetUsd > 0 && estimatedPlanCost <= budgetUsd,
+    compensationEnabled,
+    compensationCurrency:compensation.currency || 'USDT',
+    compensationBudgetUsdt:number(compensation.budgetUsdt),
+    compensationBaseBudgetUsdt:Math.max(0, number(compensation.budgetUsdt) - number(compensation.bonusPoolUsdt)),
+    compensationBonusPoolUsdt:number(compensation.bonusPoolUsdt),
+    compensationMaximumBaseAllocationUsdt:number(compensation.maximumBaseAllocationUsdt),
+    compensationMaximumBonusPerTalentUsdt:number(compensation.maximumBonusPerTalentUsdt),
+    compensationCalculationCurrent,
+    compensationFingerprint,
+    compensationLastAppliedFingerprint:compensation.lastAppliedFingerprint || null,
   };
 }
 
@@ -171,6 +194,11 @@ export function assertCampaignPlanReady(summary = {}) {
   }
   if (!(summary.plannedPosts > 0)) {
     const cause = new Error('Plan at least one Creator or KOL deliverable before approval');
+    cause.status = 422;
+    throw cause;
+  }
+  if (summary.compensationEnabled && !summary.compensationCalculationCurrent) {
+    const cause = new Error('AKARI USDT compensation changed and must be recalculated before approval');
     cause.status = 422;
     throw cause;
   }
