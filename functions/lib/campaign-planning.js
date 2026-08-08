@@ -117,7 +117,7 @@ function fnv1a(value) {
 
 export function campaignPlanFingerprint(tracking = {}, planning = {}) {
   const compensation = parseCampaignCompensation(planning.compensation);
-  const payload = JSON.stringify({
+  const payload = {
     objective:planning.objective || 'BALANCED',
     platform:planning.platform || 'ALL',
     creatorType:planning.creatorType || 'ALL',
@@ -125,9 +125,9 @@ export function campaignPlanFingerprint(tracking = {}, planning = {}) {
     region:planning.region || 'ALL',
     budgetUsd:number(planning.budgetUsd),
     selections:stableSelection(tracking),
-    compensationFingerprint:campaignCompensationFingerprint(tracking, compensation),
-  });
-  return `r8.5f-${fnv1a(payload)}`;
+  };
+  if (compensation.enabled) payload.compensationFingerprint = campaignCompensationFingerprint(tracking, compensation);
+  return `r8.5f-${fnv1a(JSON.stringify(payload))}`;
 }
 
 export function buildCampaignPlanSummary(tracking = {}, planning = {}) {
