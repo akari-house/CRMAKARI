@@ -77,6 +77,8 @@
     ['script','campaign-reporting-history-r47','/assets/campaign-reporting-history-r47.js?v=1'],
     ['link','campaign-summary-intelligence-r48','/assets/campaign-summary-intelligence-r48.css?v=1'],
     ['script','campaign-summary-intelligence-r48','/assets/campaign-summary-intelligence-r48.js?v=1'],
+    ['link','campaign-reporting-control-r49','/assets/campaign-reporting-control-r49.css?v=1'],
+    ['script','campaign-reporting-control-r49','/assets/campaign-reporting-control-r49.js?v=1'],
   ];
   assets.forEach(([type,key,url])=>{
     if (document.querySelector(`${type}[data-${key}]`)) return;
