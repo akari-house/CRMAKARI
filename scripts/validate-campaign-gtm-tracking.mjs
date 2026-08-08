@@ -3,7 +3,7 @@ import fs from 'node:fs';
 const checks = [
   ['functions/lib/campaign-gtm-tracking.js',['GTM_ACTIVITY_TYPES','sanitizeGtmActivity','gtmTrackingSummary','campaignGtmTracking']],
   ['functions/api/campaign-gtm-tracking/[id].js',['upsert-activity','delete-activity','CAMPAIGN_GTM_TRACKING','tenantId,context.params.id']],
-  ['public/assets/campaign-gtm-tracking-r44.js',['PR, Spaces, partnerships & launch tracking','Track activity','totalMeetings','campaign-gtm-tracking-r44']],
+  ['public/assets/campaign-gtm-tracking-r44.js',['PR, Spaces, partnerships & launch tracking','Track activity','totalMeetings','campaign-gtm-tracking-r44','if(!payload?.item)return;']],
   ['public/assets/campaign-gtm-tracking-r44.css',['campaign-gtm-tracking-r44','gtm-kpis-r44','gtm-modal-r44']],
   ['public/assets/delivery-planning-capacity-r39.js',['campaign-gtm-tracking-r44.css','campaign-gtm-tracking-r44.js']],
 ];

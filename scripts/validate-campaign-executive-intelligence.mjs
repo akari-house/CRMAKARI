@@ -9,6 +9,7 @@ const checks = [
     'GTM outcome funnel',
     '/api/campaign-tracking/',
     '/api/campaign-gtm-tracking/',
+    "method !== 'GET' ? trackingMatch : null",
   ]],
   ['public/assets/campaign-executive-intelligence-r45.css', [
     'campaign-executive-r45',

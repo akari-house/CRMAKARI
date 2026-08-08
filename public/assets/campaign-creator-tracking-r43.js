@@ -96,6 +96,7 @@
   }
 
   function render(id, payload) {
+    if (!payload?.item) return;
     const workspace = document.querySelector('.delivery-workspace');
     const body = workspace?.querySelector('.delivery-workspace-body');
     if (!workspace || !body) return;
@@ -145,7 +146,12 @@
   async function load(id, force = false) {
     if (!id) return;
     if (!force && cache.has(id)) return render(id,cache.get(id));
-    try { const payload=await api(id); cache.set(id,payload); render(id,payload); }
+    try {
+      const payload=await api(id);
+      if (!payload?.item) return;
+      cache.set(id,payload);
+      render(id,payload);
+    }
     catch(cause) { console.warn('[AKARI creator tracking]',cause); }
   }
 

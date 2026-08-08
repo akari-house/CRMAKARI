@@ -178,6 +178,7 @@ test('won deal becomes invoice-ready after saving the client profile and reuses 
   const profileWrites = [];
   const invoiceWrites = [];
 
+  await page.clock.setFixedTime(new Date('2026-08-05T09:00:00.000Z'));
   await page.route('**/api/**', async (route) => {
     const request = route.request();
     const url = new URL(request.url());

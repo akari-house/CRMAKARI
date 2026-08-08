@@ -132,9 +132,10 @@
     const response = await originalFetch(...args);
     try {
       const url = typeof args[0] === 'string' ? args[0] : args[0]?.url || '';
+      const method = String(args[1]?.method || (typeof args[0] === 'object' ? args[0]?.method : '') || 'GET').toUpperCase();
       const serviceMatch = url.match(/\/api\/service-delivery\/([^/?#]+)$/);
       const trackingMatch = url.match(/\/api\/campaign-(?:gtm-)?tracking\/([^/?#]+)$/);
-      const match = serviceMatch || trackingMatch;
+      const match = serviceMatch || (method !== 'GET' ? trackingMatch : null);
       if (match && response.ok) queueMicrotask(() => load(decodeURIComponent(match[1]), true));
     } catch {}
     return response;

@@ -25,6 +25,7 @@ const assertions = [
   [api.includes('An update already exists for this platform and reporting date'), 'platform/date duplicate protection'],
   [ui.includes('Baseline & target') && ui.includes('Add social update'), 'campaign tracking input controls'],
   [ui.includes('Owned-social scorecard'), 'derived executive scorecard'],
+  [ui.includes('if (!payload?.item) return;'), 'invalid progressive payload guard'],
   [loader.includes('/assets/campaign-tracking-r42.js?v=1'), 'campaign tracking runtime loader'],
 ];
 for (const [condition, label] of assertions) {
