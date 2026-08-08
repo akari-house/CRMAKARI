@@ -8,6 +8,7 @@
   const fmt = (value, digits = 0) => Number(value || 0).toLocaleString(undefined,{maximumFractionDigits:digits});
   const label = (value) => String(value || '').replaceAll('_',' ').replace(/\b\w/g,(c)=>c.toUpperCase());
   const platforms = ['X','FACEBOOK','INSTAGRAM','TIKTOK','TELEGRAM_CHANNEL','TELEGRAM_GROUP','DISCORD','YOUTUBE','LINKEDIN','REDDIT'];
+  const postStatuses = ['APPROVED','HOLDING','REJECTED'];
 
   async function api(id, options = {}) {
     const response = await fetch(`/api/campaign-tracking/${encodeURIComponent(id)}`, {
@@ -64,19 +65,22 @@
       });
   }
 
-  function postModal(id, item, assignment) {
+  function postModal(id, item, assignment, current = {}) {
     const today = new Date().toISOString().slice(0,10);
-    modal(`Track published post · ${assignment.name || assignment.handle}`,`
+    const status = current.status || 'APPROVED';
+    modal(current.id ? `Edit tracked post · ${assignment.name || assignment.handle}` : `Track published post · ${assignment.name || assignment.handle}`,`
+      <input type="hidden" name="id" value="${esc(current.id || '')}">
       <input type="hidden" name="assignmentId" value="${esc(assignment.id)}">
-      <label>Platform<select name="platform">${platforms.map((p)=>`<option value="${p}" ${p===assignment.platform?'selected':''}>${label(p)}</option>`).join('')}</select></label>
-      <label>Post date<input type="date" name="dataDate" value="${today}" required></label>
-      <label>Post type<input name="postType" placeholder="Post, thread, video, Space..."></label>
-      <label class="full">Published URL<input name="url" required placeholder="https://..."></label>
-      <label>Reach<input type="number" min="0" name="reach"></label><label>Impressions<input type="number" min="0" name="impressions"></label>
-      <label>Likes<input type="number" min="0" name="likes"></label><label>Comments<input type="number" min="0" name="comments"></label>
-      <label>Shares / reposts<input type="number" min="0" name="shares"></label><label>Video views<input type="number" min="0" name="videoViews"></label>
-      <label>Link clicks<input type="number" min="0" name="linkClicks"></label>
-      <label class="full">Notes<textarea name="notes" rows="3"></textarea></label>`, 'Track post', async(form)=>{
+      <label>Status<select name="status">${postStatuses.map((s)=>`<option value="${s}" ${s===status?'selected':''}>${label(s)}</option>`).join('')}</select></label>
+      <label>Platform<select name="platform">${platforms.map((p)=>`<option value="${p}" ${p===(current.platform||assignment.platform)?'selected':''}>${label(p)}</option>`).join('')}</select></label>
+      <label>Post date<input type="date" name="dataDate" value="${esc(current.dataDate || today)}" required></label>
+      <label>Post type<input name="postType" value="${esc(current.postType || '')}" placeholder="Post, thread, video, Space..."></label>
+      <label class="full">Published URL<input name="url" value="${esc(current.url || '')}" required placeholder="https://..."></label>
+      <label>Reach<input type="number" min="0" name="reach" value="${esc(current.reportedReach ?? current.reach ?? '')}"></label><label>Impressions<input type="number" min="0" name="impressions" value="${esc(current.impressions || '')}"></label>
+      <label>Likes<input type="number" min="0" name="likes" value="${esc(current.likes || '')}"></label><label>Comments<input type="number" min="0" name="comments" value="${esc(current.comments || '')}"></label>
+      <label>Shares / reposts<input type="number" min="0" name="shares" value="${esc(current.shares || '')}"></label><label>Video views<input type="number" min="0" name="videoViews" value="${esc(current.videoViews || '')}"></label>
+      <label>Link clicks<input type="number" min="0" name="linkClicks" value="${esc(current.linkClicks || '')}"></label>
+      <label class="full">Notes<textarea name="notes" rows="3">${esc(current.notes || '')}</textarea></label>`, current.id ? 'Save post' : 'Track post', async(form)=>{
         const post = Object.fromEntries(form.entries());
         await api(id,{method:'PATCH',body:JSON.stringify({action:'upsert-creator-post',post})});
         await load(id,true);
@@ -95,29 +99,34 @@
     const panel = document.createElement('section');
     panel.className = 'campaign-creator-tracking-r43';
     panel.innerHTML = `
-      <header><div><span>CAMPAIGN MONITORING</span><strong>Creator, KOL & agency tracking</strong><small>Track commitments, published work, reach and allocation. Execution stays outside the CRM.</small></div>${payload.permissions?.canWrite?'<button class="primary" data-add-creator>Add tracked creator</button>':''}</header>
+      <header><div><span>CAMPAIGN MONITORING</span><strong>Creator, KOL & agency tracking</strong><small>Only Approved posts count toward campaign reach, engagement, completion and ROI. Holding and Rejected records remain visible for audit.</small></div>${payload.permissions?.canWrite?'<button class="primary" data-add-creator>Add tracked creator</button>':''}</header>
       <div class="creator-tracking-kpis-r43">
         <article><small>Tracked creators</small><b>${fmt(summary.creatorCount)}</b><span>${fmt(summary.kolCount)} KOLs</span></article>
-        <article><small>Posts</small><b>${fmt(summary.publishedPosts)} / ${fmt(summary.plannedPosts)}</b><span>${fmt(summary.postCompletionPercent,1)}% tracked</span></article>
-        <article><small>Creator reach</small><b>${fmt(summary.creatorReach)}</b><span>${fmt(summary.averageReachPerPost)} avg / post</span></article>
-        <article><small>Engagements</small><b>${fmt(summary.creatorEngagements)}</b><span>Published content</span></article>
+        <article><small>Approved posts</small><b>${fmt(summary.publishedPosts)} / ${fmt(summary.plannedPosts)}</b><span>${fmt(summary.submittedPosts)} submitted · ${fmt(summary.holdingPosts)} holding</span></article>
+        <article><small>Approved reach</small><b>${fmt(summary.creatorReach)}</b><span>${fmt(summary.averageReachPerPost)} avg / approved post</span></article>
+        <article><small>Approved engagements</small><b>${fmt(summary.creatorEngagements)}</b><span>${fmt(summary.rejectedPosts)} rejected posts excluded</span></article>
         <article><small>Allocation</small><b>$${fmt(summary.allocatedUsd,2)}</b><span>${fmt(summary.allocatedTokens)} tokens</span></article>
       </div>
       <div class="creator-tracking-layout-r43">
-        <section><div class="section-head-r43"><strong>Creator / KOL tracker</strong><span>Expected vs published</span></div>
-          ${creators.length?`<div class="creator-table-wrap-r43"><table><thead><tr><th>Creator</th><th>Agency</th><th>Posts</th><th>Reach</th><th>Sorsa / XScore</th><th>Allocation</th><th></th></tr></thead><tbody>${creators.map((c)=>`<tr data-creator="${esc(c.id)}"><td><strong>${esc(c.name || c.handle || 'Creator')}</strong><span>${esc(c.handle || '')} · ${label(c.creatorType)} · ${label(c.platform)}</span></td><td>${esc(c.agencyName || 'Direct')}</td><td>${fmt(c.publishedPosts)} / ${fmt(c.expectedPosts)}<div class="creator-progress-r43"><i style="width:${Math.min(100,c.deliveryProgress||0)}%"></i></div></td><td>${fmt(c.totalReach)}<span>${fmt(c.totalEngagements)} eng.</span></td><td>${fmt(c.sorsaScore)} / ${fmt(c.xScore)}</td><td>$${fmt(c.allocatedUsd,2)}<span>${fmt(c.allocatedTokens)} tokens</span></td><td>${payload.permissions?.canWrite?'<button data-track-post>+ Post</button><button data-edit-creator>Edit</button>':''}</td></tr>`).join('')}</tbody></table></div>`:'<p class="creator-empty-r43">No creators or KOLs are being tracked yet.</p>'}
+        <section><div class="section-head-r43"><strong>Creator / KOL tracker</strong><span>Target vs approved delivery</span></div>
+          ${creators.length?`<div class="creator-table-wrap-r43"><table><thead><tr><th>Creator</th><th>Agency</th><th>Approved</th><th>Reach</th><th>Sorsa / XScore</th><th>Allocation</th><th></th></tr></thead><tbody>${creators.map((c)=>`<tr data-creator="${esc(c.id)}"><td><strong>${esc(c.name || c.handle || 'Creator')}</strong><span>${esc(c.handle || '')} · ${label(c.creatorType)} · ${label(c.platform)}</span></td><td>${esc(c.agencyName || 'Direct')}</td><td>${fmt(c.publishedPosts)} / ${fmt(c.expectedPosts)}<span>${fmt(c.submittedPosts)} submitted · ${fmt(c.holdingPosts)} holding</span><div class="creator-progress-r43"><i style="width:${Math.min(100,c.deliveryProgress||0)}%"></i></div></td><td>${fmt(c.totalReach)}<span>${fmt(c.totalEngagements)} eng.</span></td><td>${fmt(c.sorsaScore)} / ${fmt(c.xScore)}</td><td>$${fmt(c.allocatedUsd,2)}<span>${fmt(c.allocatedTokens)} tokens</span></td><td>${payload.permissions?.canWrite?'<button data-track-post>+ Post</button><button data-edit-creator>Edit</button>':''}</td></tr>`).join('')}</tbody></table></div>`:'<p class="creator-empty-r43">No creators or KOLs are being tracked yet.</p>'}
         </section>
-        <section><div class="section-head-r43"><strong>Agency roll-up</strong><span>Automatically derived</span></div>
-          <div class="agency-list-r43">${agencies.length?agencies.map((a)=>`<article><div><strong>${esc(a.agencyName)}</strong><span>${fmt(a.creators)} creators · ${fmt(a.publishedPosts)}/${fmt(a.expectedPosts)} posts</span></div><div><b>${fmt(a.reach)} reach</b><span>$${fmt(a.allocatedUsd,2)} · ${fmt(a.allocatedTokens)} tokens</span></div></article>`).join(''):'<p class="creator-empty-r43">Agency totals will appear automatically from creator assignments.</p>'}</div>
+        <section><div class="section-head-r43"><strong>Agency roll-up</strong><span>Approved totals only</span></div>
+          <div class="agency-list-r43">${agencies.length?agencies.map((a)=>`<article><div><strong>${esc(a.agencyName)}</strong><span>${fmt(a.creators)} creators · ${fmt(a.publishedPosts)}/${fmt(a.expectedPosts)} approved</span></div><div><b>${fmt(a.reach)} reach</b><span>${fmt(a.holdingPosts)} holding · $${fmt(a.allocatedUsd,2)}</span></div></article>`).join(''):'<p class="creator-empty-r43">Agency totals will appear automatically from creator assignments.</p>'}</div>
         </section>
       </div>
-      <section class="recent-posts-r43"><div class="section-head-r43"><strong>Recent creator posts</strong><span>Each published URL is recorded once</span></div><div>${item.creatorPosts?.length?item.creatorPosts.slice(0,8).map((post)=>{const creator=creators.find((c)=>c.id===post.assignmentId);return `<article><div><strong>${esc(creator?.name || creator?.handle || 'Creator')}</strong><span>${label(post.platform)} · ${esc(post.dataDate)} · ${esc(post.postType || 'Published post')}</span></div><a href="${esc(post.url)}" target="_blank" rel="noopener">Open post</a><b>${fmt(post.reach)} reach · ${fmt(post.totalEngagements)} eng.</b></article>`;}).join(''):'<p class="creator-empty-r43">No creator posts are tracked yet.</p>'}</div></section>`;
+      <section class="recent-posts-r43"><div class="section-head-r43"><strong>Recent creator posts</strong><span>Each published URL is recorded once</span></div><div>${item.creatorPosts?.length?item.creatorPosts.slice(0,10).map((post)=>{const creator=creators.find((c)=>c.id===post.assignmentId);const status=post.status||'APPROVED';const rawReach=post.reportedReach??post.reach??0;return `<article data-post="${esc(post.id)}" class="post-status-${esc(status.toLowerCase())}"><div><strong>${esc(creator?.name || creator?.handle || 'Creator')}</strong><span>${label(post.platform)} · ${esc(post.dataDate)} · ${esc(post.postType || 'Published post')}</span></div><span class="post-status-pill-r43 ${esc(status.toLowerCase())}">${label(status)}</span><a href="${esc(post.url)}" target="_blank" rel="noopener">Open post</a><b>${fmt(rawReach)} reach · ${fmt(post.reportedEngagements??post.totalEngagements)} eng.</b>${payload.permissions?.canWrite?'<button data-edit-post>Edit</button>':''}</article>`;}).join(''):'<p class="creator-empty-r43">No creator posts are tracked yet.</p>'}</div></section>`;
 
     panel.querySelector('[data-add-creator]')?.addEventListener('click',()=>assignmentModal(id,item));
     panel.querySelectorAll('[data-creator]').forEach((row)=>{
       const creator = creators.find((c)=>c.id===row.dataset.creator);
       row.querySelector('[data-track-post]')?.addEventListener('click',()=>postModal(id,item,creator));
       row.querySelector('[data-edit-creator]')?.addEventListener('click',()=>assignmentModal(id,item,creator));
+    });
+    panel.querySelectorAll('[data-post]').forEach((row)=>{
+      const post = item.creatorPosts.find((p)=>p.id===row.dataset.post);
+      const creator = creators.find((c)=>c.id===post?.assignmentId);
+      row.querySelector('[data-edit-post]')?.addEventListener('click',()=>postModal(id,item,creator,post));
     });
     const tracking = body.querySelector('.campaign-tracking-r42');
     if (tracking) tracking.insertAdjacentElement('afterend',panel); else body.appendChild(panel);
