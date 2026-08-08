@@ -66,8 +66,8 @@ test('Campaigns renders and refreshes Campaign Talent Recommendation Intelligenc
   const panel=page.locator('.campaign-talent-r55');
   await expect(panel).toBeVisible();
   await expect(panel.getByText('Recommendation intelligence')).toBeVisible();
-  await expect(panel.getByText('Alice Creator')).toBeVisible();
-  await expect(panel.getByText('Agency One')).toBeVisible();
+  await expect(panel.locator('.talent-table-r55').getByText('Alice Creator').first()).toBeVisible();
+  await expect(panel.locator('.talent-partners-r55').getByText('Agency One')).toBeVisible();
   await expect(panel.getByText('Spend without delivery')).toBeVisible();
   await expect(panel.getByText('Risk Creator')).toBeVisible();
 
@@ -82,7 +82,7 @@ test('Campaigns renders and refreshes Campaign Talent Recommendation Intelligenc
   await expect(method.getByText('Reach')).toBeVisible();
   await expect(method.getByText('X')).toBeVisible();
   await expect(panel.getByText('$1,000 planning budget')).toBeVisible();
-  await expect(panel.getByText('$250').first()).toBeVisible();
-  await panel.getByText('Why this rank').click();
+  await expect(panel.locator('.talent-basket-r55').getByText('$250')).toBeVisible();
+  await panel.locator('.talent-why-r55 summary').click();
   await expect(panel.getByText('Approved Thread delivery history')).toBeVisible();
 });
