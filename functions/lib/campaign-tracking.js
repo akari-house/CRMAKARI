@@ -2,6 +2,7 @@ import { makeId, nowIso } from './db.js';
 
 export const CAMPAIGN_PLATFORMS = ['X','FACEBOOK','INSTAGRAM','TIKTOK','TELEGRAM_CHANNEL','TELEGRAM_GROUP','DISCORD','YOUTUBE','LINKEDIN','REDDIT'];
 export const CREATOR_TYPES = ['CREATOR','KOL'];
+export const CREATOR_POST_STATUSES = ['APPROVED','HOLDING','REJECTED'];
 
 const number = (value) => {
   const parsed = Number(value);
@@ -9,6 +10,7 @@ const number = (value) => {
 };
 const text = (value, max = 2000) => String(value || '').trim().slice(0, max);
 const dateOnly = (value) => /^\d{4}-\d{2}-\d{2}$/.test(String(value || '')) ? String(value) : null;
+const postStatus = (value) => CREATOR_POST_STATUSES.includes(String(value || '').toUpperCase()) ? String(value).toUpperCase() : 'APPROVED';
 
 export function parseCampaignTracking(notes) {
   let root = {};
@@ -16,7 +18,7 @@ export function parseCampaignTracking(notes) {
   if (!root || Array.isArray(root) || typeof root !== 'object') root = {};
   const existing = root.campaignTracking && typeof root.campaignTracking === 'object' ? root.campaignTracking : {};
   const tracking = {
-    version: 2,
+    version: 3,
     overview: existing.overview && typeof existing.overview === 'object' ? existing.overview : {},
     targets: Array.isArray(existing.targets) ? existing.targets : [],
     socialUpdates: Array.isArray(existing.socialUpdates) ? existing.socialUpdates : [],
@@ -97,7 +99,6 @@ export function sanitizeSocialUpdate(input = {}, campaignStartDate, previous = {
   const totalEngagements = likes + comments + shares;
   const impressions = number(input.impressions ?? previous.impressions);
   const reach = number(input.reach ?? previous.reach);
-  const denominator = impressions || reach;
   return {
     id: previous.id || makeId('csu'), platform, dataDate,
     campaignWeek: period.week, campaignMonth: period.month,
@@ -184,12 +185,14 @@ export function sanitizeCreatorPost(input = {}, assignment, campaignStartDate, p
     cause.status = 422;
     throw cause;
   }
+  const status = postStatus(input.status ?? previous.status ?? 'APPROVED');
   const likes = number(input.likes ?? previous.likes);
   const comments = number(input.comments ?? previous.comments);
   const shares = number(input.shares ?? previous.shares);
-  const totalEngagements = likes + comments + shares;
-  const reach = number(input.reach ?? previous.reach);
+  const reportedEngagements = likes + comments + shares;
+  const reportedReach = number(input.reach ?? previous.reportedReach ?? previous.reach);
   const impressions = number(input.impressions ?? previous.impressions);
+  const approved = status === 'APPROVED';
   const period = campaignPeriod(campaignStartDate, dataDate);
   return {
     id: previous.id || makeId('ccp'),
@@ -200,15 +203,18 @@ export function sanitizeCreatorPost(input = {}, assignment, campaignStartDate, p
     campaignMonth: period.month,
     postType: text(input.postType ?? previous.postType, 120),
     url,
-    reach,
+    status,
+    reportedReach,
+    reach: approved ? reportedReach : 0,
     impressions,
     likes,
     comments,
     shares,
     videoViews: number(input.videoViews ?? previous.videoViews),
     linkClicks: number(input.linkClicks ?? previous.linkClicks),
-    totalEngagements,
-    engagementRate: (impressions || reach) > 0 ? (totalEngagements / (impressions || reach)) * 100 : 0,
+    reportedEngagements,
+    totalEngagements: approved ? reportedEngagements : 0,
+    engagementRate: (impressions || reportedReach) > 0 ? (reportedEngagements / (impressions || reportedReach)) * 100 : 0,
     notes: text(input.notes ?? previous.notes, 3000),
     enteredBy: previous.enteredBy || null,
     createdAt: previous.createdAt || nowIso(),
@@ -219,6 +225,7 @@ export function sanitizeCreatorPost(input = {}, assignment, campaignStartDate, p
 export function creatorTrackingSummary(tracking) {
   const assignments = tracking.creatorAssignments.filter((item) => item.active !== false);
   const posts = tracking.creatorPosts || [];
+  const approvedPosts = posts.filter((post) => postStatus(post.status) === 'APPROVED');
   const postByAssignment = new Map();
   posts.forEach((post) => {
     const list = postByAssignment.get(post.assignmentId) || [];
@@ -227,25 +234,32 @@ export function creatorTrackingSummary(tracking) {
   });
   const creators = assignments.map((assignment) => {
     const creatorPosts = postByAssignment.get(assignment.id) || [];
-    const reach = creatorPosts.reduce((sum, post) => sum + number(post.reach), 0);
-    const engagements = creatorPosts.reduce((sum, post) => sum + number(post.totalEngagements), 0);
+    const approved = creatorPosts.filter((post) => postStatus(post.status) === 'APPROVED');
+    const reach = approved.reduce((sum, post) => sum + number(post.reach), 0);
+    const engagements = approved.reduce((sum, post) => sum + number(post.totalEngagements), 0);
     return {
       ...assignment,
-      publishedPosts: creatorPosts.length,
-      remainingPosts: Math.max(0, number(assignment.expectedPosts) - creatorPosts.length),
+      submittedPosts: creatorPosts.length,
+      publishedPosts: approved.length,
+      holdingPosts: creatorPosts.filter((post) => postStatus(post.status) === 'HOLDING').length,
+      rejectedPosts: creatorPosts.filter((post) => postStatus(post.status) === 'REJECTED').length,
+      remainingPosts: Math.max(0, number(assignment.expectedPosts) - approved.length),
       totalReach: reach,
       totalEngagements: engagements,
-      deliveryProgress: assignment.expectedPosts > 0 ? Math.min(100, (creatorPosts.length / assignment.expectedPosts) * 100) : 0,
+      deliveryProgress: assignment.expectedPosts > 0 ? Math.min(100, (approved.length / assignment.expectedPosts) * 100) : 0,
       reachProgress: assignment.expectedReach > 0 ? Math.min(100, (reach / assignment.expectedReach) * 100) : 0,
     };
   });
   const agencyMap = new Map();
   creators.forEach((creator) => {
     const agency = creator.agencyName || 'Direct / Unassigned';
-    const current = agencyMap.get(agency) || { agencyName:agency, creators:0, expectedPosts:0, publishedPosts:0, reach:0, engagements:0, allocatedUsd:0, allocatedTokens:0 };
+    const current = agencyMap.get(agency) || { agencyName:agency, creators:0, expectedPosts:0, submittedPosts:0, publishedPosts:0, holdingPosts:0, rejectedPosts:0, reach:0, engagements:0, allocatedUsd:0, allocatedTokens:0 };
     current.creators += 1;
     current.expectedPosts += number(creator.expectedPosts);
+    current.submittedPosts += number(creator.submittedPosts);
     current.publishedPosts += number(creator.publishedPosts);
+    current.holdingPosts += number(creator.holdingPosts);
+    current.rejectedPosts += number(creator.rejectedPosts);
     current.reach += number(creator.totalReach);
     current.engagements += number(creator.totalEngagements);
     current.allocatedUsd += number(creator.allocatedUsd);
@@ -253,7 +267,7 @@ export function creatorTrackingSummary(tracking) {
     agencyMap.set(agency, current);
   });
   const plannedPosts = creators.reduce((sum, item) => sum + number(item.expectedPosts), 0);
-  const publishedPosts = posts.length;
+  const publishedPosts = approvedPosts.length;
   return {
     creators,
     agencies:[...agencyMap.values()].sort((a,b)=>b.reach-a.reach),
@@ -261,13 +275,16 @@ export function creatorTrackingSummary(tracking) {
     kolCount:creators.filter((item)=>item.creatorType === 'KOL').length,
     agencyCount:[...agencyMap.keys()].filter((name)=>name !== 'Direct / Unassigned').length,
     plannedPosts,
+    submittedPosts:posts.length,
     publishedPosts,
+    holdingPosts:posts.filter((post)=>postStatus(post.status) === 'HOLDING').length,
+    rejectedPosts:posts.filter((post)=>postStatus(post.status) === 'REJECTED').length,
     postCompletionPercent:plannedPosts > 0 ? Math.min(100,(publishedPosts/plannedPosts)*100) : 0,
-    creatorReach:posts.reduce((sum, item)=>sum+number(item.reach),0),
-    creatorEngagements:posts.reduce((sum, item)=>sum+number(item.totalEngagements),0),
+    creatorReach:approvedPosts.reduce((sum, item)=>sum+number(item.reach),0),
+    creatorEngagements:approvedPosts.reduce((sum, item)=>sum+number(item.totalEngagements),0),
     allocatedUsd:creators.reduce((sum,item)=>sum+number(item.allocatedUsd),0),
     allocatedTokens:creators.reduce((sum,item)=>sum+number(item.allocatedTokens),0),
-    averageReachPerPost:publishedPosts > 0 ? posts.reduce((sum,item)=>sum+number(item.reach),0)/publishedPosts : 0,
+    averageReachPerPost:publishedPosts > 0 ? approvedPosts.reduce((sum,item)=>sum+number(item.reach),0)/publishedPosts : 0,
   };
 }
 

@@ -15,7 +15,7 @@ export function parseCampaignGtmTracking(notes) {
   return {
     root,
     tracking:{
-      version:1,
+      version:2,
       activities:Array.isArray(existing.activities)?existing.activities:[],
       createdAt:existing.createdAt||null,
       createdBy:existing.createdBy||null,
@@ -49,6 +49,7 @@ export function sanitizeGtmActivity(input={},campaignStartDate,previous={}){
     ownerName:text(input.ownerName??previous.ownerName,200),
     reach:number(input.reach??previous.reach),
     impressions:number(input.impressions??previous.impressions),
+    engagements:number(input.engagements??previous.engagements),
     attendees:number(input.attendees??previous.attendees),
     clicks:number(input.clicks??previous.clicks),
     leads:number(input.leads??previous.leads),
@@ -65,8 +66,8 @@ export function gtmTrackingSummary(tracking,today=nowIso().slice(0,10)){
   const active=activities.filter((item)=>item.status!=='CANCELLED');
   const typeMap=new Map();
   active.forEach((item)=>{
-    const current=typeMap.get(item.type)||{type:item.type,count:0,completed:0,reach:0,attendees:0,leads:0};
-    current.count+=1; if(item.status==='COMPLETED')current.completed+=1; current.reach+=number(item.reach); current.attendees+=number(item.attendees); current.leads+=number(item.leads); typeMap.set(item.type,current);
+    const current=typeMap.get(item.type)||{type:item.type,count:0,completed:0,reach:0,engagements:0,attendees:0,leads:0};
+    current.count+=1; if(item.status==='COMPLETED')current.completed+=1; current.reach+=number(item.reach); current.engagements+=number(item.engagements); current.attendees+=number(item.attendees); current.leads+=number(item.leads); typeMap.set(item.type,current);
   });
   return {
     activityCount:active.length,
@@ -74,6 +75,7 @@ export function gtmTrackingSummary(tracking,today=nowIso().slice(0,10)){
     upcomingCount:active.filter((item)=>item.status==='PLANNED'&&item.dataDate>=today).length,
     totalReach:active.reduce((sum,item)=>sum+number(item.reach),0),
     totalImpressions:active.reduce((sum,item)=>sum+number(item.impressions),0),
+    totalEngagements:active.reduce((sum,item)=>sum+number(item.engagements),0),
     totalAttendees:active.reduce((sum,item)=>sum+number(item.attendees),0),
     totalClicks:active.reduce((sum,item)=>sum+number(item.clicks),0),
     totalLeads:active.reduce((sum,item)=>sum+number(item.leads),0),
