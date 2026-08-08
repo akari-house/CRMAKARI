@@ -20,7 +20,7 @@ export async function onRequestGet(context) {
       all(context.env.DB,`
         SELECT id,name,partner_type,status,website,x_url,contact_name
         FROM partners
-        WHERE tenant_id = ? AND status IN ('ACTIVE','DORMANT')
+        WHERE tenant_id = ?
         ORDER BY name COLLATE NOCASE
       `,[tenantId]),
     ]);
