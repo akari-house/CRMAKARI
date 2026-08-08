@@ -8,6 +8,9 @@ function intelligenceFor(url) {
   const contentType=parsed.searchParams.get('contentType')||'ALL';
   const region=parsed.searchParams.get('region')||'ALL';
   const budgetUsd=Number(parsed.searchParams.get('budgetUsd')||0);
+  const recommendationReasons=['Strong cross-campaign portfolio score','High delivery completion','Reliable across tracked campaigns'];
+  if (platform!=='ALL') recommendationReasons.unshift(`Proven Approved performance on ${platform}`);
+  if (contentType!=='ALL') recommendationReasons.unshift(`Approved ${contentType} delivery history`);
   return {
     criteria:{ objective,platform,creatorType,contentType,region,budgetUsd,limit:10 },
     eligibleCount:1,
@@ -16,7 +19,7 @@ function intelligenceFor(url) {
       campaignCount:3,activeCampaigns:1,approvedPosts:6,approvedReach:25000,approvedEngagements:1800,expectedPosts:6,
       averageDeliveryCompletion:100,averageReachTargetAchievement:110,campaignReliability:100,rejectionRate:0,holdingRate:0,
       portfolioScore:96,recommendationScore:94,lifetimeCpv:0.03,lifetimeCpe:0.42,trackedAllocationValue:750,historicalAverageAllocation:250,
-      recommendationReasons:['Strong cross-campaign portfolio score','High delivery completion','Reliable across tracked campaigns'],riskSignals:[],
+      recommendationReasons,riskSignals:[],
       platformEvidence:platform==='X'?{posts:6,reach:25000,engagements:1800}:null,
       contentEvidence:contentType==='Thread'?{posts:4,reach:20000,engagements:1500}:null,
     }],
@@ -75,8 +78,11 @@ test('Campaigns renders and refreshes Campaign Talent Recommendation Intelligenc
   await panel.locator('[data-r55-field="budgetUsd"]').fill('1000');
   await panel.getByRole('button',{name:'Generate shortlist'}).click();
 
-  await expect(panel.getByText('Objective:').locator('..').getByText('Reach')).toBeVisible();
+  const method=panel.locator('.talent-method-r55');
+  await expect(method.getByText('Reach')).toBeVisible();
+  await expect(method.getByText('X')).toBeVisible();
   await expect(panel.getByText('$1,000 planning budget')).toBeVisible();
   await expect(panel.getByText('$250').first()).toBeVisible();
+  await panel.getByText('Why this rank').click();
   await expect(panel.getByText('Approved Thread delivery history')).toBeVisible();
 });
