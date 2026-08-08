@@ -83,7 +83,7 @@ test('AKARI USDT compensation verifies metrics and applies a budget-safe allocat
   await panel.getByRole('button',{name:'Calculate & apply USDT allocations'}).click();
   await expect(panel.locator('.campaign-comp-status-r57').getByText('Calculation Current')).toBeVisible();
   await expect(panel.locator('[data-comp-talent="cca_1"]').getByText('$100')).toBeVisible();
-  await expect(panel.getByText('Reserved bonus')).toBeVisible();
+  await expect(panel.getByText('Reserved bonus',{exact:true})).toBeVisible();
   await expect(panel.getByText('50 USDT')).toBeVisible();
   await expect(panel.getByText('40% follower percentile + 30% XScore percentile + 30% Sorsa percentile.')).toBeVisible();
   await expect(panel.getByText(/not proof that a Creator\/KOL was paid/i)).toBeVisible();
