@@ -17,6 +17,7 @@
     layer.querySelector('form').addEventListener('submit',async(e)=>{e.preventDefault();const b=e.submitter;b.disabled=true;try{await api(id,{method:'PATCH',body:JSON.stringify({action:'upsert-activity',activity:Object.fromEntries(new FormData(e.currentTarget).entries())})});closeModal();await load(id,true);}catch(c){alert(c.message);b.disabled=false;}}); document.body.appendChild(layer);
   }
   function render(id,payload){
+    if(!payload?.item)return;
     const workspace=document.querySelector('.delivery-workspace'); const body=workspace?.querySelector('.delivery-workspace-body'); if(!workspace||!body)return; workspace.querySelector('.campaign-gtm-tracking-r44')?.remove();
     const item=payload.item,s=item.summary||{},activities=item.activities||[];
     const panel=document.createElement('section'); panel.className='campaign-gtm-tracking-r44';
@@ -24,7 +25,7 @@
     panel.querySelector('[data-add]')?.addEventListener('click',()=>activityModal(id)); panel.querySelectorAll('[data-activity]').forEach((row)=>{const activity=activities.find((a)=>a.id===row.dataset.activity);row.querySelector('[data-edit]')?.addEventListener('click',()=>activityModal(id,activity));});
     const creator=body.querySelector('.campaign-creator-tracking-r43'); if(creator)creator.insertAdjacentElement('afterend',panel); else body.appendChild(panel); workspace.dataset.gtmTrackingR44=id;
   }
-  async function load(id,force=false){if(!id)return;if(!force&&cache.has(id))return render(id,cache.get(id));try{const p=await api(id);cache.set(id,p);render(id,p);}catch(c){console.warn('[AKARI GTM tracking]',c);}}
+  async function load(id,force=false){if(!id)return;if(!force&&cache.has(id))return render(id,cache.get(id));try{const p=await api(id);if(!p?.item)return;cache.set(id,p);render(id,p);}catch(c){console.warn('[AKARI GTM tracking]',c);}}
   const originalFetch=window.fetch.bind(window); window.fetch=async(...args)=>{const response=await originalFetch(...args);try{const url=typeof args[0]==='string'?args[0]:args[0]?.url||'';const match=url.match(/\/api\/service-delivery\/([^/?#]+)$/);if(match&&response.ok)queueMicrotask(()=>load(decodeURIComponent(match[1]),true));}catch{}return response;};
   new MutationObserver(()=>{const workspace=document.querySelector('.delivery-workspace');if(!workspace||workspace.querySelector('.campaign-gtm-tracking-r44'))return;const id=[...cache.keys()].at(-1);if(id)load(id);}).observe(document.body,{childList:true,subtree:true});
 })();
