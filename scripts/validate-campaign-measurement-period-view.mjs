@@ -2,9 +2,11 @@ import fs from 'node:fs';
 
 const checks=[
   ['functions/lib/campaign-tracking.js',['CREATOR_POST_STATUSES','reportedReach','reportedEngagements','holdingPosts','rejectedPosts','status === \'APPROVED\'']],
-  ['functions/lib/campaign-period-view.js',['CAMPAIGN_PERIOD_VIEWS','THIS_WEEK','PREVIOUS_WEEK','THIS_MONTH','PREVIOUS_MONTH','LIFETIME','CUSTOM','trackedReach']],
+  ['functions/lib/campaign-gtm-tracking.js',['engagements:number(input.engagements','totalEngagements','engagements:0']],
+  ['functions/lib/campaign-period-view.js',['CAMPAIGN_PERIOD_VIEWS','THIS_WEEK','PREVIOUS_WEEK','THIS_MONTH','PREVIOUS_MONTH','LIFETIME','CUSTOM','trackedReach','item.engagements']],
   ['functions/api/campaign-period-view/[id].js',['requireTenant','c.tenant_id=? AND c.id=?','buildCampaignPeriodView']],
   ['public/assets/campaign-creator-tracking-r43.js',['Approved posts','HOLDING','REJECTED','data-edit-post','reportedReach']],
+  ['public/assets/campaign-gtm-tracking-r44.js',['Engagements','name="engagements"','totalEngagements']],
   ['public/assets/campaign-period-view-r50.js',['This week','Previous week','Campaign lifetime','Custom range','/api/campaign-period-view/']],
   ['public/assets/campaign-period-view-r50.css',['campaign-period-view-r50','period-kpis-r50','period-modal-r50']],
   ['public/assets/delivery-planning-capacity-r39.js',['campaign-period-view-r50.css','campaign-period-view-r50.js']],
