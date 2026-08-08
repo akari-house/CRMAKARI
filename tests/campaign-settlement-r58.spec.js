@@ -56,14 +56,14 @@ test('Creator settlement approves performance bonus and records partial payment 
   const approveModal=page.locator('.campaign-settlement-modal-r58');
   await approveModal.getByLabel('Approval note').fill('Reviewed Approved delivery and performance evidence.');
   await approveModal.getByRole('button',{name:'Approve settlement'}).click();
-  await expect(row.getByText('Due',{exact:true})).toBeVisible();
+  await expect(row.getByText('DUE',{exact:true})).toBeVisible();
 
   await row.getByRole('button',{name:'Record payment'}).click();
   const paymentModal=page.locator('.campaign-settlement-modal-r58');
   await paymentModal.getByLabel('Amount (USDT)').fill('75');
   await paymentModal.getByLabel('Reference').fill('0xsettlement123');
   await paymentModal.getByRole('button',{name:'Record payment'}).click();
-  await expect(row.getByText('Partially Paid',{exact:true})).toBeVisible();
+  await expect(row.getByText('PARTIALLY PAID',{exact:true})).toBeVisible();
   await expect(panel.getByText('0xsettlement123',{exact:true})).toBeVisible();
   await expect(panel.getByText(/Recommendations are not payments/i)).toBeVisible();
 });
