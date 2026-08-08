@@ -69,6 +69,7 @@ function responseFor(url) {
 }
 
 test.beforeEach(async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-08-08T09:00:00.000Z'));
   await page.route('**/api/**', async (route) => {
     const request = route.request();
     if (request.method() !== 'GET') {
@@ -84,16 +85,18 @@ test.beforeEach(async ({ page }) => {
 test('Campaigns exposes the service delivery command centre and workspace', async ({ page }) => {
   await page.locator('.sidebar [data-route="campaigns"]').click();
   await expect(page.getByRole('heading', { name:'Campaigns' })).toBeVisible();
-  await expect(page.locator('#service-delivery-command-centre')).toBeVisible();
-  await expect(page.getByText('Campaign and service delivery')).toBeVisible();
-  await expect(page.locator('#service-delivery-command-centre').getByText('Project Alpha Creator Campaign')).toBeVisible();
+  const command = page.locator('#service-delivery-command-centre');
+  await expect(command).toBeVisible();
+  await expect(command.getByText('Campaign and service delivery')).toBeVisible();
+  await expect(command.getByText('Project Alpha Creator Campaign')).toBeVisible();
 
-  await page.getByRole('button', { name:'Manage delivery' }).click();
-  await expect(page.getByLabel('Service delivery workspace')).toBeVisible();
-  await expect(page.getByText('Client onboarding')).toBeVisible();
-  await expect(page.getByText('Campaign strategy approved')).toBeVisible();
-  await expect(page.getByText('Creator One').first()).toBeVisible();
-  await expect(page.getByText('Budget and profitability')).toBeVisible();
+  await command.getByRole('button', { name:'Manage delivery' }).click();
+  const workspace = page.getByLabel('Service delivery workspace');
+  await expect(workspace).toBeVisible();
+  await expect(workspace.getByText('Client onboarding')).toBeVisible();
+  await expect(workspace.locator('.delivery-item-copy > strong').filter({ hasText:'Campaign strategy approved' }).first()).toBeVisible();
+  await expect(workspace.getByText('Creator One').first()).toBeVisible();
+  await expect(workspace.getByText('Budget and profitability')).toBeVisible();
 });
 
 test('delivery sub-forms preserve the workspace and submit governed milestone changes', async ({ page }) => {
@@ -107,17 +110,21 @@ test('delivery sub-forms preserve the workspace and submit governed milestone ch
     await route.fulfill({ status:200, contentType:'application/json', body:JSON.stringify(detail) });
   });
   await page.locator('.sidebar [data-route="campaigns"]').click();
-  await page.getByRole('button', { name:'Manage delivery' }).click();
-  await page.getByRole('button', { name:'Add milestone' }).click();
+  const command = page.locator('#service-delivery-command-centre');
+  await expect(command).toBeVisible();
+  await command.getByRole('button', { name:'Manage delivery' }).click();
+  const workspace = page.getByLabel('Service delivery workspace');
+  await expect(workspace).toBeVisible();
+  await workspace.getByRole('button', { name:'Add milestone' }).click();
   await expect(page.locator('#delivery-active-form')).toBeVisible();
-  await expect(page.getByLabel('Service delivery workspace')).toBeVisible();
+  await expect(workspace).toBeVisible();
   await page.locator('#delivery-active-form [name="title"]').fill('Second creator wave launched');
   await page.locator('#delivery-active-form [name="dueDate"]').fill('2026-08-25');
   await page.locator('#delivery-active-form button[type="submit"]').click();
   await expect.poll(() => captured?.action).toBe('upsert-milestone');
   expect(captured.item.title).toBe('Second creator wave launched');
   await expect(page.getByText('Milestone updated')).toBeVisible();
-  await expect(page.getByLabel('Service delivery workspace')).toBeVisible();
+  await expect(workspace).toBeVisible();
 });
 
 test('applying a service template uses the current tenant engagement endpoint', async ({ page }) => {
@@ -131,8 +138,12 @@ test('applying a service template uses the current tenant engagement endpoint', 
     await route.fulfill({ status:200, contentType:'application/json', body:JSON.stringify(detail) });
   });
   await page.locator('.sidebar [data-route="campaigns"]').click();
-  await page.getByRole('button', { name:'Manage delivery' }).click();
-  await page.getByRole('button', { name:'Apply template' }).click();
+  const command = page.locator('#service-delivery-command-centre');
+  await expect(command).toBeVisible();
+  await command.getByRole('button', { name:'Manage delivery' }).click();
+  const workspace = page.getByLabel('Service delivery workspace');
+  await expect(workspace).toBeVisible();
+  await workspace.getByRole('button', { name:'Apply template' }).click();
   await expect(page.getByRole('heading', { name:'Apply service template' })).toBeVisible();
   await page.locator('#delivery-active-form [name="replaceExisting"]').check();
   await page.locator('#delivery-active-form button[type="submit"]').click();
@@ -145,11 +156,13 @@ test('service delivery remains usable without page-level mobile overflow', async
   await page.setViewportSize({ width:390, height:844 });
   await page.locator('.mobile-bottom [data-action="open-sidebar"]').click();
   await page.locator('#sidebar [data-route="campaigns"]').click();
-  await expect(page.locator('#service-delivery-command-centre')).toBeVisible();
+  const command = page.locator('#service-delivery-command-centre');
+  await expect(command).toBeVisible();
   const pageOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(pageOverflow).toBeLessThanOrEqual(1);
-  await page.getByRole('button', { name:'Manage delivery' }).click();
-  await expect(page.getByLabel('Service delivery workspace')).toBeVisible();
-  const workspaceOverflow = await page.locator('.delivery-workspace').evaluate((node) => node.scrollWidth - node.clientWidth);
+  await command.getByRole('button', { name:'Manage delivery' }).click();
+  const workspace = page.getByLabel('Service delivery workspace');
+  await expect(workspace).toBeVisible();
+  const workspaceOverflow = await workspace.evaluate((node) => node.scrollWidth - node.clientWidth);
   expect(workspaceOverflow).toBeLessThanOrEqual(1);
 });
