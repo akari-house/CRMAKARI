@@ -33,14 +33,14 @@
     const tone=tones[item.classification]||'inactive';
     const last=item.lastActiveDate ? new Date(`${item.lastActiveDate}T00:00:00`).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : 'No campaign activity';
     return `<tr>
-      <td><strong>${esc(item.partnerName)}</strong><span>${esc(item.partnerType||'Delivery partner')}</span></td>
+      <td><strong>${esc(item.partnerName)}</strong><span>${esc(item.partnerType||'Delivery partner')} · ${esc(item.partnerStatus||'Status not set')}</span></td>
       <td><b class="partner-rank-r53 ${tone}">${esc(rank)}</b><span>Score ${fmt(item.portfolioScore,1)}</span></td>
       <td><strong>${fmt(item.activeCampaigns)} active</strong><span>${fmt(item.completedCampaigns)} completed</span></td>
       <td><strong>${fmt(item.lifetimeContributors)}</strong><span>${fmt(item.creatorCount)} creators · ${fmt(item.kolCount)} KOLs</span></td>
       <td><strong>${pct(item.averageDeliveryCompletion)}</strong><span>${pct(item.campaignReliability)} reliable campaigns</span></td>
       <td><strong>${pct(item.averageReachTargetAchievement)}</strong><span>${fmt(item.approvedPosts)} Approved posts</span></td>
       <td><strong>${fmt(item.approvedReach)}</strong><span>${fmt(item.approvedEngagements)} engagements</span></td>
-      <td><strong>${money(item.totalCampaignCost)}</strong><span>Cash ${money(item.totalCashSpend)} · token est. ${money(item.totalEstimatedTokenCost)}</span></td>
+      <td><strong>${money(item.totalCampaignCost)}</strong><span>Cash ${money(item.totalCashSpend)} · ${fmt(item.totalTokenAllocation,2)} tokens · token est. ${money(item.totalEstimatedTokenCost)}</span></td>
       <td><strong>${money(item.lifetimeCpv)}</strong><span>CPE ${money(item.lifetimeCpe)}</span></td>
       <td><strong>${pct(item.rejectionRate)} rejected</strong><span>${pct(item.holdingRate)} holding</span></td>
       <td><strong>${esc(last)}</strong><span>Sorsa ${fmt(item.averageSorsaScore,1)} · XScore ${fmt(item.averageXScore,1)}</span></td>
@@ -63,7 +63,7 @@
       <div class="partner-portfolio-table-r53"><table><thead><tr><th>Partner</th><th>Rank</th><th>Campaigns</th><th>Contributors</th><th>Delivery</th><th>Reach target</th><th>Approved reach</th><th>Tracked cost</th><th>CPV</th><th>Quality</th><th>Last active</th></tr></thead><tbody>
         ${items.length ? items.map(row).join('') : '<tr><td colspan="11"><div class="partner-portfolio-empty-r53">No reusable delivery partners are available yet.</div></td></tr>'}
       </tbody></table></div>
-      <footer><span>Ranking: Top Performing ≥85 with 2+ campaigns · Reliable ≥70 · Needs Attention ≥50 · Underperforming &lt;50 · Inactive = no history or 180+ days without an active campaign.</span><span>Token allocation can span different campaign assets; estimated token cost uses each campaign’s tracked token price.</span></footer>`;
+      <footer><span>Ranking: Top Performing ≥85 with 2+ campaigns · Reliable ≥70 · Needs Attention ≥50 · Underperforming &lt;50 · Inactive = no history or 180+ days without an active campaign.</span><span>Raw token allocation can span different campaign assets; estimated token cost uses each campaign’s tracked token price.</span></footer>`;
   }
 
   async function load() {
