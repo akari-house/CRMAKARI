@@ -82,7 +82,7 @@ test('Campaigns renders and refreshes Campaign Talent Recommendation Intelligenc
   await expect(method.getByText('Reach')).toBeVisible();
   await expect(method.getByText('X')).toBeVisible();
   await expect(panel.getByText('$1,000 planning budget')).toBeVisible();
-  await expect(panel.locator('.talent-basket-r55').getByText('$250')).toBeVisible();
+  await expect(panel.locator('.talent-basket-r55 header').getByText('$250')).toBeVisible();
   await panel.locator('.talent-why-r55 summary').click();
   await expect(panel.getByText('Approved Thread delivery history')).toBeVisible();
 });
