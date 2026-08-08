@@ -82,6 +82,7 @@ function genericResponse(url) {
 
 test.beforeEach(async ({ page }) => {
   actions = [];
+  await page.clock.setFixedTime(new Date('2026-08-05T09:00:00.000Z'));
   await page.route('**/api/**', async (route) => {
     const request = route.request();
     const parsed = new URL(request.url());
