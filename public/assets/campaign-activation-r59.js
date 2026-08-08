@@ -6,7 +6,7 @@
   const esc=(value)=>String(value??'').replace(/[&<>"']/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const fmt=(value,digits=0)=>Number(value||0).toLocaleString(undefined,{maximumFractionDigits:digits});
   const pct=(value)=>`${fmt(value,1)}%`;
-  const label=(value)=>String(value||'').replaceAll('_',' ').replace(/\b\w/g,(c)=>c.toUpperCase());
+  const label=(value)=>String(value||'').toLowerCase().replaceAll('_',' ').replace(/\b\w/g,(c)=>c.toUpperCase());
   const day=(value)=>value?String(value).slice(0,10):'—';
   let activeId='';
   let loadedId='';
