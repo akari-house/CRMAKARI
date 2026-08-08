@@ -3,7 +3,7 @@ import fs from 'node:fs';
 const required = [
   ['functions/lib/campaign-tracking.js',['creatorAssignments','creatorPosts','sanitizeCreatorAssignment','sanitizeCreatorPost','creatorTrackingSummary','CREATOR_POST_STATUSES']],
   ['functions/api/campaign-tracking/[id].js',['upsert-creator-assignment','upsert-creator-post','delete-creator-assignment','delete-creator-post','CAMPAIGN_TRACKING']],
-  ['public/assets/campaign-creator-tracking-r43.js',['Creator, KOL & delivery-partner tracking','expectedPosts','allocatedTokens','Published URL','creatorTrackingR43','Approved posts','agencyPartnerId']],
+  ['public/assets/campaign-creator-tracking-r43.js',['Creator, KOL & delivery-partner tracking','expectedPosts','allocatedTokens','Published URL','creatorTrackingR43','Approved posts','agencyPartnerId','if (!payload?.item) return;']],
   ['public/assets/campaign-creator-tracking-r43.css',['campaign-creator-tracking-r43','creator-tracking-kpis-r43','creator-tracking-modal-r43']],
   ['public/assets/delivery-planning-capacity-r39.js',['campaign-creator-tracking-r43.css','campaign-creator-tracking-r43.js']],
 ];
