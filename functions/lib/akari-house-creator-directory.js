@@ -115,13 +115,16 @@ export function buildAkariHouseCreatorDirectory(houseFeed,campaigns=[],partners=
     const history=linkedKey?portfolioByKey.get(linkedKey):null;
     if(linkedKey&&history)linkedPortfolioKeys.add(linkedKey);
     const totalFollowers=(creator.socials||[]).reduce((sum,social)=>sum+number(social.followerCount),0);
+    const hasPerformanceEvidence=Boolean(history)&&(number(history.approvedPosts)>0||number(history.completedCampaigns)>0);
+    const historyState=!history?'NEW_NO_CAMPAIGN_HISTORY':hasPerformanceEvidence?'CRM_PERFORMANCE_HISTORY':'CRM_PLANNED_NO_PERFORMANCE';
     return {
       ...creator,
       totalFollowers,
       platforms:(creator.socials||[]).map((social)=>social.platform),
-      crmLink:{linked:Boolean(history),method:history?linkMethod:linkMethod,identityKey:history?linkedKey:null},
-      historyState:history?'CRM_HISTORY':'NEW_NO_CAMPAIGN_HISTORY',
-      performance:history?{
+      crmLink:{linked:Boolean(history),method:linkMethod,identityKey:history?linkedKey:null},
+      historyState,
+      crmCampaignCount:history?number(history.campaignCount):0,
+      performance:hasPerformanceEvidence?{
         classification:history.classification,portfolioScore:history.portfolioScore,campaignCount:history.campaignCount,activeCampaigns:history.activeCampaigns,completedCampaigns:history.completedCampaigns,
         approvedPosts:history.approvedPosts,approvedReach:history.approvedReach,approvedEngagements:history.approvedEngagements,
         averageDeliveryCompletion:history.averageDeliveryCompletion,averageReachTargetAchievement:history.averageReachTargetAchievement,campaignReliability:history.campaignReliability,
@@ -138,7 +141,8 @@ export function buildAkariHouseCreatorDirectory(houseFeed,campaigns=[],partners=
   }));
   return {
     source:feed.source,schemaVersion:feed.schemaVersion,generatedAt:feed.generatedAt,profileDataStatus:'PROFILE_PROVIDED',publicProfilesOnly:feed.publicProfilesOnly,
-    creatorCount:items.length,withCrmHistory:items.filter((item)=>item.historyState==='CRM_HISTORY').length,newToCrm:items.filter((item)=>item.historyState==='NEW_NO_CAMPAIGN_HISTORY').length,
+    creatorCount:items.length,withCrmHistory:items.filter((item)=>item.crmLink.linked).length,withPerformanceEvidence:items.filter((item)=>item.historyState==='CRM_PERFORMANCE_HISTORY').length,
+    plannedWithoutPerformance:items.filter((item)=>item.historyState==='CRM_PLANNED_NO_PERFORMANCE').length,newToCrm:items.filter((item)=>item.historyState==='NEW_NO_CAMPAIGN_HISTORY').length,
     externalUnlinkedCount:external.length,items,external,
   };
 }
