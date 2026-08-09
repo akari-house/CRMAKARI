@@ -33,6 +33,7 @@ export async function onRequestPost(context){
     if(!row)return error('Campaign engagement not found',404);
     const {root,tracking}=parseCampaignTracking(row.notes);
     let planning=parseCampaignPlanning(root);requireEditable(planning);
+    const beforeSummary=buildCampaignPlanSummary(tracking,planning);
     if((planning.selections||[]).some((item)=>item.akariCreatorId===akariCreatorId))return error('This AKARI House Creator is already in the campaign plan',409);
 
     const feed=await fetchHouseCreatorFeed(fetch,{url:context.env.AKARI_HOUSE_CREATOR_FEED_URL||'https://akarihouse.com/api/crm/creators',limit:500});
@@ -85,7 +86,6 @@ export async function onRequestPost(context){
     if(planning.status==='REJECTED')planning=clearApproval(planning);
     planning=touchPlanning(planning,auth);
     tracking.updatedAt=nowIso();tracking.updatedBy=auth.userId;
-    const beforeSummary=buildCampaignPlanSummary(tracking,{...planning,selections:(planning.selections||[]).filter((item)=>item.assignmentId!==candidate.id)});
     const afterSummary=buildCampaignPlanSummary(tracking,planning);
     const notes=JSON.stringify({...root,campaignTracking:tracking,campaignPlanning:planning});
     await run(context.env.DB,'UPDATE campaigns SET notes=?,updated_at=?,updated_by=? WHERE tenant_id=? AND id=?',[notes,nowIso(),auth.userId,tenantId,row.id]);
