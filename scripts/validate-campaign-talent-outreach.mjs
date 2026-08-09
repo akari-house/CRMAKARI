@@ -19,11 +19,13 @@ const required=[
 for(const path of required)assert.equal(fs.existsSync(path),true,`Missing ${path}`);
 
 const api=fs.readFileSync('functions/api/campaign-talent-outreach/[id].js','utf8');
+const lib=fs.readFileSync('functions/lib/campaign-talent-outreach.js','utf8');
 const ui=fs.readFileSync('public/assets/campaign-talent-outreach-r60.js','utf8');
 assert.match(api,/WHERE c\.tenant_id = \? AND c\.id = \?/);
 assert.match(api,/WHERE tm\.tenant_id = \? AND tm\.user_id = \?/);
 assert.match(api,/CAMPAIGN_TALENT_PARTICIPATION_CONFIRMED/);
-assert.match(api,/approved campaign allocation/i);
+assert.match(api,/Approve the campaign plan before confirming/i);
+assert.match(lib,/approved campaign allocation/i);
 assert.match(ui,/Acceptance & Consent Workspace/);
 assert.match(ui,/does not send the message automatically/i);
 assert.match(ui,/Plan mismatch/);
