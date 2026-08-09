@@ -40,6 +40,11 @@ export function parseCampaignPlanning(root = {}) {
       identityKey:text(item?.identityKey, 500),
       recommendationScore:clamp(item?.recommendationScore),
       recommendationVersion:text(item?.recommendationVersion, 80),
+      akariCreatorId:text(item?.akariCreatorId, 160) || null,
+      identitySource:text(item?.identitySource, 80) || null,
+      profileDataStatus:text(item?.profileDataStatus, 80) || null,
+      houseProfileUrl:text(item?.houseProfileUrl, 800) || null,
+      houseUsername:text(item?.houseUsername, 160) || null,
       addedAt:text(item?.addedAt, 80) || null,
       addedBy:text(item?.addedBy, 120) || null,
     })).filter((item) => item.assignmentId) : [],
@@ -82,27 +87,32 @@ export function sanitizeCampaignPlanning(input = {}, previous = {}) {
   };
 }
 
-function stableSelection(tracking = {}) {
+function stableSelection(tracking = {}, planning = {}) {
+  const provenance = new Map((planning.selections || []).map((item) => [String(item.assignmentId || ''), item]));
   return (tracking.creatorAssignments || [])
     .filter((item) => item.active !== false)
-    .map((item) => ({
-      id:String(item.id || ''),
-      creatorType:upper(item.creatorType || 'CREATOR'),
-      name:text(item.name, 300),
-      handle:text(item.handle, 200),
-      platform:upper(item.platform || 'X'),
-      agencyPartnerId:text(item.agencyPartnerId, 120) || null,
-      agencyName:text(item.agencyName, 300),
-      category:text(item.category, 200),
-      region:text(item.region, 120),
-      expectedPosts:number(item.expectedPosts),
-      expectedReach:number(item.expectedReach),
-      allocatedUsd:number(item.allocatedUsd),
-      allocatedTokens:number(item.allocatedTokens),
-      tgeUnlockPercent:clamp(item.tgeUnlockPercent),
-      cliffMonths:number(item.cliffMonths),
-      vestingMonths:number(item.vestingMonths),
-    }))
+    .map((item) => {
+      const base = {
+        id:String(item.id || ''),
+        creatorType:upper(item.creatorType || 'CREATOR'),
+        name:text(item.name, 300),
+        handle:text(item.handle, 200),
+        platform:upper(item.platform || 'X'),
+        agencyPartnerId:text(item.agencyPartnerId, 120) || null,
+        agencyName:text(item.agencyName, 300),
+        category:text(item.category, 200),
+        region:text(item.region, 120),
+        expectedPosts:number(item.expectedPosts),
+        expectedReach:number(item.expectedReach),
+        allocatedUsd:number(item.allocatedUsd),
+        allocatedTokens:number(item.allocatedTokens),
+        tgeUnlockPercent:clamp(item.tgeUnlockPercent),
+        cliffMonths:number(item.cliffMonths),
+        vestingMonths:number(item.vestingMonths),
+      };
+      const akariCreatorId=text(provenance.get(base.id)?.akariCreatorId,160);
+      return akariCreatorId ? { ...base, akariCreatorId } : base;
+    })
     .sort((a, b) => a.id.localeCompare(b.id));
 }
 
@@ -124,14 +134,14 @@ export function campaignPlanFingerprint(tracking = {}, planning = {}) {
     contentType:planning.contentType || 'ALL',
     region:planning.region || 'ALL',
     budgetUsd:number(planning.budgetUsd),
-    selections:stableSelection(tracking),
+    selections:stableSelection(tracking, planning),
   };
   if (compensation.enabled) payload.compensationFingerprint = campaignCompensationFingerprint(tracking, compensation);
   return `r8.5f-${fnv1a(JSON.stringify(payload))}`;
 }
 
 export function buildCampaignPlanSummary(tracking = {}, planning = {}) {
-  const selections = stableSelection(tracking);
+  const selections = stableSelection(tracking, planning);
   const tokenPrice = number(tracking.overview?.currentTokenPrice || tracking.overview?.tokenListingPrice);
   const cashAllocation = selections.reduce((sum, item) => sum + number(item.allocatedUsd), 0);
   const tokenAllocation = selections.reduce((sum, item) => sum + number(item.allocatedTokens), 0);
