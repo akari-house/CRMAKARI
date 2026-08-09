@@ -3,6 +3,7 @@ import { first, all, run, makeId, nowIso } from '../../lib/db.js';
 import { requireTenant } from '../../lib/permissions.js';
 import { parseCampaignTracking } from '../../lib/campaign-tracking.js';
 import { parseCampaignPlanning } from '../../lib/campaign-planning.js';
+import { parseCampaignTalentOutreach } from '../../lib/campaign-talent-outreach.js';
 import {
   parseCampaignActivation,
   buildCampaignActivationSummary,
@@ -97,11 +98,11 @@ function taskBlueprints(row, tracking, ownerUserId) {
   const end = dateOnly(row.end_date, addDays(start, 14));
   const mid = midpoint(start, end);
   const activeTalent = (tracking.creatorAssignments || []).filter((item) => item.active !== false);
-  const planFingerprintNote = 'This task is linked to the approved campaign activation snapshot. Activation is internal execution readiness and does not assert Creator/KOL acceptance or consent.';
-  const items = [
+  const governanceNote = 'This task is linked to the approved campaign activation snapshot. New activations require confirmed Creator/KOL participation evidence; outreach, consent evidence and payment remain separately governed records.';
+  return [
     {
       slug:'kickoff', phase:'LAUNCH', title:`Campaign kickoff & execution brief — ${row.name}`,
-      description:`Confirm owners, final brief, campaign dates, deliverables and escalation path. ${planFingerprintNote}`,
+      description:`Confirm owners, final brief, campaign dates, deliverables and escalation path. ${governanceNote}`,
       priority:'HIGH', dueAt:dueAt(start, 10), ownerUserId,
     },
     {
@@ -111,13 +112,13 @@ function taskBlueprints(row, tracking, ownerUserId) {
     },
     {
       slug:'launch-readiness', phase:'LAUNCH', title:'Confirm launch readiness & approved talent basket',
-      description:`Verify the approved plan fingerprint, budget reconciliation and active Creator/KOL deliverables. ${planFingerprintNote}`,
+      description:`Verify approved plan, confirmed talent evidence, budget reconciliation and active Creator/KOL deliverables. ${governanceNote}`,
       priority:'URGENT', dueAt:dueAt(start, 14), ownerUserId,
     },
     ...activeTalent.map((assignment) => ({
       slug:`talent-${assignment.id}`, phase:'EXECUTION', assignmentId:assignment.id,
       title:`Deliver & monitor ${Number(assignment.expectedPosts || 0)} Approved post${Number(assignment.expectedPosts || 0) === 1 ? '' : 's'} — ${assignment.name || assignment.handle || 'Creator/KOL'}`,
-      description:`Platform: ${assignment.platform || 'N/A'}. Expected reach: ${Number(assignment.expectedReach || 0).toLocaleString()}. Record published URLs and performance in Campaign Tracking. Holding/Rejected posts do not count toward delivery performance. Activation does not assert external acceptance or consent.`,
+      description:`Platform: ${assignment.platform || 'N/A'}. Expected reach: ${Number(assignment.expectedReach || 0).toLocaleString()}. Record published URLs and performance in Campaign Tracking. Holding/Rejected posts do not count toward delivery performance.`,
       priority:'HIGH', dueAt:dueAt(end, 12), ownerUserId,
     })),
     {
@@ -131,7 +132,6 @@ function taskBlueprints(row, tracking, ownerUserId) {
       priority:'HIGH', dueAt:dueAt(end, 17), ownerUserId,
     },
   ];
-  return items;
 }
 
 async function createExecutionTasks(db, auth, tenantId, row, tracking, ownerUserId) {
@@ -164,14 +164,14 @@ async function createExecutionTasks(db, auth, tenantId, row, tracking, ownerUser
   return plan;
 }
 
-async function persist(db, auth, tenantId, row, root, tracking, planning, activation, action, beforeSummary, request) {
+async function persist(db, auth, tenantId, row, root, tracking, planning, outreach, activation, action, beforeSummary, request) {
   const now = nowIso();
   activation.lastModifiedAt = now;
   activation.lastModifiedBy = auth.userId;
-  const notes = JSON.stringify({ ...root, campaignTracking:tracking, campaignPlanning:planning, campaignActivation:activation });
+  const notes = JSON.stringify({ ...root, campaignTracking:tracking, campaignPlanning:planning, campaignTalentOutreach:outreach, campaignActivation:activation });
   await run(db, `UPDATE campaigns SET notes = ?, updated_at = ?, updated_by = ? WHERE tenant_id = ? AND id = ?`, [notes, now, auth.userId, tenantId, row.id]);
   const taskRows = await activationTasks(db, tenantId, row.id, activation.taskIds);
-  const afterSummary = buildCampaignActivationSummary(tracking, planning, activation, taskRows);
+  const afterSummary = buildCampaignActivationSummary(tracking, planning, activation, taskRows, outreach);
   await run(db, `
     INSERT INTO audit_logs (
       id,tenant_id,user_id,action,entity_type,entity_id,before_data,after_data,ip_address,user_agent,created_at
@@ -203,12 +203,13 @@ function publicTask(row, activation) {
 
 async function payload(db, tenantId, row, root, tracking, auth) {
   const planning = parseCampaignPlanning(root);
+  const outreach = parseCampaignTalentOutreach(root);
   const activation = parseCampaignActivation(root);
   const [taskRows, memberRows] = await Promise.all([
     activationTasks(db, tenantId, row.id, activation.taskIds),
     members(db, tenantId),
   ]);
-  const summary = buildCampaignActivationSummary(tracking, planning, activation, taskRows);
+  const summary = buildCampaignActivationSummary(tracking, planning, activation, taskRows, outreach);
   const owner = activation.executionOwnerId ? memberRows.find((item) => item.id === activation.executionOwnerId) : null;
   return {
     item:{
@@ -226,7 +227,7 @@ async function payload(db, tenantId, row, root, tracking, auth) {
     },
     members:memberRows,
     permissions:{ canManage:MANAGER_ROLES.has(auth?.role) },
-    methodology:{ version:'R8.5I-1', canonicalTasks:true, approvedPlanSnapshot:true, creatorAcceptanceSeparate:true },
+    methodology:{ version:'R8.5J-activation-1', canonicalTasks:true, approvedPlanSnapshot:true, creatorAcceptanceSeparate:true, creatorConfirmationRequiredForNewActivation:true },
   };
 }
 
@@ -256,9 +257,10 @@ export async function onRequestPatch(context) {
     if (!row) return error('Campaign engagement not found', 404);
     const { root, tracking } = parseCampaignTracking(row.notes);
     const planning = parseCampaignPlanning(root);
+    const outreach = parseCampaignTalentOutreach(root);
     let activation = parseCampaignActivation(root);
     let taskRows = await activationTasks(context.env.DB, tenantId, row.id, activation.taskIds);
-    const beforeSummary = buildCampaignActivationSummary(tracking, planning, activation, taskRows);
+    const beforeSummary = buildCampaignActivationSummary(tracking, planning, activation, taskRows, outreach);
 
     if (action === 'activate') {
       if (activation.status !== 'NOT_ACTIVATED') return error('Campaign execution has already been activated', 409);
@@ -274,6 +276,7 @@ export async function onRequestPatch(context) {
         executionOwnerId,
         activationNote:text(body.note, 5000),
         approvedPlanFingerprint:beforeSummary.currentPlanFingerprint,
+        talentConfirmationFingerprint:beforeSummary.currentTalentConfirmationFingerprint,
         taskIds:plan.map((item) => item.id),
         taskPlan:plan,
         activatedAt:now,
@@ -287,19 +290,19 @@ export async function onRequestPatch(context) {
         completedBy:null,
         completionNote:'',
       };
-      taskRows = await persist(context.env.DB, auth, tenantId, row, root, tracking, planning, activation, 'CAMPAIGN_EXECUTION_ACTIVATED', beforeSummary, context.request);
+      taskRows = await persist(context.env.DB, auth, tenantId, row, root, tracking, planning, outreach, activation, 'CAMPAIGN_EXECUTION_ACTIVATED', beforeSummary, context.request);
     } else if (action === 'pause') {
       if (activation.status !== 'ACTIVE') return error('Only active campaign execution can be paused', 409);
       const reason = text(body.reason, 1500);
       if (!reason) return error('A pause reason is required', 422);
       activation = { ...activation, status:'PAUSED', pausedAt:nowIso(), pausedBy:auth.userId, pauseReason:reason };
-      taskRows = await persist(context.env.DB, auth, tenantId, row, root, tracking, planning, activation, 'CAMPAIGN_EXECUTION_PAUSED', beforeSummary, context.request);
+      taskRows = await persist(context.env.DB, auth, tenantId, row, root, tracking, planning, outreach, activation, 'CAMPAIGN_EXECUTION_PAUSED', beforeSummary, context.request);
     } else if (action === 'resume') {
       if (activation.status !== 'PAUSED') return error('Only paused campaign execution can be resumed', 409);
       assertCampaignActivationReady(beforeSummary);
-      if (beforeSummary.activationDrift) return error('The campaign plan changed after activation and must be resolved before resuming', 409);
+      if (beforeSummary.activationDrift || beforeSummary.outreachDrift) return error('Campaign plan or confirmed talent evidence changed after activation and must be resolved before resuming', 409);
       activation = { ...activation, status:'ACTIVE', resumedAt:nowIso(), resumedBy:auth.userId, pausedAt:null, pausedBy:null, pauseReason:'' };
-      taskRows = await persist(context.env.DB, auth, tenantId, row, root, tracking, planning, activation, 'CAMPAIGN_EXECUTION_RESUMED', beforeSummary, context.request);
+      taskRows = await persist(context.env.DB, auth, tenantId, row, root, tracking, planning, outreach, activation, 'CAMPAIGN_EXECUTION_RESUMED', beforeSummary, context.request);
     } else if (action === 'complete') {
       assertCampaignActivationCompletable(beforeSummary);
       activation = {
@@ -309,12 +312,12 @@ export async function onRequestPatch(context) {
         completedBy:auth.userId,
         completionNote:text(body.note, 3000),
       };
-      taskRows = await persist(context.env.DB, auth, tenantId, row, root, tracking, planning, activation, 'CAMPAIGN_EXECUTION_COMPLETED', beforeSummary, context.request);
+      taskRows = await persist(context.env.DB, auth, tenantId, row, root, tracking, planning, outreach, activation, 'CAMPAIGN_EXECUTION_COMPLETED', beforeSummary, context.request);
     } else {
       return error('Campaign activation action is not supported', 404);
     }
 
-    const nextRoot = { ...root, campaignActivation:activation };
+    const nextRoot = { ...root, campaignTalentOutreach:outreach, campaignActivation:activation };
     return json(await payload(context.env.DB, tenantId, row, nextRoot, tracking, auth));
   } catch (cause) {
     return error(cause.message || 'Campaign activation action failed', Number(cause.status || 500));
