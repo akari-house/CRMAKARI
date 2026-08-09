@@ -25,7 +25,7 @@ function taskOpen(task){return !CLOSED_TASKS.has(upper(task?.status));}
 function taskOverdue(task,today){const due=dateValue(task?.due_at??task?.dueAt);return taskOpen(task)&&due&&due<today;}
 function taskDueToday(task,today){const due=dateValue(task?.due_at??task?.dueAt);return taskOpen(task)&&due&&due.getTime()===today.getTime();}
 function taskBlocked(task){return taskOpen(task)&&upper(task?.status)==='BLOCKED';}
-function campaignTaskRows(tasks,campaignId){return (tasks||[]).filter((task)=>String(task.campaign_id??task.campaignId||'')===String(campaignId||''));}
+function campaignTaskRows(tasks,campaignId){return (tasks||[]).filter((task)=>String((task.campaign_id??task.campaignId)||'')===String(campaignId||''));}
 
 function pacing(startDate,endDate,today){
   const start=dateValue(startDate),end=dateValue(endDate);
@@ -58,19 +58,19 @@ function chooseNextAction({planning,planSummary,outreachSummary,activationSummar
   if(activationSummary.status==='PAUSED')return action('RESUME_OR_REPLAN','Resolve pause and resume execution','Campaign execution is paused. Clear the recorded blocker or replan before delivery continues.');
   if(activationSummary.status==='ACTIVE'&&tasksSummary.dueToday>0)return action('EXECUTE_TODAY','Complete today’s campaign work',`${tasksSummary.dueToday} open Work OS task${tasksSummary.dueToday===1?' is':'s are'} due today.`,'TASKS');
   if(activationSummary.status==='ACTIVE'&&delivery.publishedPosts<delivery.plannedPosts)return action('CHASE_DELIVERY','Progress Creator/KOL delivery',`${Math.max(0,delivery.plannedPosts-delivery.publishedPosts)} Approved post${Math.max(0,delivery.plannedPosts-delivery.publishedPosts)===1?' remains':'s remain'} against plan.`);
-  if(activationSummary.status==='COMPLETED'&&settlementSummary.outstandingUsdt>0)return action('COMPLETE_SETTLEMENT','Complete Creator/KOL settlement',`${settlementSummary.outstandingUsdt.toFixed(2)} USDT remains outstanding after approved settlement.`);
   if(activationSummary.status==='COMPLETED'&&settlementSummary.disputedCount>0)return action('RESOLVE_SETTLEMENT_DISPUTE','Resolve Creator/KOL settlement dispute',`${settlementSummary.disputedCount} Creator/KOL settlement record${settlementSummary.disputedCount===1?' is':'s are'} disputed.`);
+  if(activationSummary.status==='COMPLETED'&&settlementSummary.outstandingUsdt>0)return action('COMPLETE_SETTLEMENT','Complete Creator/KOL settlement',`${settlementSummary.outstandingUsdt.toFixed(2)} USDT remains outstanding after approved settlement.`);
   if(activationSummary.status==='COMPLETED')return action('PREPARE_CLOSEOUT','Prepare campaign closeout','Execution is complete. Finalize reporting, client sign-off and renewal handoff.');
   return action('MONITOR_EXECUTION','Monitor campaign execution','No critical operational blocker is currently detected. Continue monitoring delivery, tasks and approved performance.');
 }
 
-function assessRisk({planning,planSummary,outreachSummary,activationSummary,delivery,tasksSummary,pacing,reachAchievement}){
+function assessRisk({planning,planSummary,outreachSummary,activationSummary,delivery,tasksSummary,pacing,reachAchievement,settlementSummary}){
   const reasons=[];
   let score=0;
   const add=(points,code,label)=>{score+=points;reasons.push({code,label,points});};
-  if(planSummary.approvalDrift){add(45,'PLAN_APPROVAL_DRIFT','Approved plan changed');}
-  if(activationSummary.activationDrift){add(45,'ACTIVATION_PLAN_DRIFT','Approved plan changed after activation');}
-  if(activationSummary.outreachDrift){add(40,'TALENT_CONFIRMATION_DRIFT','Confirmed talent evidence changed after activation');}
+  if(planSummary.approvalDrift)add(45,'PLAN_APPROVAL_DRIFT','Approved plan changed');
+  if(activationSummary.activationDrift)add(45,'ACTIVATION_PLAN_DRIFT','Approved plan changed after activation');
+  if(activationSummary.outreachDrift)add(40,'TALENT_CONFIRMATION_DRIFT','Confirmed talent evidence changed after activation');
   if(outreachSummary.declinedCount>0)add(Math.min(30,15+outreachSummary.declinedCount*5),'DECLINED_TALENT',`${outreachSummary.declinedCount} Creator/KOL declined`);
   if(tasksSummary.blocked>0)add(Math.min(30,15+tasksSummary.blocked*5),'BLOCKED_TASKS',`${tasksSummary.blocked} Work OS task${tasksSummary.blocked===1?'':'s'} blocked`);
   if(tasksSummary.overdue>0)add(Math.min(30,10+tasksSummary.overdue*4),'OVERDUE_TASKS',`${tasksSummary.overdue} Work OS task${tasksSummary.overdue===1?'':'s'} overdue`);
@@ -81,6 +81,7 @@ function assessRisk({planning,planSummary,outreachSummary,activationSummary,deli
   if(pacing.started&&!pacing.ended&&pacing.elapsedPercent>=50&&delivery.plannedPosts>0&&delivery.postCompletionPercent+20<pacing.elapsedPercent)add(16,'DELIVERY_PACING','Approved post delivery is materially behind campaign pacing');
   if(pacing.started&&!pacing.ended&&pacing.elapsedPercent>=50&&reachAchievement<50)add(10,'REACH_PACING','Approved reach is below 50% after campaign midpoint');
   if(activationSummary.status==='PAUSED')add(12,'EXECUTION_PAUSED','Campaign execution is paused');
+  if(settlementSummary.disputedCount>0)add(Math.min(22,12+settlementSummary.disputedCount*5),'SETTLEMENT_DISPUTE',`${settlementSummary.disputedCount} Creator/KOL settlement record${settlementSummary.disputedCount===1?' is':'s are'} disputed`);
   let level='HEALTHY';
   if(score>=45)level='CRITICAL';else if(score>=30)level='HIGH';else if(score>=18)level='MEDIUM';else if(score>0)level='LOW';
   return {level,score:Math.min(100,score),reasons:reasons.sort((a,b)=>b.points-a.points||a.code.localeCompare(b.code))};
@@ -111,12 +112,19 @@ export function buildCampaignExecutionRow(campaign,tasks=[],todayIso=new Date().
   };
   const expectedReach=(tracking.creatorAssignments||[]).filter((item)=>item.active!==false).reduce((sum,item)=>sum+number(item.expectedReach),0);
   const reachAchievement=expectedReach>0?Math.min(100,(delivery.creatorReach/expectedReach)*100):(delivery.creatorReach>0?100:0);
-  const risk=assessRisk({planning,planSummary,outreachSummary,activationSummary,delivery,tasksSummary,pacing:pace,reachAchievement});
+  const risk=assessRisk({planning,planSummary,outreachSummary,activationSummary,delivery,tasksSummary,pacing:pace,reachAchievement,settlementSummary});
   const nextAction=chooseNextAction({planning,planSummary,outreachSummary,activationSummary,delivery,tasksSummary,pacing:pace,settlementSummary});
   return {
-    id:campaign.id,name:campaign.name,projectId:campaign.project_id??campaign.projectId,projectName:campaign.project_name??campaign.projectName||'',
-    ownerUserId:campaign.campaign_owner_id??campaign.ownerUserId||null,ownerName:campaign.owner_name??campaign.ownerName||null,
-    campaignStatus:upper(campaign.status),startDate:campaign.start_date??campaign.startDate||null,endDate:campaign.end_date??campaign.endDate||null,region:campaign.region||'',
+    id:campaign.id,
+    name:campaign.name,
+    projectId:campaign.project_id??campaign.projectId,
+    projectName:(campaign.project_name??campaign.projectName)||'',
+    ownerUserId:(campaign.campaign_owner_id??campaign.ownerUserId)||null,
+    ownerName:(campaign.owner_name??campaign.ownerName)||null,
+    campaignStatus:upper(campaign.status),
+    startDate:(campaign.start_date??campaign.startDate)||null,
+    endDate:(campaign.end_date??campaign.endDate)||null,
+    region:campaign.region||'',
     active:ACTIVE_CAMPAIGN_STATUSES.has(upper(campaign.status))||['ACTIVE','PAUSED'].includes(activation.status),
     planning:{status:planning.status,approvalDrift:Boolean(planSummary.approvalDrift),budgetUsd:planSummary.budgetUsd,estimatedPlanCost:planSummary.estimatedPlanCost,budgetReconciled:Boolean(planSummary.budgetReconciled),budgetUtilization:planSummary.budgetUtilization},
     outreach:{talentCount:outreachSummary.talentCount,confirmedCount:outreachSummary.confirmedCount,pendingCount:outreachSummary.pendingCount,declinedCount:outreachSummary.declinedCount,readyForActivation:outreachSummary.readyForActivation},
