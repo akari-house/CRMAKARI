@@ -19,15 +19,20 @@ class FakeDB {
   }
 }
 
-function approvedNotes({ approved=true, drift=false }={}) {
+function approvedNotes({ approved=true, drift=false, confirmed=true }={}) {
   const tracking={
     version:3,overview:{},targets:[],socialUpdates:[],creatorPosts:[],
     creatorAssignments:[{ id:'cca_1',creatorType:'CREATOR',name:'Alice',handle:'@alice',platform:'X',expectedPosts:2,expectedReach:10000,allocatedUsd:100,allocatedTokens:0,active:true }],
   };
   let planning={ status:approved?'APPROVED':'DRAFT',objective:'BALANCED',platform:'X',creatorType:'ALL',contentType:'Thread',region:'EMEA',budgetUsd:300,selections:[],compensation:{ enabled:false } };
   planning.approvedFingerprint=approved?campaignPlanFingerprint(tracking,planning):null;
+  const campaignTalentOutreach={version:1,records:confirmed?[{
+    assignmentId:'cca_1',status:'CONFIRMED',agreedUsd:100,agreedTokens:0,
+    deliverablesConfirmed:true,scheduleConfirmed:true,compensationConfirmed:true,agencyConfirmed:false,
+    termsConfirmed:true,consentConfirmed:true,evidenceReference:'tg-thread-1',confirmedAt:'2026-08-09T10:00:00Z',confirmedBy:'user_a',
+  }]:[]};
   if(drift) tracking.creatorAssignments[0].expectedPosts=3;
-  return JSON.stringify({ campaignTracking:tracking, campaignPlanning:planning });
+  return JSON.stringify({ campaignTracking:tracking, campaignPlanning:planning, campaignTalentOutreach });
 }
 
 function campaign(notes=approvedNotes()) {
@@ -86,6 +91,18 @@ test('activation fails closed when the approved plan fingerprint drifted',async(
   assert.equal(db.calls.some((call)=>/INSERT INTO tasks/.test(call.sql)),false);
 });
 
+test('activation fails closed until every active Creator KOL has confirmed participation evidence',async()=>{
+  const db=new FakeDB((method,call)=>{
+    if(method==='first'&&/FROM campaigns c/.test(call.sql))return campaign(approvedNotes({confirmed:false}));
+    if(method==='run')throw new Error('Unconfirmed activation must not write tasks');
+    return [];
+  });
+  const response=await onRequestPatch(context({db}));
+  assert.equal(response.status,409);
+  assert.match((await payload(response)).error,/confirmed participation evidence/i);
+  assert.equal(db.calls.some((call)=>/INSERT INTO tasks/.test(call.sql)),false);
+});
+
 test('activation creates one tenant-scoped canonical Work OS plan and blocks duplicate markers',async()=>{
   const inserted=[];
   let duplicate=false;
@@ -104,6 +121,7 @@ test('activation creates one tenant-scoped canonical Work OS plan and blocks dup
   assert.equal(response.status,200);
   const body=await payload(response);
   assert.equal(body.item.activation.status,'ACTIVE');
+  assert.match(body.item.activation.talentConfirmationFingerprint,/^cto_/);
   assert.equal(body.item.tasks.length,6);
   assert.equal(inserted.length,6);
   const taskWrites=db.calls.filter((call)=>/INSERT INTO tasks/.test(call.sql));
