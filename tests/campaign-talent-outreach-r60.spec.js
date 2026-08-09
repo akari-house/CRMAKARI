@@ -63,16 +63,17 @@ test('Creator KOL outreach moves from contact to evidence-backed confirmed parti
   const panel=page.locator('.campaign-talent-outreach-r60');
   await expect(panel).toBeVisible();
   await expect(panel.getByText('Acceptance & Consent Workspace')).toBeVisible();
-  await expect(panel.getByText('Not Contacted',{exact:true})).toBeVisible();
+  const talentRow=panel.locator('[data-outreach-assignment="cca_1"]');
+  await expect(talentRow.locator('.campaign-talent-outreach-badge-r60')).toHaveText('Not Contacted');
 
   await panel.getByRole('button',{name:'Record contact'}).click();
   const contactModal=page.locator('.campaign-talent-outreach-modal-r60');
   await contactModal.getByLabel('Outreach channel').selectOption('Telegram');
   await contactModal.getByRole('button',{name:'Record contact'}).click();
-  await expect(panel.getByText('Contacted',{exact:true})).toBeVisible();
+  await expect(talentRow.locator('.campaign-talent-outreach-badge-r60')).toHaveText('Contacted');
 
   await panel.getByRole('button',{name:'Start negotiation'}).click();
-  await expect(panel.getByText('Negotiating',{exact:true})).toBeVisible();
+  await expect(talentRow.locator('.campaign-talent-outreach-badge-r60')).toHaveText('Negotiating');
   await panel.getByRole('button',{name:'Record acceptance'}).click();
   const termsModal=page.locator('.campaign-talent-outreach-modal-r60');
   await termsModal.getByLabel('Agreed USDT').fill('100');
@@ -83,11 +84,11 @@ test('Creator KOL outreach moves from contact to evidence-backed confirmed parti
   await termsModal.getByLabel('Participation / outreach consent confirmed').check();
   await termsModal.getByLabel('Acceptance evidence reference').fill('telegram-thread-123');
   await termsModal.getByRole('button',{name:'Record acceptance'}).click();
-  await expect(panel.getByText('Accepted',{exact:true})).toBeVisible();
-  await expect(panel.getByText('Matches plan',{exact:true})).toBeVisible();
+  await expect(talentRow.locator('.campaign-talent-outreach-badge-r60')).toHaveText('Accepted');
+  await expect(talentRow.getByText('Matches plan',{exact:true})).toBeVisible();
 
   await panel.getByRole('button',{name:'Confirm participation'}).click();
-  await expect(panel.getByText('Confirmed',{exact:true})).toBeVisible();
+  await expect(talentRow.locator('.campaign-talent-outreach-badge-r60')).toHaveText('Confirmed');
   await expect(panel.getByText('1 / 1',{exact:true})).toBeVisible();
   await expect(panel.getByText('Talent confirmed',{exact:true})).toBeVisible();
 });
