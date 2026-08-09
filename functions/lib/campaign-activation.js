@@ -1,5 +1,6 @@
 import { buildCampaignPlanSummary } from './campaign-planning.js';
 import { creatorTrackingSummary } from './campaign-tracking.js';
+import { buildCampaignTalentOutreachSummary } from './campaign-talent-outreach.js';
 
 export const CAMPAIGN_ACTIVATION_STATUSES = ['NOT_ACTIVATED','ACTIVE','PAUSED','COMPLETED'];
 
@@ -24,6 +25,7 @@ export function parseCampaignActivation(root = {}) {
     executionOwnerId:text(existing.executionOwnerId, 120) || null,
     activationNote:text(existing.activationNote, 5000),
     approvedPlanFingerprint:text(existing.approvedPlanFingerprint, 200) || null,
+    talentConfirmationFingerprint:text(existing.talentConfirmationFingerprint, 200) || null,
     taskIds:Array.isArray(existing.taskIds) ? [...new Set(existing.taskIds.map((id) => text(id, 120)).filter(Boolean))] : [],
     taskPlan:Array.isArray(existing.taskPlan) ? existing.taskPlan.map((item) => ({
       id:text(item?.id, 120),
@@ -62,31 +64,39 @@ function taskState(tasks = [], trackedIds = []) {
   };
 }
 
-export function buildCampaignActivationSummary(tracking = {}, planning = {}, activationInput = {}, tasks = []) {
+export function buildCampaignActivationSummary(tracking = {}, planning = {}, activationInput = {}, tasks = [], outreachInput = {}) {
   const activation = parseCampaignActivation({ campaignActivation:activationInput });
   const planSummary = buildCampaignPlanSummary(tracking, planning);
   const delivery = creatorTrackingSummary(tracking);
   const tasksSummary = taskState(tasks, activation.taskIds || []);
+  const outreachSummary = buildCampaignTalentOutreachSummary(tracking, outreachInput);
   const planApproved = planning.status === 'APPROVED';
   const planIntegrity = planApproved && !planSummary.approvalDrift;
+  const talentConfirmationRequired = activation.status === 'NOT_ACTIVATED';
+  const talentConfirmationReady = outreachSummary.readyForActivation;
   const governanceReady = planIntegrity
     && planSummary.budgetReconciled
     && planSummary.compensationCalculationCurrent
     && planSummary.talentCount > 0
-    && planSummary.plannedPosts > 0;
+    && planSummary.plannedPosts > 0
+    && (!talentConfirmationRequired || talentConfirmationReady);
   const activationDrift = activation.status !== 'NOT_ACTIVATED'
     && Boolean(activation.approvedPlanFingerprint)
     && activation.approvedPlanFingerprint !== planSummary.currentFingerprint;
+  const outreachDrift = activation.status !== 'NOT_ACTIVATED'
+    && Boolean(activation.talentConfirmationFingerprint)
+    && activation.talentConfirmationFingerprint !== outreachSummary.currentFingerprint;
   const approvedDeliveryComplete = delivery.plannedPosts > 0 && delivery.publishedPosts >= delivery.plannedPosts;
   const completionReady = activation.status === 'ACTIVE'
     && governanceReady
     && !activationDrift
+    && !outreachDrift
     && approvedDeliveryComplete
     && tasksSummary.generated > 0
     && tasksSummary.open === 0;
   let effectiveStatus = activation.status;
   if (activation.status === 'NOT_ACTIVATED' && governanceReady) effectiveStatus = 'READY_TO_ACTIVATE';
-  if (activationDrift && activation.status !== 'COMPLETED') effectiveStatus = 'CHANGES_AFTER_ACTIVATION';
+  if ((activationDrift || outreachDrift) && activation.status !== 'COMPLETED') effectiveStatus = 'CHANGES_AFTER_ACTIVATION';
   return {
     status:activation.status,
     effectiveStatus,
@@ -94,8 +104,16 @@ export function buildCampaignActivationSummary(tracking = {}, planning = {}, act
     planApproved,
     planApprovalDrift:Boolean(planSummary.approvalDrift),
     activationDrift,
+    outreachDrift,
     currentPlanFingerprint:planSummary.currentFingerprint,
     approvedPlanFingerprint:activation.approvedPlanFingerprint || null,
+    currentTalentConfirmationFingerprint:outreachSummary.currentFingerprint,
+    approvedTalentConfirmationFingerprint:activation.talentConfirmationFingerprint || null,
+    talentConfirmationRequired,
+    talentConfirmationReady,
+    confirmedTalentCount:number(outreachSummary.confirmedCount),
+    pendingTalentCount:number(outreachSummary.pendingCount),
+    declinedTalentCount:number(outreachSummary.declinedCount),
     budgetReconciled:Boolean(planSummary.budgetReconciled),
     compensationCalculationCurrent:Boolean(planSummary.compensationCalculationCurrent),
     talentCount:number(planSummary.talentCount),
@@ -141,6 +159,11 @@ export function assertCampaignActivationReady(summary = {}) {
     cause.status = 409;
     throw cause;
   }
+  if (summary.talentConfirmationRequired && !summary.talentConfirmationReady) {
+    const cause = new Error('Every active Creator/KOL must have confirmed participation evidence before campaign activation');
+    cause.status = 409;
+    throw cause;
+  }
   return true;
 }
 
@@ -150,7 +173,7 @@ export function assertCampaignActivationCompletable(summary = {}) {
     cause.status = 409;
     throw cause;
   }
-  if (summary.activationDrift || !summary.governanceReady) {
+  if (summary.activationDrift || summary.outreachDrift || !summary.governanceReady) {
     const cause = new Error('Campaign governance changed after activation and must be resolved before completion');
     cause.status = 409;
     throw cause;

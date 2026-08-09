@@ -9,7 +9,7 @@ function activationPayload(){
     {id:'tsk_1',slug:'kickoff',phase:'LAUNCH',title:'Campaign kickoff & execution brief — Launch Campaign',ownerUserId:'usr_owner',ownerName:'Muaz Test',status:'TODO',priority:'HIGH',dueAt:'2026-08-10T10:00:00.000Z'},
     {id:'tsk_2',slug:'talent-cca_1',phase:'EXECUTION',assignmentId:'cca_1',title:'Deliver & monitor 2 Approved posts — Alice Creator',ownerUserId:'usr_owner',ownerName:'Muaz Test',status:'TODO',priority:'HIGH',dueAt:'2026-08-31T12:00:00.000Z'},
   ]:[];
-  return {item:{id:'cam_1',name:'Launch Campaign',projectId:'prj_1',projectName:'Project One',campaignStatus:'LIVE',startDate:'2026-08-10',endDate:'2026-08-31',planningStatus:'APPROVED',activation:{version:1,status:state,executionOwnerId:active?'usr_owner':null,executionOwnerName:active?'Muaz Test':null,activationNote:active?'Kickoff approved':'',approvedPlanFingerprint:active?'fp_1':null,taskIds:tasks.map((task)=>task.id),taskPlan:tasks,activatedAt:active?'2026-08-09T00:00:00Z':null,pausedAt:state==='PAUSED'?'2026-08-09T00:10:00Z':null,pauseReason},summary:{status:state,effectiveStatus:state==='NOT_ACTIVATED'?'READY_TO_ACTIVATE':state,governanceReady:true,planApproved:true,planApprovalDrift:false,activationDrift:false,currentPlanFingerprint:'fp_1',approvedPlanFingerprint:active?'fp_1':null,budgetReconciled:true,compensationCalculationCurrent:true,talentCount:1,plannedPosts:2,plannedReach:10000,approvedPosts:0,approvedReach:0,approvedEngagements:0,approvedDeliveryComplete:false,deliveryCompletionPercent:0,taskCount:tasks.length,taskFoundCount:tasks.length,taskDoneCount:0,taskOpenCount:tasks.length,taskCompletionPercent:0,completionReady:false},tasks},members:[{id:'usr_owner',full_name:'Muaz Test',email:'owner@example.com',role:'OWNER'}],permissions:{canManage:true},methodology:{version:'R8.5I-1',canonicalTasks:true,approvedPlanSnapshot:true,creatorAcceptanceSeparate:true}};
+  return {item:{id:'cam_1',name:'Launch Campaign',projectId:'prj_1',projectName:'Project One',campaignStatus:'LIVE',startDate:'2026-08-10',endDate:'2026-08-31',planningStatus:'APPROVED',activation:{version:1,status:state,executionOwnerId:active?'usr_owner':null,executionOwnerName:active?'Muaz Test':null,activationNote:active?'Kickoff approved':'',approvedPlanFingerprint:active?'fp_1':null,talentConfirmationFingerprint:active?'cto_1':null,taskIds:tasks.map((task)=>task.id),taskPlan:tasks,activatedAt:active?'2026-08-09T00:00:00Z':null,pausedAt:state==='PAUSED'?'2026-08-09T00:10:00Z':null,pauseReason},summary:{status:state,effectiveStatus:state==='NOT_ACTIVATED'?'READY_TO_ACTIVATE':state,governanceReady:true,planApproved:true,planApprovalDrift:false,activationDrift:false,outreachDrift:false,currentPlanFingerprint:'fp_1',approvedPlanFingerprint:active?'fp_1':null,currentTalentConfirmationFingerprint:'cto_1',approvedTalentConfirmationFingerprint:active?'cto_1':null,talentConfirmationRequired:state==='NOT_ACTIVATED',talentConfirmationReady:true,confirmedTalentCount:1,pendingTalentCount:0,declinedTalentCount:0,budgetReconciled:true,compensationCalculationCurrent:true,talentCount:1,plannedPosts:2,plannedReach:10000,approvedPosts:0,approvedReach:0,approvedEngagements:0,approvedDeliveryComplete:false,deliveryCompletionPercent:0,taskCount:tasks.length,taskFoundCount:tasks.length,taskDoneCount:0,taskOpenCount:tasks.length,taskCompletionPercent:0,completionReady:false},tasks},members:[{id:'usr_owner',full_name:'Muaz Test',email:'owner@example.com',role:'OWNER'}],permissions:{canManage:true},methodology:{version:'R8.5J-activation-1',canonicalTasks:true,approvedPlanSnapshot:true,creatorAcceptanceSeparate:true,creatorConfirmationRequiredForNewActivation:true}};
 }
 
 function responseFor(url,request){
@@ -29,6 +29,7 @@ function responseFor(url,request){
     }
     return activationPayload();
   }
+  if(parsed.pathname==='/api/campaign-talent-outreach/cam_1')return {item:{id:'cam_1',name:'Launch Campaign',projectId:'prj_1',projectName:'Project One',campaignStatus:'LIVE',startDate:'2026-08-10',endDate:'2026-08-31',planningStatus:'APPROVED',planSummary:{approvalDrift:false,budgetReconciled:true,compensationCalculationCurrent:true,currentFingerprint:'fp_1',approvedFingerprint:'fp_1'},summary:{talentCount:1,confirmedCount:1,contactedCount:1,negotiatingCount:0,acceptedCount:1,declinedCount:0,commercialMismatchCount:0,pendingCount:0,readyForActivation:true,currentFingerprint:'cto_1'},talent:[{assignmentId:'cca_1',creatorType:'CREATOR',name:'Alice Creator',handle:'@alice',platform:'X',agencyName:'',allocatedUsd:100,allocatedTokens:0,commercialMatch:true,agencyRequired:false,confirmationEvidenceComplete:true,confirmed:true,outreachOwnerName:'Muaz Test',outreach:{assignmentId:'cca_1',status:'CONFIRMED',channel:'Telegram',agreedUsd:100,agreedTokens:0,deliverablesConfirmed:true,scheduleConfirmed:true,compensationConfirmed:true,termsConfirmed:true,consentConfirmed:true,evidenceReference:'tg-thread'}}]},members:[{id:'usr_owner',full_name:'Muaz Test',email:'owner@example.com',role:'OWNER'}],permissions:{canWrite:true,canConfirm:true}};
   if(parsed.pathname==='/api/campaign-settlement/cam_1')return {item:{id:'cam_1',name:'Launch Campaign',projectId:'prj_1',projectName:'Project One',planningStatus:'APPROVED',summary:{governanceReady:true,bonusPoolUsdt:0,maximumBonusPerTalentUsdt:0,talentCount:0,baseReadyCount:0,bonusEligibleCount:0,recommendedBonusUsdt:0,approvedBaseUsdt:0,approvedBonusUsdt:0,paidUsdt:0,outstandingUsdt:0,disputedCount:0,driftCount:0,paidCount:0},talent:[]},permissions:{canManage:true,canFinance:true,canApprove:true,canVoid:true}};
   if(parsed.pathname==='/api/campaign-talent-recommendations')return {intelligence:{criteria:{objective:'BALANCED',platform:'ALL',creatorType:'ALL',contentType:'ALL',region:'ALL',budgetUsd:0},eligibleCount:0,recommendations:[],basket:{budgetUsd:0,items:[]},partnerRecommendations:[],insights:{underusedReliable:[],spendWithoutDelivery:[],mostUsed:[]},facets:{objectives:['BALANCED'],creatorTypes:['ALL'],platforms:['ALL'],contentTypes:['ALL'],regions:['ALL']},methodology:{approvedOnly:true,deterministic:true,rankingVersion:'R8.5E-1'}}};
   if(parsed.pathname==='/api/creator-kol-intelligence')return {portfolio:{contributorCount:0,activeContributors:0,creators:0,kols:0,totalApprovedPosts:0,totalApprovedReach:0,totalTrackedAllocationValue:0,needsAttention:0,lowConfidenceIdentities:0,items:[]}};
@@ -47,13 +48,14 @@ test.beforeEach(async({page})=>{
   await expect(page.getByRole('heading',{name:/Good (morning|afternoon|evening), Muaz/i})).toBeVisible();
 });
 
-test('approved campaign activates into canonical Work OS execution and preserves pause/resume governance',async({page})=>{
+test('approved and talent-confirmed campaign activates into canonical Work OS execution and preserves pause/resume governance',async({page})=>{
   await page.locator('.sidebar [data-route="campaigns"]').click();
   await expect(page.getByRole('heading',{name:'Campaigns'})).toBeVisible();
   const panel=page.locator('.campaign-activation-r59');
   await expect(panel).toBeVisible();
   await expect(panel.getByText('Activation & Work OS Handoff')).toBeVisible();
   await expect(panel.getByText('Ready To Activate',{exact:true})).toBeVisible();
+  await expect(panel.getByText('1 / 1',{exact:true})).toBeVisible();
 
   await panel.getByRole('button',{name:'Activate campaign'}).click();
   const activateModal=page.locator('.campaign-activation-modal-r59');
@@ -73,5 +75,5 @@ test('approved campaign activates into canonical Work OS execution and preserves
 
   await panel.getByRole('button',{name:'Resume'}).click();
   await expect(panel.getByText('Active',{exact:true})).toBeVisible();
-  await expect(panel.getByText(/does not mean a Creator\/KOL has accepted/i)).toBeVisible();
+  await expect(panel.getByText(/requires confirmed Creator\/KOL participation evidence/i)).toBeVisible();
 });
