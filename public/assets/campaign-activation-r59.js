@@ -68,7 +68,7 @@
     modal('Activate campaign execution',`
       <label>Execution owner<select name="owner" required>${options}</select></label>
       <label>Activation note<textarea name="note" rows="4" placeholder="Internal kickoff note, key dependencies, or launch context"></textarea></label>
-      <small>This creates linked Work OS tasks from the approved campaign snapshot. It does not contact creators, accept terms, publish content, or record consent.</small>`,
+      <small>This creates linked Work OS tasks from the approved campaign and confirmed talent snapshots. It does not send outreach, publish content, or record payment.</small>`,
       'Activate campaign',async(form)=>patch({action:'activate',executionOwnerId:form.get('owner'),note:form.get('note')}));
   }
   function pause(){
@@ -93,7 +93,8 @@
 
   function warning(summary,activation){
     if(summary.activationDrift)return `<div class="campaign-activation-alert-r59"><strong>Approved plan changed after activation</strong><span>Execution is locked for resume/completion until the campaign plan is reconciled and reapproved. Existing tasks and evidence are preserved.</span></div>`;
-    if(!summary.governanceReady&&activation.status==='NOT_ACTIVATED')return `<div class="campaign-activation-alert-r59"><strong>Activation locked</strong><span>${!summary.planApproved?'Approve the campaign plan first. ':''}${summary.planApprovalDrift?'The approved basket changed. ':''}${!summary.compensationCalculationCurrent?'Recalculate AKARI USDT allocations. ':''}${!summary.budgetReconciled?'Reconcile the campaign budget. ':''}${!summary.talentCount||!summary.plannedPosts?'Add planned Creator/KOL deliverables.':''}</span></div>`;
+    if(summary.outreachDrift)return `<div class="campaign-activation-alert-r59"><strong>Confirmed talent evidence changed after activation</strong><span>Execution is locked for resume/completion until Creator/KOL participation evidence is reconciled. Existing tasks and execution history are preserved.</span></div>`;
+    if(!summary.governanceReady&&activation.status==='NOT_ACTIVATED')return `<div class="campaign-activation-alert-r59"><strong>Activation locked</strong><span>${!summary.planApproved?'Approve the campaign plan first. ':''}${summary.planApprovalDrift?'The approved basket changed. ':''}${!summary.compensationCalculationCurrent?'Recalculate AKARI USDT allocations. ':''}${!summary.budgetReconciled?'Reconcile the campaign budget. ':''}${!summary.talentCount||!summary.plannedPosts?'Add planned Creator/KOL deliverables. ':''}${summary.talentConfirmationRequired&&!summary.talentConfirmationReady?`Confirm participation evidence for all active talent (${fmt(summary.confirmedTalentCount)} of ${fmt(summary.talentCount)} confirmed).`:''}</span></div>`;
     if(activation.status==='PAUSED')return `<div class="campaign-activation-alert-r59"><strong>Execution paused</strong><span>${esc(activation.pauseReason||'No pause reason recorded.')}</span></div>`;
     if(activation.status==='ACTIVE'&&!summary.completionReady)return `<div class="campaign-activation-alert-r59"><strong>Execution in progress</strong><span>${summary.taskOpenCount?`${fmt(summary.taskOpenCount)} generated task${summary.taskOpenCount===1?' remains':'s remain'}. `:''}${!summary.approvedDeliveryComplete?`${fmt(summary.approvedPosts)} of ${fmt(summary.plannedPosts)} planned Approved posts delivered.`:''}</span></div>`;
     return '';
@@ -109,21 +110,21 @@
     const status=summary.effectiveStatus||activation.status||'NOT_ACTIVATED';
     const canActivate=permissions.canManage&&activation.status==='NOT_ACTIVATED'&&summary.governanceReady;
     const canPause=permissions.canManage&&activation.status==='ACTIVE';
-    const canResume=permissions.canManage&&activation.status==='PAUSED'&&!summary.activationDrift&&summary.governanceReady;
+    const canResume=permissions.canManage&&activation.status==='PAUSED'&&!summary.activationDrift&&!summary.outreachDrift&&summary.governanceReady;
     const canComplete=permissions.canManage&&summary.completionReady;
     panel.innerHTML=`
-      <header class="campaign-activation-head-r59"><div><span>CAMPAIGN EXECUTION · R8.5I</span><strong>Activation & Work OS Handoff</strong><small>Approved plan → controlled activation → linked execution tasks → Approved delivery → closeout.</small></div><div>${badge(status)}</div></header>
+      <header class="campaign-activation-head-r59"><div><span>CAMPAIGN EXECUTION · R8.5I</span><strong>Activation & Work OS Handoff</strong><small>Approved plan + confirmed talent → controlled activation → linked execution tasks → Approved delivery → closeout.</small></div><div>${badge(status)}</div></header>
       <div class="campaign-activation-toolbar-r59"><div><strong>${esc(item.name)}</strong><span>${esc(item.projectName||'')} · ${esc(label(item.planningStatus||''))} plan${activation.executionOwnerName?` · Owner ${esc(activation.executionOwnerName)}`:''}</span></div><div class="campaign-activation-actions-r59">${canActivate?'<button class="primary" data-activate>Activate campaign</button>':''}${canPause?'<button data-pause>Pause</button>':''}${canResume?'<button class="primary" data-resume>Resume</button>':''}${canComplete?'<button class="primary" data-complete>Complete execution</button>':''}${(item.tasks||[]).length?'<button data-work-os>Open Work OS</button>':''}</div></div>
       <div class="campaign-activation-kpis-r59">
         <article><small>Plan integrity</small><b>${summary.activationDrift?'Changed':summary.planApprovalDrift?'Drift':'Locked'===status?'Locked':'Approved'}</b><span>${esc(summary.currentPlanFingerprint||'No fingerprint')}</span></article>
+        <article><small>Talent confirmation</small><b>${fmt(summary.confirmedTalentCount)} / ${fmt(summary.talentCount)}</b><span>${summary.talentConfirmationReady?'Confirmed':'Pending evidence'}</span></article>
         <article><small>Execution work</small><b>${fmt(summary.taskDoneCount)} / ${fmt(summary.taskCount)}</b><span>${pct(summary.taskCompletionPercent)} tasks closed</span></article>
         <article><small>Creator/KOL delivery</small><b>${fmt(summary.approvedPosts)} / ${fmt(summary.plannedPosts)}</b><span>${pct(summary.deliveryCompletionPercent)} Approved-post completion</span></article>
-        <article><small>Approved reach</small><b>${fmt(summary.approvedReach)}</b><span>${fmt(summary.approvedEngagements)} Approved engagements</span></article>
         <article><small>Launch control</small><b>${summary.governanceReady?'Ready':'Locked'}</b><span>${summary.compensationCalculationCurrent?'Comp current':'Comp changed'} · ${summary.budgetReconciled?'Budget reconciled':'Budget over plan'}</span></article>
       </div>
       ${warning(summary,activation)}
       <section class="campaign-activation-section-r59"><header><div><span>CANONICAL WORK OS</span><strong>Generated execution plan</strong></div><small>Tasks are normal tenant-scoped Work OS records linked to this campaign. Reassign or update them in Work OS.</small></header>${taskRows(item.tasks||[])}</section>
-      <footer class="campaign-activation-foot-r59">Activation means AKARI has started internal campaign execution. It does not mean a Creator/KOL has accepted the campaign, approved terms, consented to outreach, or been paid; those states remain separate governed evidence.</footer>`;
+      <footer class="campaign-activation-foot-r59">For new activations, AKARI requires confirmed Creator/KOL participation evidence that matches the approved basket. Activation itself does not send outreach, publish content, or prove payment; those remain separately governed records.</footer>`;
     panel.querySelector('[data-activate]')?.addEventListener('click',activate);
     panel.querySelector('[data-pause]')?.addEventListener('click',pause);
     panel.querySelector('[data-resume]')?.addEventListener('click',()=>patch({action:'resume'}));
@@ -154,5 +155,9 @@
   const observer=new MutationObserver(()=>{clearTimeout(timer);timer=setTimeout(watch,80);});
   observer.observe(document.documentElement,{childList:true,subtree:true});
   window.addEventListener('popstate',()=>{loadedId='';setTimeout(watch,50);});
+  window.addEventListener('akari:campaign-outreach-updated',(event)=>{
+    const campaignId=event?.detail?.campaignId;
+    if(campaignId&&campaignId===activeId){loadedId='';load(activeId,true);}
+  });
   setTimeout(watch,120);
 })();
