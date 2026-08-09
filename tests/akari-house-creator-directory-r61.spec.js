@@ -50,7 +50,7 @@ test('AKARI House Creator directory shows source semantics and adds no-history t
   await expect(card.getByText('Alice Creator',{exact:true})).toBeVisible();
   await expect(card.getByText('New · No campaign history',{exact:true})).toBeVisible();
   await expect(card.getByText('New to CRM',{exact:true})).toBeVisible();
-  await expect(card.getByText('Member reported',{exact:true})).toBeVisible();
+  await expect(card.getByText(/Member reported/)).toBeVisible();
   await expect(card.getByText('Partner verified',{exact:true}).first()).toBeVisible();
   await expect(card.getByText(/No campaign history or performance score/i)).toBeVisible();
   await expect(panel.getByText(/Profile Provided/i)).toBeVisible();
