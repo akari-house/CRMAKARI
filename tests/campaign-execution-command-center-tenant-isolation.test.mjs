@@ -41,7 +41,7 @@ test('campaign and Work OS reads remain scoped to the authenticated tenant',asyn
   assert.match(campaignRead.sql,/c\.tenant_id=\?/);
   assert.match(campaignRead.sql,/p\.tenant_id=c\.tenant_id/);
   assert.match(taskRead.sql,/t\.tenant_id=\?/);
-  assert.equal(db.calls.some((call)=>/INSERT|UPDATE|DELETE/i.test(call.sql)),false);
+  assert.equal(db.calls.some((call)=>/\b(?:INSERT|UPDATE|DELETE)\b/i.test(call.sql)),false);
 });
 
 test('team scope returns only the rows supplied by the tenant-scoped reads',async()=>{

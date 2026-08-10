@@ -20,16 +20,19 @@ for(const path of required)assert.equal(fs.existsSync(path),true,`Missing ${path
 const api=fs.readFileSync('functions/api/campaign-execution-command-center.js','utf8');
 const lib=fs.readFileSync('functions/lib/campaign-execution-command-center.js','utf8');
 const ui=fs.readFileSync('public/assets/campaign-execution-command-center-r62.js','utf8');
+const index=fs.readFileSync('public/app/index.html','utf8');
 assert.match(api,/WHERE c\.tenant_id=\?/);
 assert.match(api,/WHERE t\.tenant_id=\? AND t\.campaign_id IS NOT NULL/);
 assert.doesNotMatch(api,/INSERT INTO|UPDATE campaigns|DELETE FROM/i);
-assert.match(lib,/single ranked/i);
+assert.match(api,/singleRankedNextAction:true/);
 assert.match(lib,/PLAN_APPROVAL_DRIFT/);
 assert.match(lib,/OVERDUE_TASKS/);
 assert.match(lib,/HOLDING_POSTS/);
 assert.match(ui,/Execution Command Centre/);
 assert.match(ui,/Approved-only Creator\/KOL performance/i);
 assert.match(ui,/Planned allocations are not proof/i);
+assert.match(index,/campaign-execution-command-center-r62\.css\?v=1/);
+assert.match(index,/campaign-execution-command-center-r62\.js\?v=1/);
 
 function campaignNotes({drift=false,holding=false,rejected=false}={}){
   const tracking={version:3,overview:{},targets:[],socialUpdates:[],creatorAssignments:[{id:'cca_1',creatorType:'CREATOR',name:'Alice',handle:'@alice',platform:'X',expectedPosts:2,expectedReach:10000,allocatedUsd:100,allocatedTokens:0,active:true}],creatorPosts:[]};
@@ -49,9 +52,9 @@ const driftCampaign={id:'cam_drift',name:'Drift Campaign',status:'LIVE',region:'
 const overdueCampaign={id:'cam_overdue',name:'Overdue Campaign',status:'LIVE',region:'EMEA',start_date:'2026-08-01',end_date:'2026-08-20',notes:campaignNotes(),project_id:'prj_2',project_name:'Project Two',campaign_owner_id:'usr_owner',owner_name:'Owner'};
 const holdingCampaign={id:'cam_holding',name:'Holding Campaign',status:'LIVE',region:'EMEA',start_date:'2026-08-01',end_date:'2026-08-20',notes:campaignNotes({holding:true}),project_id:'prj_3',project_name:'Project Three',campaign_owner_id:'usr_other',owner_name:'Other'};
 const tasks=[
-  {id:'tsk_1',campaign_id:'cam_drift',title:'Execution',status:'TODO',priority:'HIGH',due_at:'2026-08-12',owner_user_id:'usr_owner'},
-  {id:'tsk_1',campaign_id:'cam_overdue',title:'Overdue execution task',status:'TODO',priority:'HIGH',due_at:'2026-08-07',owner_user_id:'usr_owner'},
-  {id:'tsk_1',campaign_id:'cam_holding',title:'Monitor delivery',status:'TODO',priority:'MEDIUM',due_at:'2026-08-12',owner_user_id:'usr_other'},
+  {id:'tsk_drift',campaign_id:'cam_drift',title:'Execution',status:'TODO',priority:'HIGH',due_at:'2026-08-12',owner_user_id:'usr_owner'},
+  {id:'tsk_overdue',campaign_id:'cam_overdue',title:'Overdue execution task',status:'TODO',priority:'HIGH',due_at:'2026-08-07',owner_user_id:'usr_owner'},
+  {id:'tsk_holding',campaign_id:'cam_holding',title:'Monitor delivery',status:'TODO',priority:'MEDIUM',due_at:'2026-08-12',owner_user_id:'usr_other'},
 ];
 
 const driftRow=buildCampaignExecutionRow(driftCampaign,tasks,today);

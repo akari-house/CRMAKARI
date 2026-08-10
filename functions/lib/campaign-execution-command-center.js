@@ -73,7 +73,7 @@ function assessRisk({planning,planSummary,outreachSummary,activationSummary,deli
   if(activationSummary.outreachDrift)add(40,'TALENT_CONFIRMATION_DRIFT','Confirmed talent evidence changed after activation');
   if(outreachSummary.declinedCount>0)add(Math.min(30,15+outreachSummary.declinedCount*5),'DECLINED_TALENT',`${outreachSummary.declinedCount} Creator/KOL declined`);
   if(tasksSummary.blocked>0)add(Math.min(30,15+tasksSummary.blocked*5),'BLOCKED_TASKS',`${tasksSummary.blocked} Work OS task${tasksSummary.blocked===1?'':'s'} blocked`);
-  if(tasksSummary.overdue>0)add(Math.min(30,10+tasksSummary.overdue*4),'OVERDUE_TASKS',`${tasksSummary.overdue} Work OS task${tasksSummary.overdue===1?'':'s'} overdue`);
+  if(tasksSummary.overdue>0)add(Math.min(30,14+tasksSummary.overdue*4),'OVERDUE_TASKS',`${tasksSummary.overdue} Work OS task${tasksSummary.overdue===1?'':'s'} overdue`);
   if(pacing.ended&&delivery.publishedPosts<delivery.plannedPosts)add(30,'DELIVERY_MISSED','Campaign ended before planned Approved delivery was completed');
   if(delivery.holdingPosts>0)add(Math.min(18,8+delivery.holdingPosts*3),'HOLDING_POSTS',`${delivery.holdingPosts} post${delivery.holdingPosts===1?'':'s'} in Holding`);
   if(delivery.rejectedPosts>0)add(Math.min(20,10+delivery.rejectedPosts*3),'REJECTED_POSTS',`${delivery.rejectedPosts} post${delivery.rejectedPosts===1?'':'s'} rejected`);
