@@ -6,7 +6,7 @@
   const esc=(value)=>String(value??'').replace(/[&<>"']/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const fmt=(value,digits=0)=>Number(value||0).toLocaleString(undefined,{maximumFractionDigits:digits});
   const label=(value)=>String(value||'').replaceAll('_',' ').toLowerCase().replace(/\b\w/g,(c)=>c.toUpperCase());
-  let payload=null,loading=false,timer=null,query='',platform='ALL',state='ALL';
+  let payload=null,loading=false,timer=null,query='',platform='ALL',state='ALL',lastPlanningCampaignId='';
 
   function campaignsPage(){return Boolean(document.querySelector('#view-root [data-action="new-campaign"]'));}
   function activeCampaignId(){return document.querySelector('#view-root [data-r56-campaign]')?.value||'';}
@@ -107,8 +107,13 @@
     finally{loading=false;}
   }
   function watch(){
-    if(campaignsPage()){shell();load();const selector=document.querySelector('#view-root [data-r56-campaign]');if(selector&&!selector.dataset.r61Bound){selector.dataset.r61Bound='1';selector.addEventListener('change',render);}}
-    else payload=null;
+    if(campaignsPage()){
+      const panel=shell();load();
+      const selector=document.querySelector('#view-root [data-r56-campaign]');
+      if(selector&&!selector.dataset.r61Bound){selector.dataset.r61Bound='1';selector.addEventListener('change',render);}
+      const campaignId=selector?.value||'';
+      if(panel&&payload&&campaignId!==lastPlanningCampaignId){lastPlanningCampaignId=campaignId;render();}
+    }else{payload=null;lastPlanningCampaignId='';}
   }
   const observer=new MutationObserver(()=>{clearTimeout(timer);timer=setTimeout(watch,80);});observer.observe(document.documentElement,{childList:true,subtree:true});
   setTimeout(watch,120);
