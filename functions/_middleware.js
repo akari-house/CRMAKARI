@@ -47,7 +47,7 @@ async function publicResponse(context) {
 
 const requestedTenant = (request) => {
   const url = new URL(request.url);
-  const pathMatch = url.pathname.match(/^\/app\/([^/]+)/);
+  const pathMatch = url.pathname.match(/^\/(?:app|portal)\/([^/]+)/);
   return String(request.headers.get('x-akari-tenant') || pathMatch?.[1] || '').trim().toLowerCase();
 };
 
@@ -133,15 +133,18 @@ async function verifyAccessAssertion(assertion, env) {
     jwk = keys.find((key) => key.kid === header.kid);
   }
   if (!jwk) throw new Error('Cloudflare Access signing key was not found');
-  return verifyJwtSignature(
-    jwk,
-    headerSegment,
-    payloadSegment,
-    signatureSegment,
-    payload,
-    teamDomain,
-    expectedAudience,
-  );
+  return verifyJwtSignature(jwk,headerSegment,payloadSegment,signatureSegment,payload,teamDomain,expectedAudience);
+}
+
+function externalPortalAllowed(request,tenantSlug){
+  const path=new URL(request.url).pathname;
+  const portalPrefix=`/portal/${String(tenantSlug||'').toLowerCase()}`;
+  return path=== '/enter-crm'
+    || path===portalPrefix
+    || path.startsWith(`${portalPrefix}/`)
+    || path==='/api/portal'
+    || path.startsWith('/api/portal/')
+    || path.startsWith('/assets/external-portal-r68.');
 }
 
 export async function onRequest(context) {
@@ -154,13 +157,7 @@ export async function onRequest(context) {
     context.data.auth = {
       ...DEMO_AUTH,
       tenantName: 'AKARI House',
-      workspaces: [{
-        tenantId: DEMO_AUTH.tenantId,
-        tenantSlug: DEMO_AUTH.tenantSlug,
-        tenantName: 'AKARI House',
-        role: DEMO_AUTH.role,
-        financeAccess: Boolean(DEMO_AUTH.financeAccess),
-      }],
+      workspaces: [{tenantId:DEMO_AUTH.tenantId,tenantSlug:DEMO_AUTH.tenantSlug,tenantName:'AKARI House',role:DEMO_AUTH.role,financeAccess:Boolean(DEMO_AUTH.financeAccess)}],
     };
     return context.next();
   }
@@ -170,60 +167,30 @@ export async function onRequest(context) {
   if (!assertion) return accessLoginResponse(context.request, context.env);
 
   let identity;
-  try {
-    identity = await verifyAccessAssertion(assertion, context.env);
-  } catch (cause) {
-    console.error('Cloudflare Access JWT validation failed', cause);
-    return json({ error: 'Authentication token is invalid or expired' }, 401);
-  }
+  try { identity = await verifyAccessAssertion(assertion, context.env); }
+  catch (cause) { console.error('Cloudflare Access JWT validation failed', cause); return json({ error: 'Authentication token is invalid or expired' }, 401); }
 
   if (!context.env.DB) return json({ error: 'D1 binding DB is not configured' }, 500);
   const result = await context.env.DB.prepare(`
-    SELECT
-      u.id AS user_id,
-      u.email,
-      u.full_name,
-      tm.tenant_id,
-      tm.role,
-      tm.finance_access,
-      t.slug AS tenant_slug,
-      t.name AS tenant_name,
-      tm.joined_at
+    SELECT u.id AS user_id,u.email,u.full_name,tm.tenant_id,tm.role,tm.finance_access,t.slug AS tenant_slug,t.name AS tenant_name,tm.joined_at
     FROM users u
     JOIN tenant_memberships tm ON tm.user_id = u.id
     JOIN tenants t ON t.id = tm.tenant_id
-    WHERE lower(u.email) = lower(?)
-      AND u.status = 'ACTIVE'
-      AND tm.status = 'ACTIVE'
-      AND t.status = 'ACTIVE'
+    WHERE lower(u.email)=lower(?) AND u.status='ACTIVE' AND tm.status='ACTIVE' AND t.status='ACTIVE'
     ORDER BY tm.joined_at ASC
   `).bind(identity.email).all();
 
-  const rows = result?.results || [];
-  if (!rows.length) return json({ error: 'Your account is not assigned to an active CRM workspace' }, 403);
-  const slug = requestedTenant(context.request);
-  const membership = slug
-    ? rows.find((row) => String(row.tenant_slug).toLowerCase() === slug)
-    : rows[0];
-  if (!membership) return json({ error: 'You do not have access to this CRM workspace' }, 403);
+  const rows=result?.results||[];
+  if(!rows.length)return json({error:'Your account is not assigned to an active CRM workspace'},403);
+  const slug=requestedTenant(context.request);
+  const membership=slug?rows.find(row=>String(row.tenant_slug).toLowerCase()===slug):rows[0];
+  if(!membership)return json({error:'You do not have access to this CRM workspace'},403);
 
-  const workspaces = rows.map((row) => ({
-    tenantId: row.tenant_id,
-    tenantSlug: row.tenant_slug,
-    tenantName: row.tenant_name || row.tenant_slug,
-    role: row.role,
-    financeAccess: Boolean(row.finance_access),
-  }));
-  context.data.auth = {
-    userId: membership.user_id,
-    tenantId: membership.tenant_id,
-    tenantSlug: membership.tenant_slug,
-    tenantName: membership.tenant_name || membership.tenant_slug,
-    email: membership.email,
-    fullName: membership.full_name,
-    role: membership.role,
-    financeAccess: Boolean(membership.finance_access),
-    workspaces,
-  };
+  const workspaces=rows.map(row=>({tenantId:row.tenant_id,tenantSlug:row.tenant_slug,tenantName:row.tenant_name||row.tenant_slug,role:row.role,financeAccess:Boolean(row.finance_access)}));
+  context.data.auth={userId:membership.user_id,tenantId:membership.tenant_id,tenantSlug:membership.tenant_slug,tenantName:membership.tenant_name||membership.tenant_slug,email:membership.email,fullName:membership.full_name,role:membership.role,financeAccess:Boolean(membership.finance_access),workspaces};
+
+  if(membership.role==='EXTERNAL_COLLABORATOR'&&!externalPortalAllowed(context.request,membership.tenant_slug)){
+    return json({error:'External collaborator access is limited to the AKARI client/founder portal'},403);
+  }
   return context.next();
 }
