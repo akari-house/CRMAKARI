@@ -53,5 +53,5 @@ test('Campaign Execution Command Centre ranks governance drift first and hands o
   const overdueRow=panel.locator('[data-command-row="cam_overdue"]');
   await expect(overdueRow.getByText('1 overdue',{exact:true})).toBeVisible();
   await overdueRow.getByRole('button',{name:'Resolve overdue Work OS tasks'}).click();
-  await expect(page).toHaveURL(/\/app\/akari-house\/tasks/);
+  await expect(page).toHaveURL(/\/app\/akari-house\/day/);
 });
