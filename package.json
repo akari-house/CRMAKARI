@@ -1,6 +1,6 @@
 {
   "name": "akari-crm",
-  "version": "0.5.9",
+  "version": "0.5.10",
   "private": true,
   "type": "module",
   "description": "CRM by AKARI — tenant-isolated business development, campaign delivery, fundraising and revenue operations platform",
