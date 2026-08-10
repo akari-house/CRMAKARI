@@ -192,7 +192,18 @@
       <footer class="fcr67-foot"><strong>Governance:</strong> this command centre is read-only. Investor outreach still requires exact founder + AKARI approval; commitments and closing remain finance-permission controlled; term flags are planning signals, not legal advice.</footer>`;
   }
 
-  function scrollTo(selector) { const node=$(selector); if(!node) return false; node.scrollIntoView({behavior:'smooth',block:'start'}); node.classList.add('fcr67-focus');setTimeout(()=>node.classList.remove('fcr67-focus'),1600);return true; }
+  function visibleNode(node){return Boolean(node&&node.isConnected&&node.getClientRects().length&&getComputedStyle(node).display!=='none'&&getComputedStyle(node).visibility!=='hidden');}
+  function focusNode(node){if(!visibleNode(node))return false;node.scrollIntoView({behavior:'smooth',block:'start'});node.classList.add('fcr67-focus');setTimeout(()=>node.classList.remove('fcr67-focus'),1600);return true;}
+  function scrollTo(selector){return focusNode($(selector));}
+  function recoverCanonical(selector,loadedKey,fallbackSelector='',fallbackKey='',attempt=0){
+    const node=$(selector);
+    if(node&&focusNode(node))return true;
+    if(attempt>=2){if(fallbackSelector)return recoverCanonical(fallbackSelector,fallbackKey,'','',0);return false;}
+    if(node&&loadedKey)delete node.dataset[loadedKey];
+    document.dispatchEvent(new CustomEvent('akari:route-rendered'));
+    setTimeout(()=>recoverCanonical(selector,loadedKey,fallbackSelector,fallbackKey,attempt+1),120);
+    return true;
+  }
   function openDataRoom() {
     const rounds=normalizedRounds(state.data||{});const round=rounds.find((item)=>item.id===state.roundId)||rounds[0];if(!round)return false;const ctx=contextFor(state.data,round);const id=ctx.legacyRoom?.id;const button=id?$(`[data-dr-room="${CSS.escape(id)}"]`):null;if(button){button.click();return true;}return scrollTo('#fundraising-dataroom-actions')||scrollTo('#capital-room-command-centre');
   }
@@ -201,18 +212,26 @@
     if(key==='readiness'){scrollTo('[data-fcr67-section="readiness"]');return;}
     if(key==='round'){scrollTo('#capital-room-command-centre');return;}
     if(key==='data-room'||key==='diligence'){openDataRoom();return;}
-    if(key==='investors'){scrollTo('#fundraising-targeting-root')||scrollTo('#investor-universe-root');return;}
-    if(key==='outreach'){scrollTo('#fundraising-outreach-root');return;}
-    if(key==='terms'){scrollTo('#fundraising-strategy-root');return;}
-    if(['commitments','closing','investor-relations'].includes(key)){scrollTo('#fundraising-closing-centre');}
+    if(key==='investors'){recoverCanonical('#fundraising-targeting-root','ft19Loaded','#investor-universe-root','iu18Loaded');return;}
+    if(key==='outreach'){recoverCanonical('#fundraising-outreach-root','fo20Loaded');return;}
+    if(key==='terms'){recoverCanonical('#fundraising-strategy-root','fs22Loaded');return;}
+    if(['commitments','closing','investor-relations'].includes(key)){recoverCanonical('#fundraising-closing-centre','fc5Loaded');}
   }
   function bind(root){
     if(root.dataset.fcr67Bound)return;root.dataset.fcr67Bound='1';root.addEventListener('change',(event)=>{if(event.target.matches('[data-fcr67-round]')){state.roundId=event.target.value;render();}});root.addEventListener('click',(event)=>{const nav=event.target.closest('[data-fcr67-nav]');if(nav)handoff(nav.dataset.fcr67Nav);});
   }
+  function renderCached(){if(!state.data||!isFundraisingRoute())return;render();const root=$('#founder-capital-command-r67');if(root)bind(root);}
   async function load(force=false){
-    if(state.loading||(!force&&state.data))return;state.loading=true;try{state.data=await loadSources();if(isFundraisingRoute()){render();const root=$('#founder-capital-command-r67');if(root)bind(root);}}finally{state.loading=false;}
+    if(state.loading)return;
+    if(state.data&&!force){renderCached();return;}
+    state.loading=true;
+    try{state.data=await loadSources();renderCached();}finally{state.loading=false;}
   }
-  function mount(){state.scheduled=false;if(!isFundraisingRoute()){state.data=null;state.roundId='';return;}load();const root=$('#founder-capital-command-r67');if(root)bind(root);}
+  function mount(){
+    state.scheduled=false;
+    if(!isFundraisingRoute()){state.data=null;state.roundId='';return;}
+    if(state.data)renderCached();else load();
+  }
   function schedule(){if(state.scheduled)return;state.scheduled=true;requestAnimationFrame(mount);}
   new MutationObserver(schedule).observe(document.documentElement,{childList:true,subtree:true});
   document.addEventListener('DOMContentLoaded',schedule);document.addEventListener('akari:route-rendered',schedule);window.addEventListener('popstate',schedule);schedule();
