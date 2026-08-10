@@ -20,11 +20,13 @@ assert.match(js,/findStep\(workspace, 'Opportunity'\)\?\.remove\(\)/);
 assert.doesNotMatch(js,/findStep\(workspace, 'Referral reward'\)\?\.remove\(\)/);
 assert.match(js,/client\.classList\.add\('complete'\)/);
 assert.match(css,/overflow-x:hidden/);
-assert.match(css,/repeat\(9,minmax\(0,1fr\)\)/);
+assert.match(css,/repeat\(auto-fit,minmax\(112px,1fr\)\)/);
+assert.match(css,/overflow-wrap:anywhere/);
+assert.match(css,/white-space:normal/);
 assert.match(index,/campaign-execution-command-center-r62\.css\?v=1/);
 assert.match(index,/campaign-execution-command-center-r62\.js\?v=1/);
-assert.match(index,/opportunity-commercial-readiness-r64\.css\?v=1/);
-assert.match(index,/opportunity-commercial-readiness-r64\.js\?v=1/);
+assert.match(index,/opportunity-commercial-readiness-r64\.css\?v=2/);
+assert.match(index,/opportunity-commercial-readiness-r64\.js\?v=2/);
 assert.ok(index.indexOf('bd-invoicing-readiness-r31.js') < index.indexOf('opportunity-commercial-readiness-r64.js'),'R64 must load after R31');
 
 console.log('Opportunity Commercial Readiness R64 validation passed.');
