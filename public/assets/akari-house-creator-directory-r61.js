@@ -38,6 +38,7 @@
     const map={official_api:'Official API',partner_verified:'Partner verified',member_reported:'Member reported',unavailable:'Unavailable'};
     return map[String(source||'').toLowerCase()]||label(source||'Unavailable');
   }
+  function creatorSortKey(item){return String(item.displayName||item.username||'').trim();}
   function filteredItems(){
     const items=payload?.directory?.items||[];
     const needle=query.trim().toLowerCase();
@@ -46,23 +47,28 @@
       if(state!=='ALL'&&item.historyState!==state)return false;
       if(!needle)return true;
       return [item.displayName,item.username,item.headline,item.location,item.expertise,item.openTo,...(item.languages||[]),...(item.platforms||[])].join(' ').toLowerCase().includes(needle);
-    });
+    }).sort((a,b)=>creatorSortKey(a).localeCompare(creatorSortKey(b),undefined,{sensitivity:'base',numeric:true}));
   }
-  function socialChips(item){
-    return (item.socials||[]).map((social)=>`<a href="${esc(social.profileUrl)}" target="_blank" rel="noreferrer"><strong>${esc(social.platform)}</strong><span>${social.followerCountAvailable?fmt(social.followerCount):'—'} · ${esc(sourceLabel(social.countSource))}</span></a>`).join('')||'<span class="muted">No public social profile</span>';
+  function socialList(item){
+    return (item.socials||[]).map((social)=>`<a href="${esc(social.profileUrl)}" target="_blank" rel="noreferrer" title="${esc(sourceLabel(social.countSource))}"><b>${esc(social.platform)}</b><span>${social.followerCountAvailable?fmt(social.followerCount):'—'}</span></a>`).join('')||'<span class="muted">No public social profile</span>';
   }
-  function performance(item){
-    if(item.historyState==='CRM_PERFORMANCE_HISTORY')return `<div class="akari-house-creator-performance-r61"><span><b>${fmt(item.performance.portfolioScore,1)}</b> score</span><span><b>${fmt(item.performance.campaignCount)}</b> campaigns</span><span><b>${fmt(item.performance.approvedPosts)}</b> Approved posts</span><span><b>${fmt(item.performance.approvedReach)}</b> Approved reach</span><span><b>${fmt(item.performance.campaignReliability,1)}%</b> reliability</span></div>`;
-    if(item.historyState==='CRM_PLANNED_NO_PERFORMANCE')return `<div class="akari-house-creator-nohistory-r61"><strong>Planned in ${fmt(item.crmCampaignCount)} CRM campaign${item.crmCampaignCount===1?'':'s'}</strong><span>No Approved delivery evidence yet. No portfolio score is assigned.</span></div>`;
-    return '<div class="akari-house-creator-nohistory-r61"><strong>New to CRM</strong><span>No campaign history or performance score. Use profile fit and campaign requirements for selection.</span></div>';
+  function historySummary(item){
+    if(item.historyState==='CRM_PERFORMANCE_HISTORY')return `<strong>${fmt(item.performance.portfolioScore,1)} score · ${fmt(item.performance.campaignCount)} campaign${item.performance.campaignCount===1?'':'s'}</strong><small>${fmt(item.performance.approvedPosts)} Approved posts · ${fmt(item.performance.approvedReach)} Approved reach · ${fmt(item.performance.campaignReliability,1)}% reliability</small>`;
+    if(item.historyState==='CRM_PLANNED_NO_PERFORMANCE')return `<strong>Planned in ${fmt(item.crmCampaignCount)} CRM campaign${item.crmCampaignCount===1?'':'s'}</strong><small>No Approved delivery evidence yet. No portfolio score is assigned.</small>`;
+    return '<strong>New to CRM</strong><small>No campaign history or performance score. Use profile fit and campaign requirements for selection.</small>';
   }
-  function card(item){
-    return `<article class="akari-house-creator-card-r61" data-house-creator="${esc(item.akariCreatorId)}">
-      <header><div>${item.avatarUrl?`<img src="${esc(item.avatarUrl)}" alt="">`:'<span class="avatar-placeholder">AK</span>'}</div><div><a href="${esc(item.profileUrl)}" target="_blank" rel="noreferrer"><strong>${esc(item.displayName)}</strong></a><span>@${esc(item.username)}${item.location?` · ${esc(item.location)}`:''}</span><small>${esc(item.headline||item.expertise||'AKARI House Creator')}</small></div><em>${esc(statusLabel(item))}</em></header>
-      <div class="akari-house-creator-signals-r61"><span>Sorsa <b>${item.sorsaScore===null?'—':fmt(item.sorsaScore)}</b><small>${esc(sourceLabel(item.sorsaSource))}</small></span><span>XScore <b>${item.xScore===null?'—':fmt(item.xScore)}</b><small>${esc(sourceLabel(item.xScoreSource))}</small></span><span>Profile <b>${esc(label(item.creatorVerificationStatus))}</b><small>House role status</small></span></div>
-      <div class="akari-house-creator-socials-r61">${socialChips(item)}</div>
-      ${performance(item)}
-      <footer><span>${esc((item.languages||[]).join(' · ')||item.openTo||'Profile-provided data')}</span><button class="primary" data-add-house="${esc(item.akariCreatorId)}" ${activeCampaignId()?'':'disabled'}>Add to campaign plan</button></footer>
+  function row(item){
+    return `<article class="akari-house-creator-row-r61" role="row" data-house-creator="${esc(item.akariCreatorId)}">
+      <div class="akari-house-creator-identity-r61" role="cell">
+        ${item.avatarUrl?`<img src="${esc(item.avatarUrl)}" alt="">`:'<span class="avatar-placeholder">AK</span>'}
+        <div><a href="${esc(item.profileUrl)}" target="_blank" rel="noreferrer"><strong>${esc(item.displayName)}</strong></a><span>@${esc(item.username)}${item.location?` · ${esc(item.location)}`:''}</span><small>${esc(item.headline||item.expertise||'AKARI House Creator')}</small></div>
+      </div>
+      <div class="akari-house-creator-platforms-r61" role="cell">${socialList(item)}</div>
+      <div class="akari-house-creator-score-r61" role="cell"><b>${item.sorsaScore===null?'—':fmt(item.sorsaScore)}</b><small>${esc(sourceLabel(item.sorsaSource))}</small></div>
+      <div class="akari-house-creator-score-r61" role="cell"><b>${item.xScore===null?'—':fmt(item.xScore)}</b><small>${esc(sourceLabel(item.xScoreSource))}</small></div>
+      <div class="akari-house-creator-profile-r61" role="cell"><strong>${esc(label(item.creatorVerificationStatus))}</strong><small>House profile</small></div>
+      <div class="akari-house-creator-history-r61" role="cell"><em>${esc(statusLabel(item))}</em>${historySummary(item)}</div>
+      <div class="akari-house-creator-action-r61" role="cell"><button class="primary" data-add-house="${esc(item.akariCreatorId)}" ${activeCampaignId()?'':'disabled'}>Add to campaign plan</button><small>${esc((item.languages||[]).join(' · ')||item.openTo||'Profile-provided data')}</small></div>
     </article>`;
   }
   function externalRows(){
@@ -92,7 +98,11 @@
       <div class="akari-house-creator-kpis-r61"><article><small>House Creators</small><b>${fmt(directory.creatorCount)}</b></article><article><small>With CRM link</small><b>${fmt(directory.withCrmHistory)}</b></article><article><small>Performance evidence</small><b>${fmt(directory.withPerformanceEvidence)}</b></article><article><small>Planned only</small><b>${fmt(directory.plannedWithoutPerformance)}</b></article><article><small>New to CRM</small><b>${fmt(directory.newToCrm)}</b></article></div>
       <div class="akari-house-creator-filters-r61"><input data-r61-search value="${esc(query)}" placeholder="Search name, handle, expertise, region, language…"><select data-r61-platform><option value="ALL">All platforms</option>${platforms.map((value)=>`<option value="${esc(value)}" ${platform===value?'selected':''}>${esc(value)}</option>`).join('')}</select><select data-r61-state><option value="ALL">All history states</option><option value="NEW_NO_CAMPAIGN_HISTORY" ${state==='NEW_NO_CAMPAIGN_HISTORY'?'selected':''}>New / no history</option><option value="CRM_PLANNED_NO_PERFORMANCE" ${state==='CRM_PLANNED_NO_PERFORMANCE'?'selected':''}>Planned / no performance</option><option value="CRM_PERFORMANCE_HISTORY" ${state==='CRM_PERFORMANCE_HISTORY'?'selected':''}>CRM performance history</option></select><button data-r61-refresh>Refresh House sync</button></div>
       <div class="akari-house-creator-note-r61"><strong>Data semantics:</strong> social URLs/profile fields are <b>Profile Provided</b>. Follower, XScore and Sorsa values keep their own source labels. CRM performance uses Approved campaign evidence from this workspace only.</div>
-      <div class="akari-house-creator-grid-r61">${items.map(card).join('')||'<div class="akari-house-creator-empty-r61">No Creators match the current filters.</div>'}</div>
+      <div class="akari-house-creator-list-toolbar-r61"><strong>${fmt(items.length)} Creator${items.length===1?'':'s'}</strong><span>Name · A → Z</span></div>
+      <div class="akari-house-creator-list-r61" role="table" aria-label="House Creators sorted by name ascending">
+        <div class="akari-house-creator-list-head-r61" role="row"><span role="columnheader">Creator</span><span role="columnheader">Platforms / followers</span><span role="columnheader">Sorsa</span><span role="columnheader">XScore</span><span role="columnheader">Profile</span><span role="columnheader">CRM history</span><span role="columnheader">Action</span></div>
+        ${items.map(row).join('')||'<div class="akari-house-creator-empty-r61">No Creators match the current filters.</div>'}
+      </div>
       ${externalRows()}`;
     panel.querySelector('[data-r61-search]')?.addEventListener('input',(event)=>{query=event.target.value;render();});
     panel.querySelector('[data-r61-platform]')?.addEventListener('change',(event)=>{platform=event.target.value;render();});
