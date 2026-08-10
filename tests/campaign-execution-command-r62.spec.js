@@ -48,7 +48,7 @@ test('Campaign Execution Command Centre ranks governance drift first and hands o
   await expect(attention.nth(0).getByText('Critical',{exact:false})).toBeVisible();
   await expect(attention.nth(0).getByRole('button',{name:'Reconcile approved campaign plan',exact:true})).toBeVisible();
   await expect(attention.nth(1).getByText('Overdue Campaign',{exact:true})).toBeVisible();
-  await expect(panel.getByText('17,000',{exact:true}).first()).toBeVisible();
+  await expect(panel.getByText('17,000 Approved reach',{exact:true})).toBeVisible();
 
   const overdueRow=panel.locator('[data-command-row="cam_overdue"]');
   await expect(overdueRow.getByText('1 overdue',{exact:true})).toBeVisible();
