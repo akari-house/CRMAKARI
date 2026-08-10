@@ -220,17 +220,23 @@
   function bind(root){
     if(root.dataset.fcr67Bound)return;root.dataset.fcr67Bound='1';root.addEventListener('change',(event)=>{if(event.target.matches('[data-fcr67-round]')){state.roundId=event.target.value;render();}});root.addEventListener('click',(event)=>{const nav=event.target.closest('[data-fcr67-nav]');if(nav)handoff(nav.dataset.fcr67Nav);});
   }
-  function renderCached(){if(!state.data||!isFundraisingRoute())return;render();const root=$('#founder-capital-command-r67');if(root)bind(root);}
+  function renderCached(force=false){
+    if(!state.data||!isFundraisingRoute())return;
+    let root=$('#founder-capital-command-r67');
+    if(!root||force)render();
+    root=$('#founder-capital-command-r67');
+    if(root)bind(root);
+  }
   async function load(force=false){
     if(state.loading)return;
-    if(state.data&&!force){renderCached();return;}
+    if(state.data&&!force){renderCached(false);return;}
     state.loading=true;
-    try{state.data=await loadSources();renderCached();}finally{state.loading=false;}
+    try{state.data=await loadSources();renderCached(true);}finally{state.loading=false;}
   }
   function mount(){
     state.scheduled=false;
     if(!isFundraisingRoute()){state.data=null;state.roundId='';return;}
-    if(state.data)renderCached();else load();
+    if(state.data)renderCached(false);else load();
   }
   function schedule(){if(state.scheduled)return;state.scheduled=true;requestAnimationFrame(mount);}
   new MutationObserver(schedule).observe(document.documentElement,{childList:true,subtree:true});
