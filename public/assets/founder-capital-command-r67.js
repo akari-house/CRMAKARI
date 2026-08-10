@@ -94,7 +94,10 @@
   function readiness(round,ctx,data) {
     const overdueDiligence = ctx.diligence.filter((item) => !CLOSED_DILIGENCE.has(upper(item.status)) && isOverdue(item.dueDate || item.due_date));
     const unansweredQuestions = ctx.questions.filter((item) => !ANSWERED_QUESTION.has(upper(item.status)));
-    const overdueTargetCount = (data.targeting?.focusedLists?.overdueFollowUps || []).filter((item) => !round.id || !item.round_id || item.round_id === round.id).length || ctx.targets.filter((item) => item.next_follow_up_at && isOverdue(item.next_follow_up_at) && !['COMMITTED','PASSED','NOT_NOW'].includes(upper(item.stage))).length;
+    const overdueTargetCount = ctx.targets.filter((item) => {
+      const followUp = item.next_follow_up_at || item.nextFollowUpAt;
+      return followUp && isOverdue(followUp) && !['COMMITTED','PASSED','NOT_NOW'].includes(upper(item.stage));
+    }).length;
     const progressed = ctx.targets.some((target) => PROGRESSED_STAGES.has(upper(target.stage)) || hasVerifiedConsentedPath(target));
     const outreachEvidence = ctx.outreachDrafts.some((item) => OUTREACH_EVIDENCE_STATES.has(upper(item.status))) || ctx.meetings.length > 0;
     const approvedOutreach = ctx.outreachDrafts.some(draftFullyApproved) || ctx.meetings.some((item) => ['SCHEDULED','COMPLETED'].includes(upper(item.status)));
