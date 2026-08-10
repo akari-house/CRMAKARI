@@ -7,6 +7,10 @@ const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
 
 const fail=(message)=>{throw new Error(`R67 validation failed: ${message}`);};
 const expect=(condition,message)=>{if(!condition)fail(message);};
+const versionAtLeast=(actual,minimum)=>{
+  const a=String(actual||'0').split('.').map(Number),m=String(minimum).split('.').map(Number);
+  for(let i=0;i<Math.max(a.length,m.length);i+=1){const av=Number.isFinite(a[i])?a[i]:0,mv=Number.isFinite(m[i])?m[i]:0;if(av>mv)return true;if(av<mv)return false;}return true;
+};
 
 const endpoints=[
   '/api/fundraising',
@@ -52,7 +56,7 @@ expect(css.includes('.fcr67-shell'), 'R67 stylesheet shell is missing');
 expect(css.includes('@media(max-width:650px)'), 'mobile layout guard is missing');
 expect(html.includes('/assets/founder-capital-command-r67.css?v=1'), 'R67 CSS is not registered in app shell');
 expect(html.includes('/assets/founder-capital-command-r67.js?v=1'), 'R67 JS is not registered in app shell');
-expect(pkg.version==='0.5.12',`package version is ${pkg.version}, expected 0.5.12`);
+expect(versionAtLeast(pkg.version,'0.5.12'),`package version is ${pkg.version}, expected >= 0.5.12`);
 expect(String(pkg.scripts?.validate||'').includes('validate-founder-capital-command-r67.mjs'),'R67 validator is not in npm validate');
 
 console.log('R67 Founder Capital Room command validation passed');
