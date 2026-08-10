@@ -60,8 +60,8 @@ test('won opportunity shows one canonical outstanding-balance action with direct
   await expect(summary.locator('.revenue-property').filter({hasText:'Next action'})).toHaveCount(0);
 
   const stepper=dialog.locator('.revenue-stepper');
-  await expect(stepper.locator('.revenue-step')).toHaveCount(8);
-  await expect(stepper).not.toContainText('Referral reward');
+  await expect(stepper.locator('.revenue-step')).toHaveCount(9);
+  await expect(stepper.locator('.revenue-step').filter({hasText:'Referral reward'})).toBeVisible();
   await expect(stepper.locator('.revenue-step').filter({hasText:/^Opportunity$/})).toHaveCount(0);
   await expect(stepper.locator('.revenue-step').filter({hasText:'Client'})).toHaveClass(/complete/);
   await expect.poll(()=>stepper.evaluate((node)=>node.scrollWidth<=node.clientWidth+1)).toBeTruthy();
