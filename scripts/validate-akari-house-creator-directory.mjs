@@ -13,6 +13,7 @@ const required=[
   'functions/api/campaign-planning/[id]/house-talent.js',
   'public/assets/akari-house-creator-directory-r61.js',
   'public/assets/akari-house-creator-directory-r61.css',
+  'public/app/index.html',
   'tests/creator-directory-tenant-isolation.test.mjs',
   'tests/akari-house-creator-directory-r61.spec.js',
 ];
@@ -22,6 +23,8 @@ const api=fs.readFileSync('functions/api/creator-directory.js','utf8');
 const addApi=fs.readFileSync('functions/api/campaign-planning/[id]/house-talent.js','utf8');
 const lib=fs.readFileSync('functions/lib/akari-house-creator-directory.js','utf8');
 const ui=fs.readFileSync('public/assets/akari-house-creator-directory-r61.js','utf8');
+const css=fs.readFileSync('public/assets/akari-house-creator-directory-r61.css','utf8');
+const index=fs.readFileSync('public/app/index.html','utf8');
 assert.match(api,/WHERE c\.tenant_id = \?/);
 assert.match(api,/WHERE tenant_id = \?/);
 assert.match(api,/AKARI House Creator profiles are temporarily unavailable/i);
@@ -37,6 +40,14 @@ assert.match(lib,/CRM_PLANNED_NO_PERFORMANCE/);
 assert.match(ui,/House Creator Directory/);
 assert.match(ui,/No performance evidence/i);
 assert.match(ui,/Profile Provided/i);
+assert.match(ui,/localeCompare\(creatorSortKey\(b\)/);
+assert.match(ui,/Name · A → Z/);
+assert.match(ui,/akari-house-creator-list-r61/);
+assert.match(ui,/role=\"columnheader\"/);
+assert.match(css,/akari-house-creator-row-r61/);
+assert.doesNotMatch(css,/akari-house-creator-grid-r61/);
+assert.match(index,/akari-house-creator-directory-r61\.css\?v=2/);
+assert.match(index,/akari-house-creator-directory-r61\.js\?v=2/);
 
 const feed=sanitizeHouseCreatorFeed({
   source:'AKARI_HOUSE_PUBLIC_CREATOR_DIRECTORY',publicProfilesOnly:true,
