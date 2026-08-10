@@ -65,6 +65,14 @@ test('won opportunity shows one canonical outstanding-balance action with direct
   await expect(stepper.locator('.revenue-step').filter({hasText:/^Opportunity$/})).toHaveCount(0);
   await expect(stepper.locator('.revenue-step').filter({hasText:'Client'})).toHaveClass(/complete/);
   await expect.poll(()=>stepper.evaluate((node)=>node.scrollWidth<=node.clientWidth+1)).toBeTruthy();
+  const labelsContained=await stepper.locator('.revenue-step').evaluateAll((steps)=>steps.every((step)=>{
+    const label=step.querySelector('strong');
+    if(!label)return false;
+    const box=step.getBoundingClientRect();
+    const textBox=label.getBoundingClientRect();
+    return textBox.left>=box.left-1&&textBox.right<=box.right+1&&textBox.top>=box.top-1&&textBox.bottom<=box.bottom+1;
+  }));
+  expect(labelsContained).toBeTruthy();
 
   await readiness.getByRole('button',{name:'View invoices'}).click();
   const invoicePanel=dialog.locator('.revenue-panel').filter({hasText:'Invoices and payments'}).first();
