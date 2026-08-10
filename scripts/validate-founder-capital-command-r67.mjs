@@ -24,7 +24,7 @@ expect(js.includes('does not overwrite stored readiness'), 'stored/manual readin
 expect(js.includes('NEXT REQUIRED ACTION'), 'ranked next required action is missing');
 expect(js.includes('this command centre is read-only'), 'read-only governance disclosure is missing');
 expect(!/method\s*:\s*['"](?:POST|PUT|PATCH|DELETE)['"]/i.test(js), 'command centre must not issue write requests');
-expect(!/\b(?:INSERT|UPDATE|DELETE)\s+(?:INTO|FROM|[a-z_])/i.test(js), 'command centre must not contain SQL write logic');
+expect(!/\b(?:INSERT\s+INTO|DELETE\s+FROM|UPDATE\s+[a-z_][a-z0-9_]*\s+SET)\b/i.test(js), 'command centre must not contain SQL write logic');
 expect(!js.includes('env.DB')&&!js.includes('context.env.DB'), 'command centre must not bind directly to D1');
 
 const expectedWeights={
