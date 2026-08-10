@@ -15,9 +15,8 @@
     const stepper = $('.revenue-stepper', workspace);
     if (!stepper) return;
 
-    for (const label of ['Opportunity', 'Referral reward']) {
-      findStep(workspace, label)?.remove();
-    }
+    // "Opportunity" duplicates the workspace context. Referral reward remains a real revenue stage.
+    findStep(workspace, 'Opportunity')?.remove();
 
     const outcome = findStep(workspace, 'Won / Lost');
     const client = findStep(workspace, 'Client');
@@ -53,8 +52,8 @@
   function canonicalAction(raw) {
     const value = String(raw || '').trim();
     if (/collect or reconcile the outstanding invoice balance/i.test(value)) return { code: 'COLLECT_PAYMENT', title: 'Collect outstanding invoice balance' };
-    if (/issue the first invoice/i.test(value)) return { code: 'CREATE_INVOICE', title: 'Issue first invoice' };
-    if (/complete the client billing profile/i.test(value)) return { code: 'CLIENT_BILLING', title: 'Complete client billing profile' };
+    if (/issue the first invoice/i.test(value)) return { code: 'CREATE_INVOICE', title: 'Issue the first invoice' };
+    if (/complete the client billing profile/i.test(value)) return { code: 'CLIENT_BILLING', title: 'Complete the client billing profile' };
     if (/complete akari organisation billing details/i.test(value)) return { code: 'ISSUER_BILLING', title: 'Complete AKARI billing details' };
     if (/create or restore the client engagement/i.test(value)) return { code: 'ENGAGEMENT', title: 'Create or restore client engagement' };
     if (/confirm delivery, referral obligations and renewal follow-up/i.test(value)) return { code: 'COMPLETE_CYCLE', title: 'Complete delivery and renewal follow-up' };
@@ -97,6 +96,17 @@
     return host.childElementCount ? host : null;
   }
 
+  function tidyLegacyFooter(panel, action) {
+    const footer = $('.bd-commercial-readiness__actions', panel);
+    if (!footer) return;
+    if (action.code === 'COLLECT_PAYMENT') {
+      footer.remove();
+      return;
+    }
+    // Keep secondary billing maintenance available when it still adds value.
+    if (!footer.querySelector('button')) footer.remove();
+  }
+
   function polishReadiness(workspace) {
     const panel = $('[data-bd-commercial-readiness]', workspace);
     if (!panel || panel.dataset.r64Polished === 'ready') return;
@@ -115,8 +125,7 @@
       if (buttons) oldAction.appendChild(buttons);
     }
 
-    const footerActions = $('.bd-commercial-readiness__actions', panel);
-    if (footerActions) footerActions.remove();
+    tidyLegacyFooter(panel, action);
 
     const badge = $('.bd-commercial-readiness__head > .revenue-pill', panel);
     if (badge && action.code === 'COLLECT_PAYMENT') {
