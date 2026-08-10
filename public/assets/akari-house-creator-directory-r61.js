@@ -50,7 +50,7 @@
     }).sort((a,b)=>creatorSortKey(a).localeCompare(creatorSortKey(b),undefined,{sensitivity:'base',numeric:true}));
   }
   function socialList(item){
-    return (item.socials||[]).map((social)=>`<a href="${esc(social.profileUrl)}" target="_blank" rel="noreferrer" title="${esc(sourceLabel(social.countSource))}"><b>${esc(social.platform)}</b><span>${social.followerCountAvailable?fmt(social.followerCount):'—'}</span></a>`).join('')||'<span class="muted">No public social profile</span>';
+    return (item.socials||[]).map((social)=>`<a href="${esc(social.profileUrl)}" target="_blank" rel="noreferrer"><b>${esc(social.platform)}</b><span>${social.followerCountAvailable?fmt(social.followerCount):'—'}</span><small>${esc(sourceLabel(social.countSource))}</small></a>`).join('')||'<span class="muted">No public social profile</span>';
   }
   function historySummary(item){
     if(item.historyState==='CRM_PERFORMANCE_HISTORY')return `<strong>${fmt(item.performance.portfolioScore,1)} score · ${fmt(item.performance.campaignCount)} campaign${item.performance.campaignCount===1?'':'s'}</strong><small>${fmt(item.performance.approvedPosts)} Approved posts · ${fmt(item.performance.approvedReach)} Approved reach · ${fmt(item.performance.campaignReliability,1)}% reliability</small>`;
