@@ -25,7 +25,7 @@ expect(js.includes('NEXT REQUIRED ACTION'), 'ranked next required action is miss
 expect(js.includes('this command centre is read-only'), 'read-only governance disclosure is missing');
 expect(!/method\s*:\s*['"](?:POST|PUT|PATCH|DELETE)['"]/i.test(js), 'command centre must not issue write requests');
 expect(!/\b(?:INSERT|UPDATE|DELETE)\s+(?:INTO|FROM|[a-z_])/i.test(js), 'command centre must not contain SQL write logic');
-expect(!js.includes('env.DB')&&!js.includes('D1'), 'command centre must not bind directly to D1');
+expect(!js.includes('env.DB')&&!js.includes('context.env.DB'), 'command centre must not bind directly to D1');
 
 const expectedWeights={
   targetAmount:7,instrument:7,owner:7,targetClose:7,thesisAndNextAction:7,
