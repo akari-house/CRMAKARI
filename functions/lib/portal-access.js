@@ -35,28 +35,26 @@ function parseRow(row){
   try{
     const parsed=JSON.parse(row?.description||'{}');
     if(parsed.recordType!==PORTAL_ACCESS_MARKER)return null;
-    return {...sanitizePortalGrant(parsed),activityId:row.id,occurredAt:row.occurred_at||row.created_at};
+    return {...sanitizePortalGrant(parsed),activityId:row.id,occurredAt:row.occurred_at||row.created_at,actorUserId:row.user_id||null};
   }catch{return null;}
 }
 
 export async function loadPortalGrants(db,tenantId,userId=null){
-  const bindings=[tenantId];
-  let userClause='';
-  if(userId){userClause='AND user_id = ?';bindings.push(userId);}
   const rows=await all(db,`
     SELECT id,user_id,project_id,description,occurred_at,created_at
     FROM activities
-    WHERE tenant_id=? AND activity_type=? ${userClause}
+    WHERE tenant_id=? AND activity_type=?
     ORDER BY occurred_at DESC,created_at DESC
     LIMIT 2000
-  `,[tenantId,PORTAL_ACCESS_ACTIVITY,...bindings.slice(1)]);
+  `,[tenantId,PORTAL_ACCESS_ACTIVITY]);
   const latest=new Map();
   for(const row of rows){
     const grant=parseRow(row);if(!grant?.userId||!grant?.projectId)continue;
     const key=`${grant.userId}:${grant.projectId}`;
     if(!latest.has(key))latest.set(key,grant);
   }
-  return [...latest.values()];
+  const grants=[...latest.values()];
+  return userId?grants.filter(item=>item.userId===userId):grants;
 }
 
 export async function requirePortalProject(db,auth,projectId,permission=null){
