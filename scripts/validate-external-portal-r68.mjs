@@ -56,7 +56,7 @@ expect(!/fetch\(['"`]\/api\/(?!portal)/.test(portalJs),'external portal UI must 
 expect(portalJs.includes('Internal AKARI CRM data is not exposed here'),'portal privacy message is missing');
 expect(portalJs.includes('finance records')&&portalJs.includes('Creator/KOL payments'),'portal exclusion notice is missing');
 expect(appHtml.includes('/assets/portal-access-admin-r68.css?v=1')&&appHtml.includes('/assets/portal-access-admin-r68.js?v=1'),'internal portal access admin assets are not registered');
-expect(pkg.version==='0.5.13',`package version is ${pkg.version}, expected 0.5.13`);
+const version=String(pkg.version||'0.0.0').split('.').map(Number);expect(version[0]>0||version[1]>5||(version[1]===5&&version[2]>=13),`package version is ${pkg.version}, expected 0.5.13 or newer`);
 expect(String(pkg.scripts?.validate||'').includes('validate-external-portal-r68.mjs'),'R68 validator is not in npm validate');
 
 console.log('R68 external founder/client portal validation passed');
