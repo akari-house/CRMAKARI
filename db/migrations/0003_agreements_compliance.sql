@@ -1,6 +1,10 @@
 -- AKARI CRM R70 — Agreements, Mandates & Compliance
 -- Canonical tenant-scoped agreement registry and review evidence.
 -- This stores governance evidence and workflow state; it does not make legal determinations.
+-- fundraising_round_id is intentionally not a database foreign key because the CRM
+-- supports tenants still running the legacy fundraising compatibility layer without
+-- normalized fundraising migration 0002. The API validates the round when that
+-- normalized table is available and required.
 PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS agreements (
@@ -10,7 +14,7 @@ CREATE TABLE IF NOT EXISTS agreements (
   opportunity_id TEXT REFERENCES opportunities(id) ON DELETE SET NULL,
   campaign_id TEXT REFERENCES campaigns(id) ON DELETE SET NULL,
   partner_id TEXT REFERENCES partners(id) ON DELETE SET NULL,
-  fundraising_round_id TEXT REFERENCES fundraising_rounds(id) ON DELETE SET NULL,
+  fundraising_round_id TEXT,
   agreement_type TEXT NOT NULL CHECK (agreement_type IN ('SERVICE_AGREEMENT','FUNDRAISING_MANDATE','NDA','PARTNERSHIP_AGREEMENT','ADVISORY_AGREEMENT','OTHER')),
   title TEXT NOT NULL,
   counterparty_name TEXT NOT NULL,
