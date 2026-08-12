@@ -28,8 +28,12 @@ expect(ui.includes('does not provide legal advice')||ui.includes('does not provi
 expect(locks.includes('Linked audit context is locked after agreement creation')&&locks.includes("'projectId','opportunityId','campaignId','partnerId','fundraisingRoundId'"),'Draft linked-record lock guard is incomplete');
 expect(app.includes('/assets/agreements-compliance-r70.css?v=1')&&app.includes('/assets/agreements-compliance-r70.js?v=1')&&app.includes('/assets/agreements-compliance-r70-locks.js?v=1'),'R70 assets are not registered');
 expect(css.includes('.acr70')&&css.includes('.acr70-modal'),'R70 styles incomplete');
-expect(deploy.includes('Apply production D1 migrations')&&deploy.includes('npm run db:migrate:remote'),'production deploy must apply D1 migrations before Pages');
-expect(deploy.indexOf('Apply production D1 migrations')<deploy.indexOf('Deploy production Pages project'),'migration must run before Pages deployment');
+expect(deploy.includes('Resolve production D1 binding'),'production deploy must resolve the bound D1 database without committing its identifier');
+expect(deploy.includes('/pages/projects/crmakari')&&deploy.includes('/d1/database?per_page=100'),'D1 binding resolution must use Cloudflare account/project APIs with a name fallback');
+expect(deploy.includes('/tmp/wrangler-production.toml')&&deploy.includes('database_id = "${database_id}"'),'temporary production Wrangler config is missing');
+expect(deploy.includes('Apply R70 production D1 migration')&&deploy.includes('--file db/migrations/0003_agreements_compliance.sql'),'R70 production deploy must apply only migration 0003');
+expect(deploy.includes('npx wrangler d1 execute DB')&&deploy.includes('--remote')&&deploy.includes('--config "${AKARI_D1_CONFIG}"'),'R70 migration command must target the resolved remote D1 binding');
+expect(deploy.indexOf('Apply R70 production D1 migration')<deploy.indexOf('Deploy production Pages project'),'migration must run before Pages deployment');
 const v=String(pkg.version||'0.0.0').split('.').map(Number);expect(v[0]>0||v[1]>5||(v[1]===5&&v[2]>=15),`package version is ${pkg.version}, expected 0.5.15 or newer`);
 expect(String(pkg.scripts?.validate||'').includes('validate-agreements-compliance-r70.mjs'),'R70 validator must be registered in npm validate');
 console.log('R70 Agreement Registry and compliance validation passed');
