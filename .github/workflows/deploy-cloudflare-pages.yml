@@ -57,13 +57,62 @@ jobs:
             exit 1
           fi
 
-      - name: Apply production D1 migrations
+      - name: Resolve production D1 binding
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -euo pipefail
-          npm run db:migrate:remote
+          auth=(-H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H "Content-Type: application/json")
+          project_api="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/crmakari"
+          project_json="$(curl --fail --silent --show-error "${auth[@]}" "${project_api}")"
+
+          database_id="$(printf '%s' "${project_json}" | jq -r '
+            .result.deployment_configs.production.d1_databases as $d
+            | if ($d | type) == "object" then
+                ($d.DB.id // $d.DB.database_id // empty)
+              elif ($d | type) == "array" then
+                ($d[]? | select((.binding // .name) == "DB") | (.id // .database_id // empty))
+              else empty end
+          ' | head -n 1)"
+
+          if [ -z "${database_id}" ]; then
+            echo "Pages project binding did not expose the D1 ID; resolving by database name."
+            d1_json="$(curl --fail --silent --show-error "${auth[@]}" "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/d1/database?per_page=100")"
+            database_id="$(printf '%s' "${d1_json}" | jq -r '.result[]? | select(.name == "akari-crm-production") | (.uuid // .id // empty)' | head -n 1)"
+          fi
+
+          if [ -z "${database_id}" ]; then
+            echo "Could not resolve the production D1 database binding."
+            exit 1
+          fi
+
+          cat > /tmp/wrangler-production.toml <<EOF
+          name = "crmakari-migration"
+          compatibility_date = "2026-07-31"
+
+          [[d1_databases]]
+          binding = "DB"
+          database_name = "akari-crm-production"
+          database_id = "${database_id}"
+          migrations_dir = "db/migrations"
+          EOF
+
+          echo "AKARI_D1_CONFIG=/tmp/wrangler-production.toml" >> "${GITHUB_ENV}"
+          echo "Resolved the production D1 binding without writing its identifier to the repository."
+
+      - name: Apply R70 production D1 migration
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          test -f "${AKARI_D1_CONFIG}"
+          npx wrangler d1 execute DB \
+            --remote \
+            --file db/migrations/0003_agreements_compliance.sql \
+            --config "${AKARI_D1_CONFIG}" \
+            --yes
 
       - name: Deploy production Pages project
         env:
