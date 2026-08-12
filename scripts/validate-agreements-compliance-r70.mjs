@@ -15,8 +15,11 @@ expect(migration.includes('CREATE TABLE IF NOT EXISTS agreements'),'canonical ag
 expect(migration.includes('CREATE TABLE IF NOT EXISTS agreement_reviews'),'agreement reviews table missing');
 expect(migration.includes("FUNDRAISING_MANDATE")&&migration.includes("SERVICE_AGREEMENT")&&migration.includes("NDA"),'required agreement types missing');
 expect(migration.includes('tenant_id TEXT NOT NULL REFERENCES tenants(id)'),'agreement schema must be tenant scoped');
+expect(!/fundraising_round_id\s+TEXT\s+REFERENCES\s+fundraising_rounds/i.test(migration),'R70 migration must not depend on optional normalized fundraising table');
 expect(index.includes('WHERE a.tenant_id=?'),'agreement list must be tenant scoped');
 expect(item.includes('WHERE a.tenant_id=? AND a.id=?'),'agreement lookup must be tenant scoped');
+expect(index.includes("tableExists(db,'fundraising_rounds')")&&item.includes("tableExists(db,'fundraising_rounds')"),'R70 APIs must detect optional normalized fundraising schema');
+expect(index.includes('Normalized fundraising migration 0002 is required before linking a fundraising mandate to a round'),'fundraising mandate must fail closed without normalized round schema');
 expect(index.includes('Opportunity does not belong to the selected project and workspace'),'cross-project opportunity validation missing');
 expect(index.includes('Fundraising round does not belong to the selected project and workspace'),'fundraising round tenant/project validation missing');
 expect(item.includes("Owner or Admin permission is required"),'final governance authority missing');
@@ -30,9 +33,13 @@ expect(app.includes('/assets/agreements-compliance-r70.css?v=1')&&app.includes('
 expect(css.includes('.acr70')&&css.includes('.acr70-modal'),'R70 styles incomplete');
 expect(deploy.includes('Resolve production D1 binding'),'production deploy must resolve the bound D1 database without committing its identifier');
 expect(deploy.includes('/pages/projects/crmakari')&&deploy.includes('/d1/database?per_page=100'),'D1 binding resolution must use Cloudflare account/project APIs with a name fallback');
-expect(deploy.includes('/tmp/wrangler-production.toml')&&deploy.includes('database_id = "${database_id}"'),'temporary production Wrangler config is missing');
-expect(deploy.includes('Apply R70 production D1 migration')&&deploy.includes('--file db/migrations/0003_agreements_compliance.sql'),'R70 production deploy must apply only migration 0003');
-expect(deploy.includes('npx wrangler d1 execute DB')&&deploy.includes('--remote')&&deploy.includes('--config "${AKARI_D1_CONFIG}"'),'R70 migration command must target the resolved remote D1 binding');
+expect(deploy.includes('::add-mask::${database_id}')&&deploy.includes('AKARI_D1_DATABASE_ID=${database_id}'),'resolved production database ID must be masked and passed only through runtime environment');
+expect(deploy.includes('/d1/database/${AKARI_D1_DATABASE_ID}/query'),'production migration must use the Cloudflare D1 Query API');
+expect(deploy.includes("jq -Rs '{sql: .}' db/migrations/0003_agreements_compliance.sql"),'R70 deploy must send only migration 0003 through a JSON-safe SQL payload');
+expect(deploy.includes('/tmp/r70-migration.json')&&deploy.includes("'.success // false'"),'D1 migration response success validation is missing');
+expect(deploy.includes("SELECT name FROM sqlite_schema")&&deploy.includes("'agreements'")&&deploy.includes("'agreement_reviews'"),'post-migration schema verification is missing');
+expect(deploy.includes('R70 D1 schema applied and verified.'),'successful migration verification marker missing');
+expect(!deploy.includes('npx wrangler d1 execute DB'),'R70 production migration must not depend on the failing Wrangler execute path');
 expect(deploy.indexOf('Apply R70 production D1 migration')<deploy.indexOf('Deploy production Pages project'),'migration must run before Pages deployment');
 const v=String(pkg.version||'0.0.0').split('.').map(Number);expect(v[0]>0||v[1]>5||(v[1]===5&&v[2]>=15),`package version is ${pkg.version}, expected 0.5.15 or newer`);
 expect(String(pkg.scripts?.validate||'').includes('validate-agreements-compliance-r70.mjs'),'R70 validator must be registered in npm validate');
