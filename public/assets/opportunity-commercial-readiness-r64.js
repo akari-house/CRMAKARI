@@ -51,7 +51,7 @@
 
   function canonicalAction(raw) {
     const value = String(raw || '').trim();
-    if (/collect or reconcile the outstanding invoice balance/i.test(value)) return { code: 'COLLECT_PAYMENT', title: 'Collect outstanding invoice balance' };
+    if (/collect or reconcile (?:the outstanding invoice balance|.+? outstanding\.?$)/i.test(value)) return { code: 'COLLECT_PAYMENT', title: 'Collect outstanding invoice balance' };
     if (/issue the first invoice/i.test(value)) return { code: 'CREATE_INVOICE', title: 'Issue the first invoice' };
     if (/complete the client billing profile/i.test(value)) return { code: 'CLIENT_BILLING', title: 'Complete the client billing profile' };
     if (/complete akari organisation billing details/i.test(value)) return { code: 'ISSUER_BILLING', title: 'Complete AKARI billing details' };
