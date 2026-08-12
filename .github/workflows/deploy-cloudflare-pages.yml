@@ -87,18 +87,8 @@ jobs:
             exit 1
           fi
 
-          cat > /tmp/wrangler-production.toml <<EOF
-          name = "crmakari-migration"
-          compatibility_date = "2026-07-31"
-
-          [[d1_databases]]
-          binding = "DB"
-          database_name = "akari-crm-production"
-          database_id = "${database_id}"
-          migrations_dir = "db/migrations"
-          EOF
-
-          echo "AKARI_D1_CONFIG=/tmp/wrangler-production.toml" >> "${GITHUB_ENV}"
+          echo "::add-mask::${database_id}"
+          echo "AKARI_D1_DATABASE_ID=${database_id}" >> "${GITHUB_ENV}"
           echo "Resolved the production D1 binding without writing its identifier to the repository."
 
       - name: Apply R70 production D1 migration
@@ -107,12 +97,47 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -euo pipefail
-          test -f "${AKARI_D1_CONFIG}"
-          npx wrangler d1 execute DB \
-            --remote \
-            --file db/migrations/0003_agreements_compliance.sql \
-            --config "${AKARI_D1_CONFIG}" \
-            --yes
+          test -n "${AKARI_D1_DATABASE_ID}"
+
+          query_api="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/d1/database/${AKARI_D1_DATABASE_ID}/query"
+          migration_payload="$(jq -Rs '{sql: .}' db/migrations/0003_agreements_compliance.sql)"
+
+          curl --fail --silent --show-error \
+            -X POST \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data "${migration_payload}" \
+            "${query_api}" > /tmp/r70-migration.json
+
+          if [ "$(jq -r '.success // false' /tmp/r70-migration.json)" != "true" ] \
+            || [ "$(jq -r '(.errors // []) | length' /tmp/r70-migration.json)" != "0" ] \
+            || [ "$(jq -r '[.result[]? | (.success // true) == false] | any' /tmp/r70-migration.json)" = "true" ]; then
+            echo "R70 D1 migration failed. Cloudflare response:"
+            jq '{success,errors,messages,result:[.result[]? | {success,error,meta}]}' /tmp/r70-migration.json
+            exit 1
+          fi
+
+          verify_payload='{"sql":"SELECT name FROM sqlite_schema WHERE type = '\''table'\'' AND name IN ('\''agreements'\'', '\''agreement_reviews'\'') ORDER BY name;"}'
+          curl --fail --silent --show-error \
+            -X POST \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data "${verify_payload}" \
+            "${query_api}" > /tmp/r70-schema-check.json
+
+          if [ "$(jq -r '.success // false' /tmp/r70-schema-check.json)" != "true" ]; then
+            echo "R70 schema verification query failed."
+            jq '{success,errors,messages}' /tmp/r70-schema-check.json
+            exit 1
+          fi
+
+          tables="$(jq -r '[.result[]?.results[]?.name] | unique | sort | join(",")' /tmp/r70-schema-check.json)"
+          if [ "${tables}" != "agreement_reviews,agreements" ]; then
+            echo "R70 schema verification failed: expected agreements and agreement_reviews; received ${tables:-none}."
+            exit 1
+          fi
+
+          echo "R70 D1 schema applied and verified."
 
       - name: Deploy production Pages project
         env:
