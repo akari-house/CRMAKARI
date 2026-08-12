@@ -6,7 +6,9 @@ export async function onRequestGet(context){
   const slug=String(auth.tenantSlug||'').trim().toLowerCase();
   if(!slug)return json({error:'Your account is not assigned to an active CRM workspace'},403);
   const url=new URL(context.request.url);
-  url.pathname=`/app/${encodeURIComponent(slug)}/home`;
+  url.pathname=auth.role==='EXTERNAL_COLLABORATOR'
+    ? `/portal/${encodeURIComponent(slug)}`
+    : `/app/${encodeURIComponent(slug)}/home`;
   url.search='';
   return Response.redirect(url.toString(),302);
 }

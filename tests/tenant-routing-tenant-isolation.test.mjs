@@ -8,9 +8,9 @@ const runtime=await readFile('public/assets/tenant-routing-r6.js','utf8');
 const app=await readFile('public/app/index.html','utf8');
 const redirects=await readFile('public/_redirects','utf8');
 
-test('tenant slug is resolved from the protected route or API header',()=>{
+test('tenant slug is resolved from protected app or portal routes or API header',()=>{
   assert.match(middleware,/x-akari-tenant/);
-  assert.match(middleware,/^.*\/app\\\/\(\[\^\/\]\+\).*$/m);
+  assert.match(middleware,/url\.pathname\.match\(\/\^\\\/\(\?:app\|portal\)\\\/\(\[\^\/\]\+\)\//);
   assert.match(middleware,/rows\.find\(\(?row\)?\s*=>\s*String\(row\.tenant_slug\)/);
 });
 
