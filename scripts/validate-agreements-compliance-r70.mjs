@@ -6,6 +6,7 @@ const lib=read('functions/lib/agreements-compliance.js');
 const index=read('functions/api/agreements/index.js');
 const item=read('functions/api/agreements/[id].js');
 const ui=read('public/assets/agreements-compliance-r70.js');
+const locks=read('public/assets/agreements-compliance-r70-locks.js');
 const css=read('public/assets/agreements-compliance-r70.css');
 const app=read('public/app/index.html');
 const deploy=read('.github/workflows/deploy-cloudflare-pages.yml');
@@ -24,7 +25,8 @@ expect(lib.includes("['CLEAR','NOT_REQUIRED']"),'required reviews must resolve t
 expect(item.includes('AGREEMENT_SIGNED')&&item.includes('AGREEMENT_ACTIVATED')&&item.includes('AGREEMENT_TERMINATED'),'agreement audit lifecycle incomplete');
 expect(ui.includes('Agreements & Compliance')&&ui.includes('Governance/evidence tracking only'),'governance UI disclaimer missing');
 expect(ui.includes('does not provide legal advice')||ui.includes('does not provide or replace legal advice'),'legal advice disclaimer missing');
-expect(app.includes('/assets/agreements-compliance-r70.css?v=1')&&app.includes('/assets/agreements-compliance-r70.js?v=1'),'R70 assets are not registered');
+expect(locks.includes('Linked audit context is locked after agreement creation')&&locks.includes("'projectId','opportunityId','campaignId','partnerId','fundraisingRoundId'"),'Draft linked-record lock guard is incomplete');
+expect(app.includes('/assets/agreements-compliance-r70.css?v=1')&&app.includes('/assets/agreements-compliance-r70.js?v=1')&&app.includes('/assets/agreements-compliance-r70-locks.js?v=1'),'R70 assets are not registered');
 expect(css.includes('.acr70')&&css.includes('.acr70-modal'),'R70 styles incomplete');
 expect(deploy.includes('Apply production D1 migrations')&&deploy.includes('npm run db:migrate:remote'),'production deploy must apply D1 migrations before Pages');
 expect(deploy.indexOf('Apply production D1 migrations')<deploy.indexOf('Deploy production Pages project'),'migration must run before Pages deployment');
