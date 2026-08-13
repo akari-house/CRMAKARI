@@ -20,8 +20,9 @@ export async function onRequestPost(context){
     const website=text(body.website,500)||null;
     const duplicate=website?await first(context.env.DB,`SELECT id FROM projects WHERE tenant_id=? AND lower(website)=lower(?)`,[auth.tenantId,website]):await first(context.env.DB,`SELECT id FROM projects WHERE tenant_id=? AND lower(name)=lower(?)`,[auth.tenantId,name]);
     if(duplicate)return error('Project already exists',409,{projectId:duplicate.id});
-    const id=makeId('project'),stamp=nowIso();
-    await run(context.env.DB,`INSERT INTO projects (id,tenant_id,name,website,category,ecosystem,country,region,lifecycle_status,relationship_health,description,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,'PROSPECT','WARM',?,?,?)`,[id,auth.tenantId,name,website,text(body.category,100)||null,text(body.ecosystem,100)||null,text(body.country,100)||null,text(body.region,100)||null,text(body.description,4000)||null,stamp,stamp]);
-    return json({created:true,project:{id,name,website,category:text(body.category,100)||null,lifecycleStatus:'PROSPECT'}},201);
+    const id=makeId('project'),stamp=nowIso(),category=text(body.category,100)||null;
+    await run(context.env.DB,`INSERT INTO projects (id,tenant_id,name,website,category,ecosystem,country,region,lifecycle_status,relationship_health,description,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,'PROSPECT','WARM',?,?,?)`,[id,auth.tenantId,name,website,category,text(body.ecosystem,100)||null,text(body.country,100)||null,text(body.region,100)||null,text(body.description,4000)||null,stamp,stamp]);
+    await run(context.env.DB,`INSERT INTO audit_logs (id,tenant_id,user_id,action,entity_type,entity_id,after_data,created_at) VALUES (?,?,NULL,?,?,?,?,?)`,[makeId('audit'),auth.tenantId,'EXTERNAL_API_PROJECT_CREATED','PROJECT',id,JSON.stringify({apiKeyId:auth.apiKeyId,name,website,category}),stamp]);
+    return json({created:true,project:{id,name,website,category,lifecycleStatus:'PROSPECT'}},201);
   }catch(cause){console.error('R76 external projects write failed',cause);return error(cause.message||'Project could not be created',Number(cause.status||500));}
 }
