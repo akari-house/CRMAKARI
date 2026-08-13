@@ -5,6 +5,7 @@ import { json } from './lib/response.js';
 const DEFAULT_ACCESS_TEAM_DOMAIN = 'crimson-wildflower-0f8d.cloudflareaccess.com';
 const DEFAULT_ACCESS_AUD = 'c588ec31c2f28826d192548846f060dd7fa9355b3bd20ddff59600c5d3596eaf';
 const JWKS_TTL_MS = 5 * 60 * 1000;
+const ALL_MODULES=['BD','REVENUE','DELIVERY','CAMPAIGNS','FUNDRAISING','RELATIONSHIPS','PORTAL','REPORTING'];
 let jwksCache = null;
 let jwksExpiresAt = 0;
 let jwksTeamDomain = null;
@@ -18,6 +19,11 @@ const isPublicRequest = (request) => {
     || pathname === '/manifest.webmanifest'
     || pathname.startsWith('/assets/public-home-r6.')
     || pathname.startsWith('/assets/brand/');
+};
+
+const isInvitationBootstrapRequest=(request)=>{
+  const {pathname}=new URL(request.url);
+  return pathname==='/accept-invite.html'||pathname==='/api/invitations/accept';
 };
 
 const isPublicHomepage = (request) => {
@@ -147,6 +153,28 @@ function externalPortalAllowed(request,tenantSlug){
     || path.startsWith('/assets/external-portal-r68.');
 }
 
+function parseEnabledModules(raw){
+  if(raw===null||raw===undefined||String(raw).trim()==='')return [...ALL_MODULES];
+  try{const parsed=typeof raw==='string'?JSON.parse(raw):raw;if(!Array.isArray(parsed))return [...ALL_MODULES];return [...new Set(parsed.map(v=>String(v||'').toUpperCase()).filter(v=>ALL_MODULES.includes(v)))];}
+  catch{return [...ALL_MODULES];}
+}
+
+function moduleForRequest(request){
+  const path=new URL(request.url).pathname.toLowerCase();
+  const appSection=path.match(/^\/app\/[^/]+\/([^/]+)/)?.[1]||'';
+  const appMap={leads:'BD',contacts:'BD',opportunities:'BD',partners:'BD',revenue:'REVENUE',finance:'REVENUE',campaigns:'CAMPAIGNS',fundraising:'FUNDRAISING',reports:'REPORTING'};
+  if(appMap[appSection])return appMap[appSection];
+  if(path.startsWith('/portal/')||path==='/api/portal'||path.startsWith('/api/portal/'))return 'PORTAL';
+  if(path.startsWith('/api/fundraising'))return 'FUNDRAISING';
+  if(path.startsWith('/api/campaign'))return 'CAMPAIGNS';
+  if(path.startsWith('/api/service-delivery')||path.startsWith('/api/engagements'))return 'DELIVERY';
+  if(path.startsWith('/api/relationships'))return 'RELATIONSHIPS';
+  if(path.startsWith('/api/operating-rhythm'))return 'REPORTING';
+  if(path.startsWith('/api/invoices')||path.startsWith('/api/payments')||path.startsWith('/api/referrals')||path.startsWith('/api/commercial')||path.startsWith('/api/billing-profile'))return 'REVENUE';
+  if(path.startsWith('/api/akari-leads')||path.startsWith('/api/bd-')||path.startsWith('/api/opportunities')||path.startsWith('/api/projects')||path.startsWith('/api/contacts')||path.startsWith('/api/partners'))return 'BD';
+  return '';
+}
+
 export async function onRequest(context) {
   if (isPublicRequest(context.request)) return publicResponse(context);
 
@@ -157,7 +185,8 @@ export async function onRequest(context) {
     context.data.auth = {
       ...DEMO_AUTH,
       tenantName: 'AKARI House',
-      workspaces: [{tenantId:DEMO_AUTH.tenantId,tenantSlug:DEMO_AUTH.tenantSlug,tenantName:'AKARI House',role:DEMO_AUTH.role,financeAccess:Boolean(DEMO_AUTH.financeAccess)}],
+      modules:[...ALL_MODULES],
+      workspaces: [{tenantId:DEMO_AUTH.tenantId,tenantSlug:DEMO_AUTH.tenantSlug,tenantName:'AKARI House',role:DEMO_AUTH.role,financeAccess:Boolean(DEMO_AUTH.financeAccess),modules:[...ALL_MODULES]}],
     };
     return context.next();
   }
@@ -171,12 +200,18 @@ export async function onRequest(context) {
   catch (cause) { console.error('Cloudflare Access JWT validation failed', cause); return json({ error: 'Authentication token is invalid or expired' }, 401); }
 
   if (!context.env.DB) return json({ error: 'D1 binding DB is not configured' }, 500);
+  if(isInvitationBootstrapRequest(context.request)){
+    context.data.preAuthIdentity={email:String(identity.email||'').toLowerCase(),name:String(identity.name||identity.common_name||identity.email||'')};
+    return context.next();
+  }
+
   const result = await context.env.DB.prepare(`
-    SELECT u.id AS user_id,u.email,u.full_name,tm.tenant_id,tm.role,tm.finance_access,t.slug AS tenant_slug,t.name AS tenant_name,tm.joined_at
+    SELECT u.id AS user_id,u.email,u.full_name,tm.tenant_id,tm.role,tm.finance_access,t.slug AS tenant_slug,t.name AS tenant_name,t.status AS tenant_status,tm.joined_at,ts.enabled_modules_json
     FROM users u
     JOIN tenant_memberships tm ON tm.user_id = u.id
     JOIN tenants t ON t.id = tm.tenant_id
-    WHERE lower(u.email)=lower(?) AND u.status='ACTIVE' AND tm.status='ACTIVE' AND t.status='ACTIVE'
+    LEFT JOIN tenant_settings ts ON ts.tenant_id=t.id
+    WHERE lower(u.email)=lower(?) AND u.status='ACTIVE' AND tm.status='ACTIVE' AND t.status IN ('ACTIVE','TRIAL')
     ORDER BY tm.joined_at ASC
   `).bind(identity.email).all();
 
@@ -186,11 +221,14 @@ export async function onRequest(context) {
   const membership=slug?rows.find(row=>String(row.tenant_slug).toLowerCase()===slug):rows[0];
   if(!membership)return json({error:'You do not have access to this CRM workspace'},403);
 
-  const workspaces=rows.map(row=>({tenantId:row.tenant_id,tenantSlug:row.tenant_slug,tenantName:row.tenant_name||row.tenant_slug,role:row.role,financeAccess:Boolean(row.finance_access)}));
-  context.data.auth={userId:membership.user_id,tenantId:membership.tenant_id,tenantSlug:membership.tenant_slug,tenantName:membership.tenant_name||membership.tenant_slug,email:membership.email,fullName:membership.full_name,role:membership.role,financeAccess:Boolean(membership.finance_access),workspaces};
+  const workspaces=rows.map(row=>({tenantId:row.tenant_id,tenantSlug:row.tenant_slug,tenantName:row.tenant_name||row.tenant_slug,tenantStatus:row.tenant_status,role:row.role,financeAccess:Boolean(row.finance_access),modules:parseEnabledModules(row.enabled_modules_json)}));
+  const modules=parseEnabledModules(membership.enabled_modules_json);
+  context.data.auth={userId:membership.user_id,tenantId:membership.tenant_id,tenantSlug:membership.tenant_slug,tenantName:membership.tenant_name||membership.tenant_slug,tenantStatus:membership.tenant_status,email:membership.email,fullName:membership.full_name,role:membership.role,financeAccess:Boolean(membership.finance_access),modules,workspaces};
 
   if(membership.role==='EXTERNAL_COLLABORATOR'&&!externalPortalAllowed(context.request,membership.tenant_slug)){
     return json({error:'External collaborator access is limited to the AKARI client/founder portal'},403);
   }
+  const requiredModule=moduleForRequest(context.request);
+  if(requiredModule&&!modules.includes(requiredModule))return json({error:`${requiredModule} module is not enabled for this workspace`,module:requiredModule},403);
   return context.next();
 }
