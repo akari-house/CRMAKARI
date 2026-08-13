@@ -60,8 +60,8 @@ export async function onRequestGet(context){
 export async function onRequestPost(context){
   try{
     const auth=context.data?.auth||{},tenantId=requireTenant(auth);
-    await ensureSchema(context.env.DB);
     requireRole(auth,WRITE_ROLES);
+    await ensureSchema(context.env.DB);
     const body=await readJson(context.request),action=String(body.action||'');
     if(action==='refresh-attention'){
       const rows=await refreshAttention(context.env.DB,tenantId);
