@@ -8,3 +8,12 @@ OPENAI_MODEL=
 ANTHROPIC_API_KEY=
 ANTHROPIC_MODEL=
 AI_TIMEOUT_MS=30000
+
+# R76 Essential Integrations. Set these as Cloudflare Pages secrets in production.
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+# Optional when the production callback can be derived from the request origin.
+GOOGLE_REDIRECT_URI=
+# Minimum 32-character random secret used to AES-GCM encrypt Google refresh/access
+# tokens and webhook signing secrets before they are stored in D1.
+INTEGRATION_ENCRYPTION_KEY=
