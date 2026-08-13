@@ -136,8 +136,9 @@ jobs:
           apply_migration db/migrations/0006_relationship_intelligence.sql r73-migration
           apply_migration db/migrations/0007_reporting_attention.sql r74-migration
           apply_migration db/migrations/0008_saas_workspace_admin.sql r75-migration
+          apply_migration db/migrations/0009_essential_integrations.sql r76-migration
 
-          verify_payload='{"sql":"SELECT name FROM sqlite_schema WHERE type = '\''table'\'' AND name IN ('\''agreements'\', '\''agreement_reviews'\', '\''founder_onboarding_items'\', '\''fundraising_data_room_requirements'\', '\''relationship_profiles'\', '\''operational_attention'\', '\''operating_report_snapshots'\', '\''platform_admins'\', '\''workspace_usage_snapshots'\') ORDER BY name;"}'
+          verify_payload='{"sql":"SELECT name FROM sqlite_schema WHERE type = '\''table'\'' AND name IN ('\''agreements'\', '\''agreement_reviews'\', '\''founder_onboarding_items'\', '\''fundraising_data_room_requirements'\', '\''relationship_profiles'\', '\''operational_attention'\', '\''operating_report_snapshots'\', '\''platform_admins'\', '\''workspace_usage_snapshots'\', '\''workspace_integrations'\', '\''integration_oauth_states'\', '\''integration_external_refs'\', '\''external_document_links'\', '\''workspace_api_keys'\', '\''webhook_endpoints'\', '\''webhook_deliveries'\') ORDER BY name;"}'
           verify_code="$(curl --silent --show-error \
             --output /tmp/schema-check.json \
             --write-out '%{http_code}' \
@@ -159,12 +160,12 @@ jobs:
           fi
 
           tables="$(jq -r '[.result[]?.results[]?.name] | unique | sort | join(",")' /tmp/schema-check.json)"
-          expected="agreement_reviews,agreements,founder_onboarding_items,fundraising_data_room_requirements,operating_report_snapshots,operational_attention,platform_admins,relationship_profiles,workspace_usage_snapshots"
+          expected="agreement_reviews,agreements,external_document_links,founder_onboarding_items,fundraising_data_room_requirements,integration_external_refs,integration_oauth_states,operating_report_snapshots,operational_attention,platform_admins,relationship_profiles,webhook_deliveries,webhook_endpoints,workspace_api_keys,workspace_integrations,workspace_usage_snapshots"
           if [ "${tables}" != "${expected}" ]; then
             echo "Schema verification failed: expected ${expected}; received ${tables:-none}."
             exit 1
           fi
-          echo "R70-R75 production D1 schema applied and verified."
+          echo "R70-R76 production D1 schema applied and verified."
 
       - name: Deploy production Pages project
         env:
