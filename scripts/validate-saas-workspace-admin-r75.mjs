@@ -24,7 +24,7 @@ const middleware=fs.readFileSync('functions/_middleware.js','utf8');
 for(const pattern of ["t.status IN ('ACTIVE','TRIAL')",'isInvitationBootstrapRequest','preAuthIdentity','enabled_modules_json','moduleForRequest','module is not enabled'])if(!middleware.includes(pattern))throw new Error(`R75 auth/entitlement boundary missing: ${pattern}`);
 
 const api=fs.readFileSync('functions/api/workspace-admin/index.js','utf8');
-for(const pattern of ['requireRole','requireTenant','platform-create-workspace','platform-update-workspace','create-invitation','revoke-invitation','platform-add-admin','platform-revoke-admin','scope') if (!api.includes(pattern)) throw new Error(`R75 admin API missing: ${pattern}`);
+for(const pattern of ['requireRole','requireTenant','platform-create-workspace','platform-update-workspace','create-invitation','revoke-invitation','platform-add-admin','platform-revoke-admin','scope'])if(!api.includes(pattern))throw new Error(`R75 admin API missing: ${pattern}`);
 
 const acceptApi=fs.readFileSync('functions/api/invitations/accept.js','utf8');
 for(const pattern of ['preAuthIdentity','acceptInvitation','redirectUrl'])if(!acceptApi.includes(pattern))throw new Error(`R75 invitation endpoint missing: ${pattern}`);
