@@ -102,12 +102,25 @@ jobs:
           query_api="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/d1/database/${AKARI_D1_DATABASE_ID}/query"
           migration_payload="$(jq -Rs '{sql: .}' db/migrations/0003_agreements_compliance.sql)"
 
-          curl --fail --silent --show-error \
+          migration_http_code="$(curl --silent --show-error \
             -X POST \
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
             -H "Content-Type: application/json" \
             --data "${migration_payload}" \
-            "${query_api}" > /tmp/r70-migration.json
+            --output /tmp/r70-migration.json \
+            --write-out '%{http_code}' \
+            "${query_api}" || true)"
+
+          if [[ ! "${migration_http_code}" =~ ^2 ]]; then
+            echo "R70 D1 migration HTTP request failed with status ${migration_http_code:-000}."
+            if jq -e . /tmp/r70-migration.json >/dev/null 2>&1; then
+              jq '{success,errors,messages}' /tmp/r70-migration.json
+            else
+              echo "Cloudflare returned a non-JSON error response."
+            fi
+            echo "Verify that CLOUDFLARE_API_TOKEN can write to D1 for this account."
+            exit 1
+          fi
 
           if [ "$(jq -r '.success // false' /tmp/r70-migration.json)" != "true" ] \
             || [ "$(jq -r '(.errors // []) | length' /tmp/r70-migration.json)" != "0" ] \
@@ -118,12 +131,22 @@ jobs:
           fi
 
           verify_payload='{"sql":"SELECT name FROM sqlite_schema WHERE type = '\''table'\'' AND name IN ('\''agreements'\'', '\''agreement_reviews'\'') ORDER BY name;"}'
-          curl --fail --silent --show-error \
+          verify_http_code="$(curl --silent --show-error \
             -X POST \
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
             -H "Content-Type: application/json" \
             --data "${verify_payload}" \
-            "${query_api}" > /tmp/r70-schema-check.json
+            --output /tmp/r70-schema-check.json \
+            --write-out '%{http_code}' \
+            "${query_api}" || true)"
+
+          if [[ ! "${verify_http_code}" =~ ^2 ]]; then
+            echo "R70 schema verification HTTP request failed with status ${verify_http_code:-000}."
+            if jq -e . /tmp/r70-schema-check.json >/dev/null 2>&1; then
+              jq '{success,errors,messages}' /tmp/r70-schema-check.json
+            fi
+            exit 1
+          fi
 
           if [ "$(jq -r '.success // false' /tmp/r70-schema-check.json)" != "true" ]; then
             echo "R70 schema verification query failed."
@@ -133,7 +156,7 @@ jobs:
 
           tables="$(jq -r '[.result[]?.results[]?.name] | unique | sort | join(",")' /tmp/r70-schema-check.json)"
           if [ "${tables}" != "agreement_reviews,agreements" ]; then
-            echo "R70 schema verification failed: expected agreements and agreement_reviews; received ${tables:-none}."
+            echo "R70 schema verification failed: expected agreement_reviews and agreements; received ${tables:-none}."
             exit 1
           fi
 
