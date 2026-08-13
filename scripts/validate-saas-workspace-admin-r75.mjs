@@ -9,6 +9,7 @@ const required=[
   'public/accept-invite.html',
   'public/assets/workspace-admin-r75.js',
   'public/assets/workspace-admin-r75.css',
+  'public/assets/module-entitlements-r75.js',
   'tests/saas-workspace-admin-r75-tenant-isolation.test.mjs',
   'public/app/index.html',
 ];
@@ -35,7 +36,10 @@ for(const pattern of ['/api/invitations/accept','Cloudflare Access','Accept invi
 const ui=fs.readFileSync('public/assets/workspace-admin-r75.js','utf8');
 for(const pattern of ['Workspace Administration','Platform control','Create workspace + owner invite','Pending invitations','Roles & permissions','Finance','Suspend','Reactivate','workspace-admin'])if(!ui.includes(pattern))throw new Error(`R75 UI missing: ${pattern}`);
 
+const entitlementUi=fs.readFileSync('public/assets/module-entitlements-r75.js','utf8');
+for(const pattern of ['ROUTE_MODULE','FUNDRAISING','CAMPAIGNS','REVENUE','REPORTING','aria-hidden'])if(!entitlementUi.includes(pattern))throw new Error(`R75 entitlement UI missing: ${pattern}`);
+
 const shell=fs.readFileSync('public/app/index.html','utf8');
-for(const pattern of ['/assets/workspace-admin-r75.css?v=1','/assets/workspace-admin-r75.js?v=1'])if(!shell.includes(pattern))throw new Error(`R75 shell wiring missing: ${pattern}`);
+for(const pattern of ['/assets/workspace-admin-r75.css?v=1','/assets/workspace-admin-r75.js?v=1','/assets/module-entitlements-r75.js?v=1'])if(!shell.includes(pattern))throw new Error(`R75 shell wiring missing: ${pattern}`);
 
 console.log('R75 SaaS Workspace Administration validation passed');
