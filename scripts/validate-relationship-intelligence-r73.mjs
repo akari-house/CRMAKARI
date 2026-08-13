@@ -4,6 +4,7 @@ const expect=(condition,message)=>{if(!condition)throw new Error(`R73 validation
 const migration=read('db/migrations/0006_relationship_intelligence.sql');
 const model=read('functions/lib/relationship-intelligence.js');
 const api=read('functions/api/relationships/index.js');
+const middleware=read('functions/api/relationships/_middleware.js');
 const css=read('public/assets/relationship-intelligence-r73.css');
 const ui=read('public/assets/relationship-intelligence-r73.js');
 const loader=read('public/assets/fundraising-dataroom-r5.js');
@@ -13,6 +14,7 @@ for(const entity of ['PROJECT','CONTACT','PARTNER','INVESTOR_ORGANISATION','INVE
 expect(migration.includes('relationship_owner_user_id')&&migration.includes('introduction_source')&&migration.includes('consent_status')&&migration.includes('conflict_status'),'360 governance fields missing');
 expect(migration.includes('opportunity_id TEXT REFERENCES opportunities')&&migration.includes('campaign_id TEXT REFERENCES campaigns')&&migration.includes('round_id TEXT REFERENCES fundraising_rounds'),'interaction graph must connect commercial/campaign/fundraising records');
 expect(model.includes('pathScore')&&model.includes('strongestPath'),'warm path scoring missing');
+expect(middleware.includes("auth.role==='EXTERNAL_COLLABORATOR'")&&middleware.includes('internal-only'),'Relationship Intelligence must fail closed to Founder/Client portal users');
 expect(api.includes('decorateConnectorNames')&&api.includes('relationship_owner_name'),'human-readable relationship ownership/connector resolution missing');
 expect(api.includes("tm.tenant_id=? AND tm.status='ACTIVE'")&&api.includes('FROM contacts WHERE tenant_id=? AND id IN'),'connector names must be tenant scoped');
 expect(api.includes('fundraising_introduction_paths')&&api.includes('FUNDRAISING_INTRO_PATH'),'normalized fundraising warm paths are not connected to Relationship 360');
