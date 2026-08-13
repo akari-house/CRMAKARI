@@ -1,0 +1,16 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { onRequestPost as internalPost } from '../functions/api/fundraising/data-room.js';
+import { onRequestGet as portalGet } from '../functions/api/portal/project/[id]/data-room.js';
+import { sanitizeAccess,safeHttpsUrl,normalizeCategory,effectiveAccessStatus } from '../functions/lib/data-room-r72.js';
+
+class FakeDB{constructor(resolver){this.resolver=resolver;this.calls=[]}prepare(sql){return{bind:(...bindings)=>{const call={sql:String(sql),bindings};this.calls.push(call);return{first:async()=>this.resolver('first',call,this.calls.length-1),all:async()=>({results:await this.resolver('all',call,this.calls.length-1)||[]}),run:async()=>this.resolver('run',call,this.calls.length-1)||{success:true}}}}}}
+function internalCtx(db,role='VIEWER'){return{env:{DB:db},data:{auth:{userId:'u1',tenantId:'tenant_a',role,financeAccess:false}},request:new Request('https://crm.test/api/fundraising/data-room',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'bootstrap',roundId:'round_a'})})}}
+function portalCtx(db){return{env:{DB:db},data:{auth:{userId:'founder_a',tenantId:'tenant_a',role:'EXTERNAL_COLLABORATOR'}},params:{id:'project_a'},request:new Request('https://crm.test/api/portal/project/project_a/data-room')}}
+
+test('R72 rejects internal read-only writes before database access',async()=>{const db=new FakeDB(()=>null);const response=await internalPost(internalCtx(db));assert.equal(response.status,403);assert.equal(db.calls.length,0)});
+test('R72 enforces NDA before granting investor access',()=>{assert.throws(()=>sanitizeAccess({investorPipelineId:'target_a',ndaStatus:'PENDING',accessStatus:'GRANTED'}),/NDA must be signed/i);assert.equal(sanitizeAccess({investorPipelineId:'target_a',ndaStatus:'SIGNED',accessStatus:'GRANTED'}).accessStatus,'GRANTED')});
+test('R72 only accepts credential-free HTTPS document URLs',()=>{assert.equal(safeHttpsUrl('https://drive.example.test/doc'),'https://drive.example.test/doc');assert.throws(()=>safeHttpsUrl('http://drive.example.test/doc'),/HTTPS/i);assert.throws(()=>safeHttpsUrl('https://user:pass@drive.example.test/doc'),/HTTPS/i)});
+test('R72 maps legacy R5 document categories into institutional categories',()=>{assert.equal(normalizeCategory('PITCH'),'FUNDRAISING');assert.equal(normalizeCategory('FINANCIAL'),'FINANCIALS');assert.equal(normalizeCategory('CAP_TABLE'),'FUNDRAISING')});
+test('R72 expires granted access at read time without trusting stale status',()=>{assert.equal(effectiveAccessStatus({access_status:'GRANTED',expires_at:'2026-01-01T00:00:00Z'},Date.parse('2026-08-13T00:00:00Z')),'EXPIRED')});
+test('R72 founder portal fails closed when project grant is absent',async()=>{const project={id:'project_a',name:'FounderCo',category:'Web3',region:'EU',website:'https://founder.test',lifecycle_status:'CLIENT',country:'Germany'};const db=new FakeDB((method,call)=>{if(method==='first'&&/FROM projects/i.test(call.sql))return project;if(method==='all'&&/FROM activities/i.test(call.sql))return[];return null});const response=await portalGet(portalCtx(db));assert.equal(response.status,403);assert.equal(db.calls.some(c=>/fundraising_data_room_documents/i.test(c.sql)),false);assert.deepEqual(db.calls[0].bindings,['tenant_a','project_a'])});
