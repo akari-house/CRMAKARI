@@ -1,6 +1,7 @@
 import { DEMO_AUTH } from './lib/demo-data.js';
 import { renderInviteOnlyPublicEntry } from './lib/public-entry.js';
 import { json } from './lib/response.js';
+import { authenticateApiKey } from './lib/api-webhooks.js';
 
 const DEFAULT_ACCESS_TEAM_DOMAIN = 'crimson-wildflower-0f8d.cloudflareaccess.com';
 const DEFAULT_ACCESS_AUD = 'c588ec31c2f28826d192548846f060dd7fa9355b3bd20ddff59600c5d3596eaf';
@@ -20,6 +21,8 @@ const isPublicRequest = (request) => {
     || pathname.startsWith('/assets/public-home-r6.')
     || pathname.startsWith('/assets/brand/');
 };
+
+const isExternalApiRequest=(request)=>new URL(request.url).pathname.startsWith('/api/v1/');
 
 const isInvitationBootstrapRequest=(request)=>{
   const {pathname}=new URL(request.url);
@@ -177,6 +180,15 @@ function moduleForRequest(request){
 
 export async function onRequest(context) {
   if (isPublicRequest(context.request)) return publicResponse(context);
+
+  if(isExternalApiRequest(context.request)){
+    if(!context.env.DB)return json({error:'D1 binding DB is not configured'},500);
+    const authorization=String(context.request.headers.get('authorization')||''),bearer=authorization.match(/^Bearer\s+(.+)$/i)?.[1]||'',rawKey=String(context.request.headers.get('x-akari-api-key')||bearer||'').trim();
+    let apiAuth=null;try{apiAuth=await authenticateApiKey(context.env.DB,rawKey);}catch(cause){console.error('AKARI API key authentication failed',cause);return json({error:'API authentication failed'},500);}
+    if(!apiAuth)return json({error:'A valid AKARI API key is required'},401);
+    context.data.auth=apiAuth;
+    return context.next();
+  }
 
   const mode = context.env.AUTH_MODE || 'demo';
   if (mode === 'demo') {
