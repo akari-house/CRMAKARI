@@ -20,7 +20,7 @@ test('R73 relationship API middleware blocks external portal collaborators befor
 
 test('R73 relationship API middleware allows authenticated internal workspace users',async()=>{
   let nextCalled=false;
-  const response=await relationshipMiddleware({data:{auth:auth('BD_MEMBER')},next:async()=>{nextCalled=true;return new Response('ok',{status:204});}});
+  const response=await relationshipMiddleware({data:{auth:auth('BD_MEMBER')},next:async()=>{nextCalled=true;return new Response(null,{status:204});}});
   assert.equal(nextCalled,true);
   assert.equal(response.status,204);
 });
