@@ -46,7 +46,7 @@ const headers=fs.readFileSync('public/_headers','utf8');
 for(const pattern of ['X-Content-Type-Options: nosniff','X-Frame-Options: DENY',"frame-ancestors 'none'",'/app/*','/portal/*','Cache-Control: no-store'])if(!headers.includes(pattern))throw new Error(`V1 static security headers missing ${pattern}`);
 
 const runtimeJs=fs.readFileSync('public/assets/v1-runtime-hardening.js','utf8');
-for(const pattern of ['offline','online','unhandledrejection','Something went wrong','AkariRuntimeStatus'])if(!runtimeJs.includes(pattern))throw new Error(`V1 runtime resilience missing ${pattern}`);
+for(const pattern of ['offline','online','unhandledrejection','Something went wrong','AkariRuntimeStatus','syncModalSafety','openInstitutionalDataRoom','data-fcr67-nav="data-room"','data-dr72-round','Fundraising data room','rel73-launch'])if(!runtimeJs.includes(pattern))throw new Error(`V1 runtime resilience missing ${pattern}`);
 const runtimeCss=fs.readFileSync('public/assets/v1-runtime-hardening.css','utf8');
 for(const pattern of ['#v1-runtime-status','safe-area-inset-top','@media(max-width:760px)'])if(!runtimeCss.includes(pattern))throw new Error(`V1 runtime resilience styling missing ${pattern}`);
 const shell=fs.readFileSync('public/app/index.html','utf8');
@@ -54,7 +54,7 @@ for(const asset of ['/assets/v1-runtime-hardening.css?v=1','/assets/v1-runtime-h
 const worker=fs.readFileSync('public/sw.js','utf8');
 for(const asset of ['./assets/v1-runtime-hardening.css?v=1','./assets/v1-runtime-hardening.js?v=1'])if(!worker.includes(asset))throw new Error(`V1 service worker missing ${asset}`);
 const runtimeBrowser=fs.readFileSync('tests/v1-runtime-hardening.spec.js','utf8');
-for(const pattern of ['runtime resilience loads','mobile viewport','document.documentElement.scrollWidth'])if(!runtimeBrowser.includes(pattern))throw new Error(`V1 runtime browser acceptance missing ${pattern}`);
+for(const pattern of ['runtime resilience loads','mobile viewport','document.documentElement.scrollWidth','suppresses the Relationship 360 launcher','Founder Capital Data Room handoff','Fundraising data room'])if(!runtimeBrowser.includes(pattern))throw new Error(`V1 runtime browser acceptance missing ${pattern}`);
 
 const hardening=fs.readFileSync('docs/V1_PRODUCTION_HARDENING.md','utf8');
 for(const journey of ['Commercial','Campaign','Fundraising','Platform','Tenant #2 acceptance','Role acceptance matrix','Production sign-off'])if(!hardening.includes(journey))throw new Error(`V1 sign-off contract missing ${journey}`);
