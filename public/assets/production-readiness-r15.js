@@ -68,7 +68,7 @@
       <div class="pr15-signoff__copy">
         <strong>${escapeHtml(item.label)}</strong>
         <p>${escapeHtml(item.description)}</p>
-        <input type="text" data-pr15-note maxlength="1000" value="${escapeHtml(item.note)}" placeholder="Optional evidence or note" ${canManage ? '' : 'disabled'}>
+        <input type="text" data-pr15-note maxlength="1000" value="${escapeHtml(item.note)}" placeholder="Evidence, test record, reviewer or recovery reference" ${canManage ? '' : 'disabled'}>
         <small>${item.checkedAt ? `Last updated ${escapeHtml(new Date(item.checkedAt).toLocaleString())}${item.checkedBy ? ` by ${escapeHtml(item.checkedBy)}` : ''}` : 'Not signed off yet'}</small>
       </div>
       <button type="button" class="pr15-save" data-pr15-save ${canManage ? '' : 'disabled'}>Save</button>
@@ -83,15 +83,17 @@
   function render(root, data) {
     const counts = data.counts || {};
     const score = Number(data.readinessScore || 0);
+    const completed = Number(data.manualCompleted || 0);
+    const total = Number(data.manualTotal || (data.manualChecks || []).length || 0);
     root.innerHTML = `<section class="pr15-shell" aria-labelledby="pr15-title">
       <header class="pr15-hero">
         <div>
-          <span class="pr15-eyebrow">RELEASE 6.1 · PRODUCTION COMPLETION</span>
+          <span class="pr15-eyebrow">V1.0 RELEASE CANDIDATE · FINAL SIGN-OFF</span>
           <h2 id="pr15-title">Production readiness</h2>
-          <p>Verify the live workspace, complete the launch sign-off and keep a recoverable tenant snapshot before wider team use.</p>
+          <p>Close the final release blockers, verify all four operating journeys and record auditable evidence before CRM by AKARI is tagged V1.0.</p>
         </div>
         <div class="pr15-score pr15-score--${scoreTone(score)}" aria-label="Readiness score ${score} percent">
-          <strong>${score}%</strong><span>READY</span>
+          <strong>${score}%</strong><span>READINESS</span>
         </div>
       </header>
 
@@ -108,7 +110,7 @@
         ${metric('Open work', counts.openTasks || 0, `${counts.overdueTasks || 0} overdue`)}
         ${metric('Commercial', counts.openOpportunities || 0, `${counts.wonOpportunities || 0} won`)}
         ${metric('Delivery', counts.activeCampaigns || 0, `${counts.paymentRecords || 0} payment records`)}
-        ${metric('Team', counts.activeMembers || 0, `${counts.activeOwners || 0} owner`)}
+        ${metric('V1 sign-off', `${completed}/${total}`, total && completed === total ? 'All release gates signed' : `${Math.max(0, total - completed)} remaining`)}
       </div>
 
       <div class="pr15-grid">
@@ -123,19 +125,19 @@
           <div class="pr15-backup">
             <span>RECOVERY STATUS</span>
             <strong>${data.lastBackup?.created_at ? 'Backup recorded' : 'Backup required'}</strong>
-            <p>${data.lastBackup?.created_at ? `Last exported ${escapeHtml(new Date(data.lastBackup.created_at).toLocaleString())}` : 'Download the first tenant backup and store it in an approved private location.'}</p>
+            <p>${data.lastBackup?.created_at ? `Last exported ${escapeHtml(new Date(data.lastBackup.created_at).toLocaleString())}` : 'Download the tenant backup and store it in an approved private location before final release.'}</p>
           </div>
         </section>
       </div>
 
       <section class="pr15-panel pr15-panel--signoff">
-        <header><div><span>MANUAL SIGN-OFF</span><strong>Controlled production acceptance</strong></div><small>${data.canManage ? 'Owner/Admin controlled' : 'Read only'}</small></header>
+        <header><div><span>V1 ACCEPTANCE & RELEASE BLOCKERS</span><strong>Controlled production sign-off</strong></div><small>${data.canManage ? `${completed}/${total} complete · Owner/Admin controlled` : `${completed}/${total} complete · Read only`}</small></header>
         <div class="pr15-signoffs">${(data.manualChecks || []).map((item) => manualCard(item, data.canManage)).join('')}</div>
       </section>
 
       <footer class="pr15-footer">
-        <p><strong>Restore rule:</strong> tenant backup files are recovery snapshots. Never upload them through the AKARI Leads workbook importer.</p>
-        <span>${escapeHtml(data.tenant?.name || 'Workspace')} · ${escapeHtml(data.tenant?.plan_code || 'FOUNDING')} · ${escapeHtml(data.tenant?.timezone || '')}</span>
+        <p><strong>Release rule:</strong> do not tag V1.0 until all acceptance gates are complete, production deployment succeeds, portal privacy is verified and the backup/recovery drill is recorded.</p>
+        <span>${escapeHtml(data.release || 'CRM by AKARI V1.0')} · ${escapeHtml(data.tenant?.name || 'Workspace')} · ${escapeHtml(data.tenant?.plan_code || 'FOUNDING')}</span>
       </footer>
     </section>`;
 
@@ -143,7 +145,7 @@
   }
 
   function loadingView(root) {
-    root.innerHTML = `<section class="pr15-shell pr15-loading" aria-live="polite"><div><i></i><strong>Checking production readiness…</strong><span>Reading tenant-scoped operational signals.</span></div></section>`;
+    root.innerHTML = `<section class="pr15-shell pr15-loading" aria-live="polite"><div><i></i><strong>Checking V1 production readiness…</strong><span>Reading tenant-scoped operational and recovery signals.</span></div></section>`;
   }
 
   function errorView(root, message) {
@@ -182,7 +184,7 @@
         body: JSON.stringify({ key, completed, note }),
       });
       payload = null;
-      notify('Production sign-off updated');
+      notify('V1 production sign-off updated');
       const root = document.querySelector('#production-readiness-root');
       if (root) await load(root, true);
     } catch (cause) {
