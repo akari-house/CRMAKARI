@@ -7,6 +7,7 @@ const required=[
   'public/assets/v1-runtime-hardening.css',
   'public/assets/v1-runtime-hardening.js',
   'tests/v1-hardening-tenant-isolation.test.mjs',
+  'tests/v1-runtime-hardening.spec.js',
   'docs/V1_PRODUCTION_HARDENING.md',
   'docs/PRODUCTION_BACKUP_RESTORE.md',
   '.github/workflows/deploy-cloudflare-pages.yml',
@@ -32,6 +33,8 @@ const shell=fs.readFileSync('public/app/index.html','utf8');
 for(const asset of ['/assets/v1-runtime-hardening.css?v=1','/assets/v1-runtime-hardening.js?v=1'])if(!shell.includes(asset))throw new Error(`V1 shell missing ${asset}`);
 const worker=fs.readFileSync('public/sw.js','utf8');
 for(const asset of ['./assets/v1-runtime-hardening.css?v=1','./assets/v1-runtime-hardening.js?v=1'])if(!worker.includes(asset))throw new Error(`V1 service worker missing ${asset}`);
+const runtimeBrowser=fs.readFileSync('tests/v1-runtime-hardening.spec.js','utf8');
+for(const pattern of ['runtime resilience loads','mobile viewport','document.documentElement.scrollWidth'])if(!runtimeBrowser.includes(pattern))throw new Error(`V1 runtime browser acceptance missing ${pattern}`);
 
 const hardening=fs.readFileSync('docs/V1_PRODUCTION_HARDENING.md','utf8');
 for(const journey of ['Commercial','Campaign','Fundraising','Platform','Tenant #2 acceptance','Role acceptance matrix','Production sign-off'])if(!hardening.includes(journey))throw new Error(`V1 sign-off contract missing ${journey}`);
