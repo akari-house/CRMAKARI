@@ -117,9 +117,9 @@
     const scope = String(payload.scope || state.scope).toLowerCase();
     return `<section class="panel bd-command-center" data-bd-command-center="ready" data-bd-command-scope="${esc(scope)}">
       <div class="panel-head bd-command-center__head">
-        <div class="panel-title"><strong>BD Command Centre</strong><span>Ranked from current ownership, follow-ups, pipeline evidence and invoice readiness</span></div>
+        <div class="panel-title"><strong>BD command centre</strong><span>Ranked from current ownership, follow-ups, pipeline evidence and invoice readiness</span></div>
         <div class="bd-command-toolbar">
-          ${payload.canManage ? `<div class="segmented" aria-label="BD Command Centre scope"><button type="button" class="${scope === 'mine' ? 'active' : ''}" data-bd-command-scope="mine">My priorities</button><button type="button" class="${scope === 'team' ? 'active' : ''}" data-bd-command-scope="team">Team risks</button></div>` : '<span class="pill">My priorities</span>'}
+          ${payload.canManage ? `<div class="segmented" aria-label="BD command centre scope"><button type="button" class="${scope === 'mine' ? 'active' : ''}" data-bd-command-scope="mine">My priorities</button><button type="button" class="${scope === 'team' ? 'active' : ''}" data-bd-command-scope="team">Team risks</button></div>` : '<span class="pill">My priorities</span>'}
           <button type="button" class="btn small" data-bd-command-refresh>Refresh priorities</button>
         </div>
       </div>
@@ -141,14 +141,14 @@
 
   function loadingHtml() {
     return `<section class="panel bd-command-center" data-bd-command-center="loading" aria-busy="true">
-      <div class="panel-head"><div class="panel-title"><strong>BD Command Centre</strong><span>Ranking today’s relationship and commercial work…</span></div></div>
+      <div class="panel-head"><div class="panel-title"><strong>BD command centre</strong><span>Ranking today’s relationship and commercial work…</span></div></div>
       <div class="panel-body"><div class="bd-command-loading"><i></i><i></i><i></i></div></div>
     </section>`;
   }
 
   function errorHtml(message) {
     return `<section class="panel bd-command-center" data-bd-command-center="error">
-      <div class="panel-head"><div class="panel-title"><strong>BD Command Centre</strong><span>Daily execution view is temporarily unavailable</span></div><button class="btn small" data-bd-command-refresh>Retry</button></div>
+      <div class="panel-head"><div class="panel-title"><strong>BD command centre</strong><span>Daily execution view is temporarily unavailable</span></div><button class="btn small" data-bd-command-refresh>Retry</button></div>
       <div class="panel-body"><div class="bd-command-error"><strong>Could not rank today’s work</strong><span>${esc(message)}</span></div></div>
     </section>`;
   }
