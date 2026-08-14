@@ -34,14 +34,32 @@ const isPublicHomepage = (request) => {
   return request.method === 'GET' && (pathname === '/' || pathname === '/index.html');
 };
 
+function functionSecurityHeaders(response) {
+  const headers = new Headers(response.headers);
+  headers.set('x-content-type-options', 'nosniff');
+  headers.set('referrer-policy', 'strict-origin-when-cross-origin');
+  headers.set('permissions-policy', 'camera=(), microphone=(), geolocation=()');
+  headers.set('x-frame-options', 'DENY');
+  headers.set('content-security-policy', "frame-ancestors 'none'; base-uri 'self'; object-src 'none'");
+  return headers;
+}
+
+function responseWithHeaders(response, headers) {
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 async function publicResponse(context) {
   const response = await context.next();
-  if (!isPublicHomepage(context.request) || !response.ok) return response;
+  const headers = functionSecurityHeaders(response);
+  if (!isPublicHomepage(context.request) || !response.ok) return responseWithHeaders(response, headers);
   const contentType = response.headers.get('content-type') || '';
-  if (!contentType.includes('text/html')) return response;
+  if (!contentType.includes('text/html')) return responseWithHeaders(response, headers);
 
   const html = renderInviteOnlyPublicEntry(await response.text());
-  const headers = new Headers(response.headers);
   headers.set('content-type', 'text/html; charset=utf-8');
   headers.set('cache-control', 'public, max-age=0, must-revalidate');
   headers.set('x-akari-public-access', 'invite-only');
