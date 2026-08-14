@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Join CRM by AKARI</title>
+  <style>
+    :root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#f7f7f8;background:#080a0e}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 20% 10%,rgba(242,185,72,.13),transparent 34%),#080a0e}.card{width:min(520px,100%);padding:28px;border:1px solid rgba(255,255,255,.1);border-radius:22px;background:rgba(16,19,26,.96);box-shadow:0 28px 90px rgba(0,0,0,.45)}.mark{width:52px;height:52px;border-radius:18px;display:grid;place-items:center;margin-bottom:20px;background:linear-gradient(145deg,#ffd16b,#ef7ca2);color:#17100a;font-weight:900;font-size:22px}.eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#f6c760}h1{font-size:28px;line-height:1.1;margin:8px 0 10px}p{color:#a8b0bd;line-height:1.55}.status{margin-top:18px;padding:13px 14px;border-radius:13px;background:rgba(255,255,255,.05);color:#dbe1ea;font-size:14px}.status.error{background:rgba(255,78,78,.12);color:#ff9d9d}.status.success{background:rgba(82,210,132,.12);color:#93e6b2}button{width:100%;margin-top:16px;padding:12px 15px;border:0;border-radius:12px;background:#f4c45d;color:#17120a;font-weight:800;cursor:pointer}button:disabled{opacity:.55;cursor:not-allowed}a{color:#f6c760}</style>
+</head>
+<body>
+  <main class="card">
+    <div class="mark">A</div>
+    <span class="eyebrow">CRM by AKARI</span>
+    <h1>Join your workspace</h1>
+    <p>Your identity is verified by Cloudflare Access. Accepting this invitation will activate only the workspace and role that were assigned to your email address.</p>
+    <div id="status" class="status">Checking invitation…</div>
+    <button id="accept" type="button" disabled>Accept invitation</button>
+  </main>
+  <script>
+    (()=>{
+      const params=new URLSearchParams(location.search),token=params.get('token')||'',status=document.getElementById('status'),button=document.getElementById('accept');
+      if(token.length<32){status.className='status error';status.textContent='This invitation link is missing or invalid.';return;}
+      status.textContent='Invitation link is ready. Confirm to join the workspace.';button.disabled=false;
+      button.addEventListener('click',async()=>{
+        button.disabled=true;status.className='status';status.textContent='Activating workspace access…';
+        try{
+          const response=await fetch('/api/invitations/accept',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({token})});
+          const payload=await response.json().catch(()=>({}));
+          if(!response.ok)throw new Error(payload.error||`Invitation failed (${response.status})`);
+          status.className='status success';status.textContent='Workspace access activated. Opening CRM…';
+          location.assign(payload.redirectUrl||'/enter-crm');
+        }catch(error){status.className='status error';status.textContent=error.message||'Invitation could not be accepted.';button.disabled=false;}
+      });
+    })();
+  </script>
+</body>
+</html>

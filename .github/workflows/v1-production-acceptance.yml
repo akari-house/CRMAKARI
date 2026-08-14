@@ -1,0 +1,33 @@
+name: V1 Production Acceptance
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run production acceptance gate
+        env:
+          AKARI_BASE_URL: https://crm.akarihouse.com
+          AKARI_PAGES_URL: https://crmakari.pages.dev
+          AKARI_EXPECTED_SHA: ${{ github.sha }}
+        run: node scripts/production-acceptance.mjs
+
+      - name: Upload acceptance report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v1-production-acceptance-${{ github.sha }}
+          path: production-acceptance-report.json
+          if-no-files-found: warn
+          retention-days: 30

@@ -24,6 +24,7 @@ export function sanitizePortalGrant(input={},existing={}){
       viewReports:bool(input.permissions?.viewReports,existing.permissions?.viewReports??true),
       updateOwnTasks:bool(input.permissions?.updateOwnTasks,existing.permissions?.updateOwnTasks??true),
       answerDiligence:bool(input.permissions?.answerDiligence,existing.permissions?.answerDiligence??portalType==='FOUNDER'),
+      updateOnboarding:bool(input.permissions?.updateOnboarding,existing.permissions?.updateOnboarding??portalType==='FOUNDER'),
     },
     note:text(input.note??existing.note,1000),
     updatedAt:text(input.updatedAt||existing.updatedAt,80)||null,

@@ -49,9 +49,37 @@ for (const pattern of ['Fundraising OS 2.0','Evidence before assertion','Explain
   if (!paper.includes(pattern)) throw new Error(`Backend technical paper missing: ${pattern}`);
 }
 
-const ui = fs.readFileSync('public/assets/fundraising-dataroom-r5.js', 'utf8');
-for (const pattern of ['Data Room & Diligence','Investor access & NDA','Due diligence requests','Investor questions','upsert-document']) {
-  if (!ui.includes(pattern)) throw new Error(`Data room UI validation missing: ${pattern}`);
+// R5 remains the legacy compatibility API/model. From R72 onward the interactive
+// Data Room is intentionally normalized and the R5 asset is only a bootstrap loader.
+const legacyUi = fs.readFileSync('public/assets/fundraising-dataroom-r5.js', 'utf8');
+const r72ApiPath = 'functions/api/fundraising/data-room.js';
+const r72LibPath = 'functions/lib/data-room-r72.js';
+const r72UiPath = 'public/assets/data-room-diligence-r72.js';
+const r72MigrationPath = 'db/migrations/0005_data_room_diligence.sql';
+if (fs.existsSync(r72ApiPath) && fs.existsSync(r72LibPath) && fs.existsSync(r72UiPath) && fs.existsSync(r72MigrationPath)) {
+  const r72Api = fs.readFileSync(r72ApiPath, 'utf8');
+  const r72Lib = fs.readFileSync(r72LibPath, 'utf8');
+  const r72Ui = fs.readFileSync(r72UiPath, 'utf8');
+  const r72Migration = fs.readFileSync(r72MigrationPath, 'utf8');
+  for (const pattern of ['/assets/data-room-diligence-r72.js?v=1','/assets/data-room-diligence-r72.css?v=1']) {
+    if (!legacyUi.includes(pattern)) throw new Error(`R72 compatibility loader missing: ${pattern}`);
+  }
+  for (const pattern of ['save-document','save-access','save-diligence','record-document-activity']) {
+    if (!r72Api.includes(pattern)) throw new Error(`R72 Data Room API validation missing: ${pattern}`);
+  }
+  for (const pattern of ['NDA must be signed or not required','canGrantAccess','sanitizeAccess']) {
+    if (!r72Lib.includes(pattern)) throw new Error(`R72 Data Room access invariant missing: ${pattern}`);
+  }
+  for (const pattern of ['Institutional Data Room','Investor Access','Diligence','Audit']) {
+    if (!r72Ui.includes(pattern)) throw new Error(`R72 Data Room UI validation missing: ${pattern}`);
+  }
+  for (const table of ['fundraising_data_room_documents','fundraising_data_room_document_versions','fundraising_data_room_access','fundraising_diligence_requests','fundraising_data_room_activity']) {
+    if (!r72Migration.includes(`CREATE TABLE IF NOT EXISTS ${table}`)) throw new Error(`R72 Data Room migration missing: ${table}`);
+  }
+} else {
+  for (const pattern of ['Data Room & Diligence','Investor access & NDA','Due diligence requests','Investor questions','upsert-document']) {
+    if (!legacyUi.includes(pattern)) throw new Error(`Data room UI validation missing: ${pattern}`);
+  }
 }
 
 console.log('Fundraising OS and normalized intelligence validation passed');
