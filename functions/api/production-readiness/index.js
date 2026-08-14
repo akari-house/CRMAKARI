@@ -6,27 +6,51 @@ const MANAGE_ROLES = ['OWNER', 'ADMIN'];
 const SIGNOFF_ITEMS = {
   accessBoundary: {
     label: 'Cloudflare Access boundary verified',
-    description: 'The public homepage is reachable without login while CRM routes remain protected.',
+    description: 'Public entry, protected CRM routes, invitation bootstrap and workspace routing have been checked with real identities.',
   },
   roleMatrix: {
-    label: 'Role and permission matrix tested',
-    description: 'Owner, Admin, BD, Finance and Viewer behaviour has been checked with real accounts.',
+    label: 'V1 role and permission matrix verified',
+    description: 'OWNER, ADMIN, BD_MANAGER, BD_MEMBER, FINANCE, VIEWER and EXTERNAL_COLLABORATOR have been checked for allowed and denied actions.',
   },
   leadToCash: {
-    label: 'Lead-to-cash workflow completed',
-    description: 'A real record has moved from lead through won work, delivery, invoice and payment.',
+    label: 'Commercial journey completed',
+    description: 'Lead → Opportunity → Proposal → Agreement → Won → Invoice → Payment → Delivery → Renewal has been completed with a controlled record.',
+  },
+  campaignJourney: {
+    label: 'Campaign journey completed',
+    description: 'Creator selection, compensation, acceptance, activation, Work OS, approved delivery, settlement, client report, closeout and renewal have been completed.',
+  },
+  fundraisingJourney: {
+    label: 'Fundraising journey completed',
+    description: 'Founder onboarding through readiness, round, Data Room, investor outreach, diligence, terms, commitment, funds, close and investor relations has been completed.',
+  },
+  platformJourney: {
+    label: 'SaaS workspace journey completed',
+    description: 'Workspace creation, invitations, roles, modules, operation, audit, plan/usage, export/backup and suspend/reactivate have been completed.',
+  },
+  tenantTwo: {
+    label: 'Tenant #2 onboarded without engineering',
+    description: 'A second workspace was provisioned, invited, configured and operated without direct D1 edits, code changes or Cloudflare database intervention.',
+  },
+  portalPrivacy: {
+    label: 'Founder / Client Portal privacy verified',
+    description: 'External collaborators cannot access internal notes, relationship intelligence, finance internals, private investor intelligence or internal CRM APIs.',
   },
   backupRestore: {
     label: 'Backup and recovery drill completed',
-    description: 'A tenant backup was downloaded and the restore procedure was reviewed.',
+    description: 'A tenant backup was downloaded and the production D1 recovery procedure, including point-in-time recovery, was reviewed or exercised.',
   },
   mobile: {
     label: 'Desktop and mobile acceptance completed',
-    description: 'The highest-frequency workflows were checked on desktop and mobile layouts.',
+    description: 'Primary workflows, navigation, modals, tables and fixed controls were checked on desktop and mobile without overlap or horizontal overflow.',
+  },
+  integrations: {
+    label: 'Essential integrations verified',
+    description: 'Google connection/sync boundaries, Drive links, CSV portability, API keys and signed webhooks were tested with production-like configuration.',
   },
   ownerApproval: {
-    label: 'Production owner sign-off recorded',
-    description: 'The workspace owner accepts the current release for controlled team use.',
+    label: 'V1 production owner sign-off recorded',
+    description: 'The workspace owner accepts the release candidate for production use after all release blockers have been resolved.',
   },
 };
 
@@ -207,12 +231,15 @@ export async function onRequestGet(context) {
     const automatic = automaticChecks(counts, lastBackup);
 
     return json({
+      release: 'CRM by AKARI V1.0',
       tenant,
       generatedAt: nowIso(),
       counts,
       roles: roles.map((item) => ({ role: item.role, count: number(item.member_count) })),
       automaticChecks: automatic,
       manualChecks: manual,
+      manualCompleted: manual.filter((item) => item.completed).length,
+      manualTotal: manual.length,
       readinessScore: score(automatic, manual),
       lastBackup: lastBackup || null,
       lastAudit: lastAudit || null,
@@ -248,7 +275,8 @@ export async function onRequestPost(context) {
 
     featureFlags.productionReadinessV1 = {
       ...(featureFlags.productionReadinessV1 || {}),
-      version: 1,
+      version: 2,
+      release: 'CRM by AKARI V1.0',
       signoff: {
         ...(featureFlags.productionReadinessV1?.signoff || {}),
         [key]: next,
