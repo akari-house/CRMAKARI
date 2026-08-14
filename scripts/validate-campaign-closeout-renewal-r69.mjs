@@ -15,5 +15,5 @@ if(!api.includes("JOIN projects p ON p.id=c.project_id AND p.tenant_id=c.tenant_
 const lib=read('functions/lib/campaign-closeout-renewal.js');
 if(!lib.includes("paymentStatus==='PAID'"))throw new Error('R69 must require actual paid settlement coverage');
 if(!lib.includes("closeout.renewalRecommendation!=='UNSET'"))throw new Error('R69 must require explicit renewal handoff');
-const pkg=JSON.parse(read('package.json'));const parts=String(pkg.version||'0').split('.').map(Number);if(parts[0]!==0||parts[1]<5||(parts[1]===5&&parts[2]<14))throw new Error('R69 requires package version 0.5.14 or newer');
+const pkg=JSON.parse(read('package.json'));const parts=String(pkg.version||'0').split('.').map(Number);const supported=parts[0]>0||(parts[0]===0&&(parts[1]>5||(parts[1]===5&&parts[2]>=14)));if(!supported)throw new Error('R69 requires package version 0.5.14 or newer');
 console.log('R69 campaign closeout and renewal validation passed');
