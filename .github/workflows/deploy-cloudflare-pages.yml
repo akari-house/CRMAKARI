@@ -74,6 +74,12 @@ jobs:
           echo "::add-mask::${database_id}"
           echo "AKARI_D1_DATABASE_ID=${database_id}" >> "${GITHUB_ENV}"
 
+      - name: Verify Cloudflare D1 authorization
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: node scripts/cloudflare-d1-preflight.mjs
+
       - name: Export pre-migration production backup
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -133,7 +139,7 @@ jobs:
           apply_migration db/migrations/0008_saas_workspace_admin.sql r75-migration
           apply_migration db/migrations/0009_essential_integrations.sql r76-migration
 
-          verify_payload='{"sql":"SELECT name FROM sqlite_schema WHERE type = '\''table'\'' AND name IN ('\''agreements'\', '\''agreement_reviews'\', '\''founder_onboarding_items'\', '\''fundraising_data_room_requirements'\', '\''relationship_profiles'\', '\''operational_attention'\', '\''operating_report_snapshots'\', '\''platform_admins'\', '\''workspace_usage_snapshots'\', '\''workspace_integrations'\', '\''integration_oauth_states'\', '\''integration_external_refs'\', '\''external_document_links'\', '\''workspace_api_keys'\', '\''webhook_endpoints'\', '\''webhook_deliveries'\') ORDER BY name;"}'
+          verify_payload='{"sql":"SELECT name FROM sqlite_schema WHERE type = '\''table'\'' AND name IN ('\''agreements'\', '\''agreement_reviews'\', '\''founder_onboarding_items'\', '\''fundraising_data_room_requirements'\', '\''relationship_profiles'\', '\''operational_attention'\', '\''operating_report_snapshots'\', '\''platform_admins'\', '\''workspace_usage_snapshots'\', '\''workspace_integrations'\', '\''integration_oauth_states'\', '\''integration_external_refs'\', '\''external_document_links'\', '\''workspace_api_keys'\', '\''webhook_endpoints'\', '\''webhook_deliveries'\'') ORDER BY name;"}'
           verify_code="$(curl --silent --show-error --output /tmp/schema-check.json --write-out '%{http_code}' -X POST \
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H "Content-Type: application/json" \
             --data "${verify_payload}" "${query_api}" || true)"
@@ -147,6 +153,11 @@ jobs:
           expected="agreement_reviews,agreements,external_document_links,founder_onboarding_items,fundraising_data_room_requirements,integration_external_refs,integration_oauth_states,operating_report_snapshots,operational_attention,platform_admins,relationship_profiles,webhook_deliveries,webhook_endpoints,workspace_api_keys,workspace_integrations,workspace_usage_snapshots"
           test "${tables}" = "${expected}" || { echo "Schema verification failed: expected ${expected}; received ${tables:-none}."; exit 1; }
           echo "R70-R76 production D1 schema applied and verified."
+
+      - name: Generate release metadata
+        env:
+          AKARI_RELEASE_SHA: ${{ github.sha }}
+        run: node scripts/write-release-metadata.mjs
 
       - name: Deploy production Pages project
         env:
@@ -196,6 +207,23 @@ jobs:
           protected_code="$(curl --silent --show-error --max-time 30 --output /dev/null --write-out '%{http_code}' https://crm.akarihouse.com/api/system-health || true)"
           case "${protected_code}" in 200|302|401|403|503) ;; *) echo "Unexpected protected health response ${protected_code}."; exit 1;; esac
 
+      - name: Run V1 production acceptance gate
+        env:
+          AKARI_BASE_URL: https://crm.akarihouse.com
+          AKARI_PAGES_URL: https://crmakari.pages.dev
+          AKARI_EXPECTED_SHA: ${{ github.sha }}
+          AKARI_ACCEPTANCE_REPORT: production-acceptance-report.json
+        run: node scripts/production-acceptance.mjs
+
+      - name: Upload production acceptance report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-acceptance-${{ github.sha }}
+          path: production-acceptance-report.json
+          if-no-files-found: warn
+          retention-days: 30
+
       - name: Mark deployment successful
         if: success()
         env:
@@ -203,7 +231,7 @@ jobs:
         run: |
           curl --fail --silent --show-error -X POST -H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
-            -d '{"state":"success","context":"deployment/cloudflare","description":"CRM by AKARI deployed, schema and production checks passed","target_url":"https://crm.akarihouse.com"}'
+            -d '{"state":"success","context":"deployment/cloudflare","description":"CRM by AKARI deployed, schema and production acceptance passed","target_url":"https://crm.akarihouse.com"}'
 
       - name: Mark deployment failed
         if: failure()
