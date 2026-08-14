@@ -139,7 +139,8 @@ jobs:
           apply_migration db/migrations/0008_saas_workspace_admin.sql r75-migration
           apply_migration db/migrations/0009_essential_integrations.sql r76-migration
 
-          verify_payload='{"sql":"SELECT name FROM sqlite_schema WHERE type = '\''table'\'' AND name IN ('\''agreements'\', '\''agreement_reviews'\', '\''founder_onboarding_items'\', '\''fundraising_data_room_requirements'\', '\''relationship_profiles'\', '\''operational_attention'\', '\''operating_report_snapshots'\', '\''platform_admins'\', '\''workspace_usage_snapshots'\', '\''workspace_integrations'\', '\''integration_oauth_states'\', '\''integration_external_refs'\', '\''external_document_links'\', '\''workspace_api_keys'\', '\''webhook_endpoints'\', '\''webhook_deliveries'\'') ORDER BY name;"}'
+          verify_sql="SELECT name FROM sqlite_schema WHERE type = 'table' AND name IN ('agreements','agreement_reviews','founder_onboarding_items','fundraising_data_room_requirements','relationship_profiles','operational_attention','operating_report_snapshots','platform_admins','workspace_usage_snapshots','workspace_integrations','integration_oauth_states','integration_external_refs','external_document_links','workspace_api_keys','webhook_endpoints','webhook_deliveries') ORDER BY name;"
+          verify_payload="$(jq -n --arg sql "${verify_sql}" '{sql:$sql}')"
           verify_code="$(curl --silent --show-error --output /tmp/schema-check.json --write-out '%{http_code}' -X POST \
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H "Content-Type: application/json" \
             --data "${verify_payload}" "${query_api}" || true)"
