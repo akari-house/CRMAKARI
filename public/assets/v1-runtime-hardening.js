@@ -37,9 +37,17 @@
     if(attempt<16){setTimeout(()=>{if(token===dataRoomAttemptToken)openInstitutionalDataRoom(attempt+1,false);},75);return false;}
     showDataRoomFallback();return false;
   }
+  function syncVisualPolish(){
+    document.querySelectorAll('[data-bd-command-center="ready"] [data-bd-command-refresh]').forEach(button=>{if(button.textContent!=='Refresh priorities')button.textContent='Refresh priorities';setIfDifferent(button,'aria-label','Refresh ranked BD priorities');});
+    document.querySelectorAll('[data-bd-command-center="ready"] .segmented [data-bd-command-scope]').forEach(button=>setIfDifferent(button,'aria-pressed',button.classList.contains('active')?'true':'false'));
+    document.querySelectorAll('.bd-command-next__rank').forEach(rank=>{setIfDifferent(rank,'title','Priority score combines urgency, overdue status, ownership, pipeline evidence and commercial readiness.');setIfDifferent(rank,'aria-label',`Priority score ${rank.querySelector('strong')?.textContent?.trim()||'0'}. Based on urgency, overdue status, ownership, pipeline evidence and commercial readiness.`);});
+    document.querySelectorAll('.bd-command-next__copy h3,.bd-command-row__copy strong,.record-main strong').forEach(node=>{const label=node.textContent?.trim();if(label)setIfDifferent(node,'title',label);});
+    const relationshipLauncher=document.getElementById('rel73-launch');if(relationshipLauncher){setIfDifferent(relationshipLauncher,'title','Open Relationship 360');setIfDifferent(relationshipLauncher,'aria-label','Open Relationship 360');}
+  }
   function syncModalSafety(){
     dedupeDataRoomLaunches();
     document.querySelectorAll('.dr72-modal[role="dialog"]').forEach(dialog=>{setIfDifferent(dialog,'aria-label','Fundraising data room');setIfDifferent(dialog,'aria-modal','true');});
+    syncVisualPolish();
     const relationshipLauncher=document.getElementById('rel73-launch');if(!relationshipLauncher)return;
     const activeDialog=[...document.querySelectorAll('[role="dialog"][aria-modal="true"]')].some(dialog=>visible(dialog));
     setStyleIfDifferent(relationshipLauncher,'pointerEvents',activeDialog?'none':'');
@@ -56,5 +64,5 @@
   document.addEventListener('DOMContentLoaded',syncModalSafety);
   if(!navigator.onLine)show('Connection lost','You are offline. Live CRM actions need a connection.','warning',{persistent:true});
   syncModalSafety();
-  window.AkariRuntimeStatus={show,syncModalSafety,openInstitutionalDataRoom,showDataRoomFallback};
+  window.AkariRuntimeStatus={show,syncModalSafety,syncVisualPolish,openInstitutionalDataRoom,showDataRoomFallback};
 })();
