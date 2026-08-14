@@ -43,9 +43,12 @@
   }
 
   function summaryMetric(label, value, tone = '', category = '') {
-    return `<button type="button" class="bd-command-metric ${tone ? `is-${tone}` : ''}" ${category ? `data-bd-command-category="${esc(category)}"` : ''}>
-      <span>${esc(label)}</span><strong>${Number(value || 0)}</strong>
-    </button>`;
+    const count = Number(value || 0);
+    const toneClass = tone ? `is-${tone}` : '';
+    const zeroClass = count === 0 ? 'is-zero' : '';
+    return `<div class="bd-command-metric ${toneClass} ${zeroClass}" role="group" aria-label="${esc(label)}: ${count}" ${category ? `data-bd-command-category="${esc(category)}"` : ''}>
+      <span>${esc(label)}</span><strong>${count}</strong>
+    </div>`;
   }
 
   function actionTarget(action, compact = false) {
@@ -72,28 +75,33 @@
         <span aria-hidden="true">✓</span><div><strong>No immediate BD action is blocked</strong><p>Your current scope has no overdue, incomplete or closing-risk records.</p></div>
       </div>`;
     }
+    const score = Number(action.score || 0);
+    const scoreHelp = 'Priority score is based on urgency, overdue status, ownership, pipeline evidence and commercial readiness.';
+    const actionTitle = esc(action.title);
     return `<article class="bd-command-next is-${String(action.urgency || 'normal').toLowerCase()}">
-      <div class="bd-command-next__rank"><small>Priority score</small><strong>${Number(action.score || 0)}</strong></div>
+      <div class="bd-command-next__rank" aria-label="Priority score ${score}. ${esc(scoreHelp)}"><small title="${esc(scoreHelp)}">Priority score <span aria-hidden="true">ⓘ</span></small><strong>${score}</strong></div>
       <div class="bd-command-next__copy">
         <span>Next best action · ${esc(action.category?.replaceAll('_', ' ') || 'BD action')}</span>
-        <h3>${esc(action.title)}</h3>
+        <h3 title="${actionTitle}">${actionTitle}</h3>
         <p>${esc(action.reason)}</p>
         ${evidenceHtml(action)}
-        <div class="bd-command-next__meta"><span>${esc(action.projectName || 'AKARI House')}</span><span>${esc(action.ownerName || 'Unassigned')}</span><span>${esc(action.dueAt ? dateLabel(action.dueAt) : action.priority || 'Medium')}</span></div>
+        <div class="bd-command-next__meta"><span title="${esc(action.projectName || 'AKARI House')}">${esc(action.projectName || 'AKARI House')}</span><span title="${esc(action.ownerName || 'Unassigned')}">${esc(action.ownerName || 'Unassigned')}</span><span>${esc(action.dueAt ? dateLabel(action.dueAt) : action.priority || 'Medium')}</span></div>
       </div>
       <div class="bd-command-next__action">${actionTarget(action)}</div>
     </article>`;
   }
 
   function actionRowHtml(action, index) {
+    const actionTitle = esc(action.title);
+    const recordMeta = `${action.projectName || 'AKARI House'} · ${action.ownerName || 'Unassigned'}${action.dueAt ? ` · ${dateLabel(action.dueAt)}` : ''}`;
     return `<article class="bd-command-row" data-bd-command-category-row="${esc(action.category || '')}">
       <div class="bd-command-row__rank">${index + 2}</div>
       <div class="bd-command-row__copy">
-        <div><strong>${esc(action.title)}</strong><span class="bd-command-urgency is-${String(action.urgency || 'normal').toLowerCase()}">${esc(action.urgency || 'Normal')}</span></div>
+        <div><strong title="${actionTitle}">${actionTitle}</strong><span class="bd-command-urgency is-${String(action.urgency || 'normal').toLowerCase()}">${esc(action.urgency || 'Normal')}</span></div>
         <p>${esc(action.reason)}</p>
-        <small>${esc(action.projectName || 'AKARI House')} · ${esc(action.ownerName || 'Unassigned')}${action.dueAt ? ` · ${esc(dateLabel(action.dueAt))}` : ''}</small>
+        <small title="${esc(recordMeta)}">${esc(recordMeta)}</small>
       </div>
-      <div class="bd-command-row__score"><span>${Number(action.score || 0)}</span>${actionTarget(action, true)}</div>
+      <div class="bd-command-row__score"><span aria-label="Priority score ${Number(action.score || 0)}">${Number(action.score || 0)}</span>${actionTarget(action, true)}</div>
     </article>`;
   }
 
@@ -112,7 +120,7 @@
         <div class="panel-title"><strong>BD command centre</strong><span>Ranked from current ownership, follow-ups, pipeline evidence and invoice readiness</span></div>
         <div class="bd-command-toolbar">
           ${payload.canManage ? `<div class="segmented" aria-label="BD command centre scope"><button type="button" class="${scope === 'mine' ? 'active' : ''}" data-bd-command-scope="mine">My priorities</button><button type="button" class="${scope === 'team' ? 'active' : ''}" data-bd-command-scope="team">Team risks</button></div>` : '<span class="pill">My priorities</span>'}
-          <button type="button" class="btn small" data-bd-command-refresh>Refresh</button>
+          <button type="button" class="btn small" data-bd-command-refresh>Refresh priorities</button>
         </div>
       </div>
       <div class="panel-body bd-command-center__body">
