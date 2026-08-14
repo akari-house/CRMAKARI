@@ -16,10 +16,18 @@ const required=[
   'docs/V1_PRODUCTION_HARDENING.md',
   'docs/PRODUCTION_BACKUP_RESTORE.md',
   '.github/workflows/deploy-cloudflare-pages.yml',
+  '.github/workflows/v1-production-acceptance.yml',
+  'scripts/cloudflare-d1-preflight.mjs',
+  'scripts/production-acceptance.mjs',
+  'scripts/write-release-metadata.mjs',
   'public/app/index.html',
   'public/sw.js',
 ];
 for(const file of required)if(!fs.existsSync(file))throw new Error(`V1 hardening missing ${file}`);
+
+const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
+if(!/^1\.0\.0-rc\.\d+$/.test(pkg.version))throw new Error(`V1 release candidate version is invalid: ${pkg.version}`);
+for(const command of ['release:metadata','accept:production'])if(!pkg.scripts?.[command])throw new Error(`V1 package command missing ${command}`);
 
 const middleware=fs.readFileSync('functions/api/_middleware.js','utf8');
 for(const pattern of ['x-request-id','api_request_complete','api_request_error','Unexpected server error','x-content-type-options','permissions-policy'])if(!middleware.includes(pattern))throw new Error(`V1 API hardening missing ${pattern}`);
@@ -63,10 +71,21 @@ for(const journey of ['Commercial','Campaign','Fundraising','Platform','Tenant #
 const recovery=fs.readFileSync('docs/PRODUCTION_BACKUP_RESTORE.md','utf8');
 for(const pattern of ['Time Travel','tenant backup','restore','production'])if(!recovery.toLowerCase().includes(pattern.toLowerCase()))throw new Error(`V1 recovery runbook missing ${pattern}`);
 
+const preflight=fs.readFileSync('scripts/cloudflare-d1-preflight.mjs','utf8');
+for(const pattern of ['SELECT 1 AS akari_d1_authorized','7403','Account > D1 > Edit','AKARI_D1_DATABASE_ID'])if(!preflight.includes(pattern))throw new Error(`Cloudflare D1 authorization preflight missing ${pattern}`);
+
+const acceptance=fs.readFileSync('scripts/production-acceptance.mjs','utf8');
+for(const pattern of ['release metadata matches deployment','custom-domain app is access protected','custom-domain health endpoint is protected','pages.dev API still fails closed','production security headers','production-acceptance-report.json'])if(!acceptance.includes(pattern))throw new Error(`Production acceptance runner missing ${pattern}`);
+const metadata=fs.readFileSync('scripts/write-release-metadata.mjs','utf8');
+for(const pattern of ['public/release.json','GITHUB_SHA','generatedAt'])if(!metadata.includes(pattern))throw new Error(`Release metadata generator missing ${pattern}`);
+const acceptanceWorkflow=fs.readFileSync('.github/workflows/v1-production-acceptance.yml','utf8');
+for(const pattern of ['workflow_dispatch','production-acceptance.mjs','actions/upload-artifact@v4','retention-days: 30'])if(!acceptanceWorkflow.includes(pattern))throw new Error(`Repeatable production acceptance workflow missing ${pattern}`);
+
 const deploy=fs.readFileSync('.github/workflows/deploy-cloudflare-pages.yml','utf8');
 for(const pattern of ['wrangler d1 export akari-crm-production','actions/upload-artifact@v4','sha256sum','retention-days: 30'])if(!deploy.includes(pattern))throw new Error(`Pre-migration backup gate missing ${pattern}`);
 for(const migration of ['0003_agreements_compliance.sql','0004_founder_onboarding_readiness.sql','0005_data_room_diligence.sql','0006_relationship_intelligence.sql','0007_reporting_attention.sql','0008_saas_workspace_admin.sql','0009_essential_integrations.sql'])if(!deploy.includes(migration))throw new Error(`Production migration chain missing ${migration}`);
 for(const pattern of ['https://crmakari.pages.dev','https://crm.akarihouse.com','x-content-type-options: nosniff','/api/system-health'])if(!deploy.includes(pattern))throw new Error(`Production verification missing ${pattern}`);
+for(const pattern of ['cloudflare-d1-preflight.mjs','write-release-metadata.mjs','production-acceptance.mjs','production-acceptance-report.json'])if(!deploy.includes(pattern))throw new Error(`R10 deploy gate missing ${pattern}`);
 
 const tests=fs.readFileSync('tests/v1-hardening-tenant-isolation.test.mjs','utf8');
 for(const pattern of ['correlation and hardening headers','redacts uncaught server errors','authenticated-tenant scoped','production schema is incomplete'])if(!tests.includes(pattern))throw new Error(`V1 hardening test coverage missing ${pattern}`);
