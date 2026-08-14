@@ -3,10 +3,15 @@ import fs from 'node:fs';
 const required=[
   'functions/api/_middleware.js',
   'functions/api/system-health.js',
+  'functions/api/production-readiness/index.js',
+  'functions/api/portal/project/[id]/_middleware.js',
   'public/_headers',
   'public/assets/v1-runtime-hardening.css',
   'public/assets/v1-runtime-hardening.js',
+  'public/assets/production-readiness-r15.js',
   'tests/v1-hardening-tenant-isolation.test.mjs',
+  'tests/v1-release-signoff-tenant-isolation.test.mjs',
+  'tests/v1-portal-privacy-tenant-isolation.test.mjs',
   'tests/v1-runtime-hardening.spec.js',
   'docs/V1_PRODUCTION_HARDENING.md',
   'docs/PRODUCTION_BACKUP_RESTORE.md',
@@ -21,6 +26,21 @@ for(const pattern of ['x-request-id','api_request_complete','api_request_error',
 
 const health=fs.readFileSync('functions/api/system-health.js','utf8');
 for(const pattern of ['requireTenant','sqlite_schema','DEGRADED','workspace_integrations','workspace_api_keys','webhook_endpoints'])if(!health.includes(pattern))throw new Error(`V1 health contract missing ${pattern}`);
+
+const readiness=fs.readFileSync('functions/api/production-readiness/index.js','utf8');
+for(const key of ['accessBoundary','roleMatrix','leadToCash','campaignJourney','fundraisingJourney','platformJourney','tenantTwo','portalPrivacy','backupRestore','mobile','integrations','ownerApproval'])if(!readiness.includes(`${key}:`))throw new Error(`V1 release sign-off missing ${key}`);
+for(const pattern of ['CRM by AKARI V1.0','manualTotal','manualCompleted','productionReadinessV1','PRODUCTION_SIGNOFF_UPDATED'])if(!readiness.includes(pattern))throw new Error(`V1 release sign-off contract missing ${pattern}`);
+const readinessUi=fs.readFileSync('public/assets/production-readiness-r15.js','utf8');
+for(const pattern of ['V1.0 RELEASE CANDIDATE','V1 ACCEPTANCE & RELEASE BLOCKERS','V1 sign-off','do not tag V1.0'])if(!readinessUi.includes(pattern))throw new Error(`V1 release workspace UI missing ${pattern}`);
+const signoffTests=fs.readFileSync('tests/v1-release-signoff-tenant-isolation.test.mjs','utf8');
+for(const pattern of ['every frozen acceptance gate','portalPrivacy','tenantTwo','version,2'])if(!signoffTests.includes(pattern))throw new Error(`V1 release sign-off tests missing ${pattern}`);
+
+const portalPrivacy=fs.readFileSync('functions/api/portal/project/[id]/_middleware.js','utf8');
+for(const pattern of ['internal_notes','change_note','checksum','investor_pipeline_id','x-akari-portal-privacy','founder-safe'])if(!portalPrivacy.includes(pattern))throw new Error(`Founder portal privacy boundary missing ${pattern}`);
+const portalMain=fs.readFileSync('functions/api/portal/project/[id].js','utf8');
+for(const forbidden of ['relationship_profiles','relationship_paths','investor_contact_methods','fundraising_data_room_access','workspace_api_keys','webhook_endpoints'])if(portalMain.includes(forbidden))throw new Error(`Founder/client portal must not query internal ${forbidden}`);
+const portalPrivacyTests=fs.readFileSync('tests/v1-portal-privacy-tenant-isolation.test.mjs','utf8');
+for(const pattern of ['strips internal note and linkage fields','privacy evidence header','does not strip ordinary founder-visible notes'])if(!portalPrivacyTests.includes(pattern))throw new Error(`Founder portal privacy tests missing ${pattern}`);
 
 const headers=fs.readFileSync('public/_headers','utf8');
 for(const pattern of ['X-Content-Type-Options: nosniff','X-Frame-Options: DENY',"frame-ancestors 'none'",'/app/*','/portal/*','Cache-Control: no-store'])if(!headers.includes(pattern))throw new Error(`V1 static security headers missing ${pattern}`);
