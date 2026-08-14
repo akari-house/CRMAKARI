@@ -15,6 +15,7 @@ const isPublicRequest = (request) => {
   const { pathname } = new URL(request.url);
   return pathname === '/'
     || pathname === '/index.html'
+    || pathname === '/release.json'
     || pathname === '/api/waitlist'
     || pathname === '/favicon.ico'
     || pathname === '/manifest.webmanifest'
