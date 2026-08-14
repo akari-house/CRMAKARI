@@ -32,23 +32,34 @@ async function check(name,fn){
 
 const protectedStatuses=new Set([301,302,303,307,308,401,403]);
 const reachable=status=>status>=200&&status<500&&status!==404;
+const cloudflareAccessEvidence=(res)=>{
+  const location=String(res.headers.get('location')||'').toLowerCase();
+  const authenticate=String(res.headers.get('www-authenticate')||'').toLowerCase();
+  return location.includes('.cloudflareaccess.com/')||authenticate.includes('cloudflare-access');
+};
+const accessProtected=(res)=>protectedStatuses.has(res.status)&&cloudflareAccessEvidence(res);
 
 await check('production homepage reachable',async()=>{
   const res=await request(`${baseUrl}/`);
   add('production homepage reachable',reachable(res.status),{status:res.status,message:reachable(res.status)?undefined:'homepage is unavailable'});
 });
 
+await check('custom-domain edge is Cloudflare Access protected',async()=>{
+  const res=await request(`${baseUrl}/`);
+  add('custom-domain edge is Cloudflare Access protected',accessProtected(res),{status:res.status,message:accessProtected(res)?undefined:'custom domain did not present a Cloudflare Access challenge before origin'});
+});
+
 await check('production security headers',async()=>{
-  const res=await request(`${baseUrl}/`,{method:'HEAD'});
+  const res=await request(`${pagesUrl}/`,{method:'HEAD'});
   const nosniff=(res.headers.get('x-content-type-options')||'').toLowerCase()==='nosniff';
   const frame=(res.headers.get('x-frame-options')||'').toUpperCase()==='DENY';
   const csp=(res.headers.get('content-security-policy')||'').toLowerCase().includes("frame-ancestors 'none'");
-  add('production security headers',nosniff&&frame&&csp,{status:res.status,message:`nosniff=${nosniff}, frame-deny=${frame}, frame-ancestors=${csp}`});
+  add('production security headers',res.status===200&&nosniff&&frame&&csp,{status:res.status,message:`origin=${pagesUrl}, nosniff=${nosniff}, frame-deny=${frame}, frame-ancestors=${csp}`});
 });
 
 await check('release metadata matches deployment',async()=>{
-  const res=await request(`${baseUrl}/release.json`,{headers:{accept:'application/json'}});
-  if(res.status!==200){add('release metadata matches deployment',false,{status:res.status,message:'release.json is not publicly readable after deployment'});return;}
+  const res=await request(`${pagesUrl}/release.json`,{headers:{accept:'application/json'}});
+  if(res.status!==200){add('release metadata matches deployment',false,{status:res.status,message:'release.json is not readable from the deployed Pages origin'});return;}
   const body=await res.json();
   const versionOk=body?.version===expectedVersion;
   const shaOk=!expectedSha||body?.commit===expectedSha;
@@ -57,12 +68,12 @@ await check('release metadata matches deployment',async()=>{
 
 await check('custom-domain app is access protected',async()=>{
   const res=await request(`${baseUrl}/app/akari-house/dashboard`);
-  add('custom-domain app is access protected',protectedStatuses.has(res.status),{status:res.status,message:protectedStatuses.has(res.status)?undefined:'protected app route was accessible without an authenticated identity'});
+  add('custom-domain app is access protected',accessProtected(res),{status:res.status,message:accessProtected(res)?undefined:'protected app route did not present a Cloudflare Access challenge'});
 });
 
 await check('custom-domain health endpoint is protected',async()=>{
   const res=await request(`${baseUrl}/api/system-health`);
-  add('custom-domain health endpoint is protected',protectedStatuses.has(res.status),{status:res.status,message:protectedStatuses.has(res.status)?undefined:'system health exposed tenant data without authentication'});
+  add('custom-domain health endpoint is protected',accessProtected(res),{status:res.status,message:accessProtected(res)?undefined:'system health did not present a Cloudflare Access challenge'});
 });
 
 await check('pages.dev deployment reachable',async()=>{
@@ -78,7 +89,7 @@ await check('pages.dev API still fails closed',async()=>{
 
 await check('service worker reachable',async()=>{
   const res=await request(`${baseUrl}/sw.js`);
-  const ok=res.status===200||protectedStatuses.has(res.status);
+  const ok=res.status===200||accessProtected(res);
   add('service worker reachable',ok,{status:res.status,message:ok?undefined:'service worker is unavailable'});
 });
 

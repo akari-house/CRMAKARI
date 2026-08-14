@@ -195,18 +195,35 @@ jobs:
       - name: Verify production URLs and security headers
         run: |
           set -euo pipefail
-          check_url() {
-            url="$1"
-            code="$(curl --silent --show-error --location --max-time 30 --output /dev/null --write-out '%{http_code}' "${url}" || true)"
-            echo "${url} returned HTTP ${code}"
-            if [ "${code}" = "000" ] || [ "${code}" = "404" ] || [[ "${code}" =~ ^5 ]]; then exit 1; fi
-          }
-          check_url "https://crmakari.pages.dev"
-          check_url "https://crm.akarihouse.com"
-          headers="$(curl --silent --show-error --head --max-time 30 https://crm.akarihouse.com/)"
-          printf '%s\n' "${headers}" | grep -qi '^x-content-type-options: nosniff' || { echo "Missing nosniff production header."; exit 1; }
-          protected_code="$(curl --silent --show-error --max-time 30 --output /dev/null --write-out '%{http_code}' https://crm.akarihouse.com/api/system-health || true)"
-          case "${protected_code}" in 200|302|401|403|503) ;; *) echo "Unexpected protected health response ${protected_code}."; exit 1;; esac
+
+          pages_code="$(curl --silent --show-error --max-time 30 --dump-header /tmp/pages-headers.txt --output /dev/null --write-out '%{http_code}' https://crmakari.pages.dev/ || true)"
+          echo "https://crmakari.pages.dev returned HTTP ${pages_code}"
+          test "${pages_code}" = "200" || { echo "Pages origin is unavailable."; cat /tmp/pages-headers.txt 2>/dev/null || true; exit 1; }
+          tr -d '\r' </tmp/pages-headers.txt >/tmp/pages-headers-normalized.txt
+          grep -qi '^x-content-type-options: nosniff' /tmp/pages-headers-normalized.txt || { echo "Pages origin is missing nosniff."; exit 1; }
+          grep -qi '^x-frame-options: DENY' /tmp/pages-headers-normalized.txt || { echo "Pages origin is missing frame deny."; exit 1; }
+          grep -Eqi "^content-security-policy:.*frame-ancestors 'none'" /tmp/pages-headers-normalized.txt || { echo "Pages origin is missing frame-ancestors CSP."; exit 1; }
+
+          custom_code="$(curl --silent --show-error --max-time 30 --dump-header /tmp/custom-headers.txt --output /dev/null --write-out '%{http_code}' https://crm.akarihouse.com/ || true)"
+          echo "https://crm.akarihouse.com returned HTTP ${custom_code}"
+          tr -d '\r' </tmp/custom-headers.txt >/tmp/custom-headers-normalized.txt
+          case "${custom_code}" in 301|302|303|307|308|401|403) ;; *) echo "Custom domain did not fail closed behind Cloudflare Access."; cat /tmp/custom-headers-normalized.txt; exit 1;; esac
+          if ! grep -qi '^www-authenticate: Cloudflare-Access' /tmp/custom-headers-normalized.txt \
+            && ! grep -Eqi '^location: https://[^/]+\.cloudflareaccess\.com/' /tmp/custom-headers-normalized.txt; then
+            echo "Custom domain response does not contain Cloudflare Access challenge evidence."
+            cat /tmp/custom-headers-normalized.txt
+            exit 1
+          fi
+
+          protected_code="$(curl --silent --show-error --max-time 30 --dump-header /tmp/health-headers.txt --output /dev/null --write-out '%{http_code}' https://crm.akarihouse.com/api/system-health || true)"
+          case "${protected_code}" in 301|302|303|307|308|401|403) ;; *) echo "Unexpected protected health response ${protected_code}."; exit 1;; esac
+          tr -d '\r' </tmp/health-headers.txt >/tmp/health-headers-normalized.txt
+          if ! grep -qi '^www-authenticate: Cloudflare-Access' /tmp/health-headers-normalized.txt \
+            && ! grep -Eqi '^location: https://[^/]+\.cloudflareaccess\.com/' /tmp/health-headers-normalized.txt; then
+            echo "Protected health endpoint did not present Cloudflare Access challenge evidence."
+            exit 1
+          fi
+          echo "Cloudflare Access edge and Pages application security headers verified."
 
       - name: Run V1 production acceptance gate
         env:
