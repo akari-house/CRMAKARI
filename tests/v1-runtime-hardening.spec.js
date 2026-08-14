@@ -25,3 +25,28 @@ test('V1 runtime resilience remains inside a mobile viewport',async({page})=>{
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth);
   expect(overflow).toBe(false);
 });
+
+test('V1 modal safety suppresses the Relationship 360 launcher while another governed dialog is open',async({page})=>{
+  await page.goto('/app/index.html');
+  await expect.poll(()=>page.evaluate(()=>Boolean(window.AkariRuntimeStatus))).toBe(true);
+  await page.evaluate(()=>{
+    const launcher=document.createElement('button');launcher.id='rel73-launch';launcher.textContent='360° Relationship';document.body.appendChild(launcher);
+    const dialog=document.createElement('section');dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');dialog.textContent='Term-sheet form';document.body.appendChild(dialog);
+    window.AkariRuntimeStatus.syncModalSafety();
+  });
+  const launcher=page.locator('#rel73-launch');
+  await expect(launcher).toHaveCSS('pointer-events','none');
+  await expect(launcher).toHaveCSS('opacity','0');
+  await expect(launcher).toHaveAttribute('aria-hidden','true');
+});
+
+test('V1 Founder Capital Data Room handoff opens the institutional Data Room with the legacy accessible dialog name',async({page})=>{
+  await page.goto('/app/index.html');
+  await expect.poll(()=>page.evaluate(()=>Boolean(window.AkariRuntimeStatus))).toBe(true);
+  await page.evaluate(()=>{
+    const capital=document.createElement('section');capital.id='founder-capital-command-r67';capital.innerHTML='<select data-fcr67-round><option value="round_1" selected>Round 1</option></select><button data-fcr67-nav="data-room">Data Room</button>';document.body.appendChild(capital);
+    const launcher=document.createElement('button');launcher.dataset.dr72Round='round_1';launcher.addEventListener('click',()=>{const dialog=document.createElement('section');dialog.className='dr72-modal';dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');dialog.textContent='Institutional Data Room';document.body.appendChild(dialog);});document.body.appendChild(launcher);
+  });
+  await page.locator('[data-fcr67-nav="data-room"]').click();
+  await expect(page.getByRole('dialog',{name:'Fundraising data room'})).toBeVisible();
+});
