@@ -1,0 +1,15 @@
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  X-Frame-Options: DENY
+  Content-Security-Policy: frame-ancestors 'none'; base-uri 'self'; object-src 'none'
+
+/app/*
+  Cache-Control: no-store
+
+/portal/*
+  Cache-Control: no-store
+
+/accept-invite.html
+  Cache-Control: no-store
