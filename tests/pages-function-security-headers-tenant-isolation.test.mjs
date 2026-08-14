@@ -28,3 +28,21 @@ test('V1 public Pages Function GET response preserves security headers after hom
   assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
   assert.equal(response.headers.get('x-akari-public-access'), 'invite-only');
 });
+
+test('V1 release metadata is readable from Pages origin without CRM authentication', async () => {
+  const request = new Request('https://crmakari.pages.dev/release.json', { headers: { accept: 'application/json' } });
+  const payload = { service: 'crm-by-akari', version: '1.0.0-rc.2', commit: 'test-sha', deployedAt: '2026-08-14T00:00:00.000Z' };
+  const context = {
+    request,
+    env: { AUTH_MODE: 'access' },
+    data: {},
+    next: async () => new Response(JSON.stringify(payload), {
+      status: 200,
+      headers: { 'content-type': 'application/json; charset=utf-8' },
+    }),
+  };
+  const response = await onRequest(context);
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), payload);
+  assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+});
