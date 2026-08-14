@@ -26,8 +26,6 @@ jobs:
         with:
           node-version: 22
       - run: npm install
-      - name: Report dependency audit without changing the tree
-        run: npm audit || true
       - run: npm run validate
 
   ui-acceptance:
