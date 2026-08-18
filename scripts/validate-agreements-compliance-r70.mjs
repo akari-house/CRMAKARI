@@ -40,7 +40,7 @@ expect(deploy.includes("payload=\"$(jq -Rs '{sql: .}' \"${file}\")\""),'migratio
 expect(deploy.includes('apply_migration db/migrations/0003_agreements_compliance.sql r70-migration'),'R70 migration 0003 must remain explicitly ordered in the production chain');
 expect(deploy.includes('output="/tmp/${label}.json"')&&deploy.includes("'.success // false'"),'D1 migration response success validation is missing');
 expect(deploy.includes('SELECT name FROM sqlite_schema')&&deploy.includes("'agreements'")&&deploy.includes("'agreement_reviews'"),'post-migration schema verification is missing');
-expect(deploy.includes('R70-R76 production D1 schema applied and verified.'),'successful migration verification marker missing');
+expect(deploy.includes('R70-R76 production D1 schema applied and verified.')||deploy.includes('R70-R84 production D1 schema applied and verified.'),'successful migration verification marker missing');
 expect(!deploy.includes('npx wrangler d1 execute DB'),'R70 production migration must not depend on the failing Wrangler execute path');
 expect(deploy.indexOf('Apply and verify production D1 migrations')<deploy.indexOf('Deploy production Pages project'),'migration chain must run before Pages deployment');
 const v=String(pkg.version||'0.0.0').split('.').map(Number);expect(v[0]>0||v[1]>5||(v[1]===5&&v[2]>=15),`package version is ${pkg.version}, expected 0.5.15 or newer`);
