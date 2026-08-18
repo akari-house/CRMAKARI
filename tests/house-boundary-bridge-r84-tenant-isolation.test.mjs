@@ -71,12 +71,26 @@ test('R84 entity reconciliation refuses silent remapping to another CRM record',
   const db=new FakeDB((method,call)=>{
     const schema=schemaResolver(method,call);if(schema)return schema;
     if(method==='first'&&/SELECT id FROM projects/.test(call.sql))return{id:'crm_project_new'};
-    if(method==='first'&&/FROM external_entity_links/.test(call.sql))return{id:'link_a',local_entity_id:'crm_project_existing'};
+    if(method==='first'&&/external_entity_id=\?/.test(call.sql))return{id:'link_a',local_entity_id:'crm_project_existing'};
     return null;
   });
   const response=await updateBridge(postContext(db,{operation:'link-entity',externalEntityType:'PROJECT',externalEntityId:'house_project_a',localEntityType:'PROJECT',localEntityId:'crm_project_new'}));
   assert.equal(response.status,409);
   assert.match((await payload(response)).error,/already linked to a different CRM record/i);
+  assert.equal(db.calls.some(call=>/INSERT INTO external_entity_links/.test(call.sql)),false);
+});
+
+test('R84 entity reconciliation refuses a CRM record already claimed by another House entity',async()=>{
+  const db=new FakeDB((method,call)=>{
+    const schema=schemaResolver(method,call);if(schema)return schema;
+    if(method==='first'&&/SELECT id FROM projects/.test(call.sql))return{id:'crm_project_a'};
+    if(method==='first'&&/external_entity_id=\?/.test(call.sql))return null;
+    if(method==='first'&&/local_entity_id=\?/.test(call.sql))return{id:'link_existing',external_entity_id:'house_project_other'};
+    return null;
+  });
+  const response=await updateBridge(postContext(db,{operation:'link-entity',externalEntityType:'PROJECT',externalEntityId:'house_project_a',localEntityType:'PROJECT',localEntityId:'crm_project_a'}));
+  assert.equal(response.status,409);
+  assert.match((await payload(response)).error,/already linked to a different House entity/i);
   assert.equal(db.calls.some(call=>/INSERT INTO external_entity_links/.test(call.sql)),false);
 });
 
