@@ -138,8 +138,9 @@ jobs:
           apply_migration db/migrations/0007_reporting_attention.sql r74-migration
           apply_migration db/migrations/0008_saas_workspace_admin.sql r75-migration
           apply_migration db/migrations/0009_essential_integrations.sql r76-migration
+          apply_migration db/migrations/0010_house_boundary_bridge.sql r84-migration
 
-          verify_sql="SELECT name FROM sqlite_schema WHERE type = 'table' AND name IN ('agreements','agreement_reviews','founder_onboarding_items','fundraising_data_room_requirements','relationship_profiles','operational_attention','operating_report_snapshots','platform_admins','workspace_usage_snapshots','workspace_integrations','integration_oauth_states','integration_external_refs','external_document_links','workspace_api_keys','webhook_endpoints','webhook_deliveries') ORDER BY name;"
+          verify_sql="SELECT name FROM sqlite_schema WHERE type = 'table' AND name IN ('agreements','agreement_reviews','founder_onboarding_items','fundraising_data_room_requirements','relationship_profiles','operational_attention','operating_report_snapshots','platform_admins','workspace_usage_snapshots','workspace_integrations','integration_oauth_states','integration_external_refs','external_document_links','workspace_api_keys','webhook_endpoints','webhook_deliveries','external_entity_links','agreement_counterparty_identity') ORDER BY name;"
           verify_payload="$(jq -n --arg sql "${verify_sql}" '{sql:$sql}')"
           verify_code="$(curl --silent --show-error --output /tmp/schema-check.json --write-out '%{http_code}' -X POST \
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H "Content-Type: application/json" \
@@ -151,9 +152,9 @@ jobs:
           fi
           test "$(jq -r '.success // false' /tmp/schema-check.json)" = "true" || { jq '{success,errors,messages}' /tmp/schema-check.json; exit 1; }
           tables="$(jq -r '[.result[]?.results[]?.name] | unique | sort | join(",")' /tmp/schema-check.json)"
-          expected="agreement_reviews,agreements,external_document_links,founder_onboarding_items,fundraising_data_room_requirements,integration_external_refs,integration_oauth_states,operating_report_snapshots,operational_attention,platform_admins,relationship_profiles,webhook_deliveries,webhook_endpoints,workspace_api_keys,workspace_integrations,workspace_usage_snapshots"
+          expected="agreement_counterparty_identity,agreement_reviews,agreements,external_document_links,external_entity_links,founder_onboarding_items,fundraising_data_room_requirements,integration_external_refs,integration_oauth_states,operating_report_snapshots,operational_attention,platform_admins,relationship_profiles,webhook_deliveries,webhook_endpoints,workspace_api_keys,workspace_integrations,workspace_usage_snapshots"
           test "${tables}" = "${expected}" || { echo "Schema verification failed: expected ${expected}; received ${tables:-none}."; exit 1; }
-          echo "R70-R76 production D1 schema applied and verified."
+          echo "R70-R84 production D1 schema applied and verified."
 
       - name: Generate release metadata
         env:
