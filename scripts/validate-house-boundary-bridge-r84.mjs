@@ -16,6 +16,7 @@ const pkg=JSON.parse(read('package.json'));
 
 expect(migration.includes('CREATE TABLE IF NOT EXISTS external_entity_links'),'stable cross-system entity link table missing');
 expect(migration.includes('CREATE TABLE IF NOT EXISTS agreement_counterparty_identity'),'agreement counterparty identity table missing');
+expect(migration.includes('CREATE UNIQUE INDEX IF NOT EXISTS idx_external_entity_links_reverse_unique'),'reverse one-to-one mapping constraint missing');
 expect(migration.includes("external_system IN ('AKARI_HOUSE')"),'bridge must explicitly constrain its source system');
 expect(migration.includes("external_entity_type IN ('PROJECT','MEMBER','AGREEMENT')"),'bridge entity types are incomplete');
 expect(migration.includes("local_entity_type IN ('PROJECT','CONTACT','AGREEMENT')"),'CRM-side bridge entity types are incomplete');
@@ -27,6 +28,7 @@ expect(nda.includes("reason:'PROJECT_NOT_LINKED'")&&nda.includes("reason:'NO_ACT
 expect(!nda.includes('signed_document_url'),'NDA status endpoint must not expose signed document URLs');
 expect(bridge.includes("operation==='link-entity'")&&bridge.includes("operation==='bind-agreement-counterparty'"),'controlled reconciliation operations missing');
 expect(bridge.includes('already linked to a different CRM record'),'entity remapping must fail closed');
+expect(bridge.includes('already linked to a different House entity'),'reverse entity collision must fail closed');
 expect(bridge.includes('already bound to a different House member'),'agreement counterparty rebinding must fail closed');
 expect(middleware.includes("required=method==='GET'||method==='HEAD'?'read':'write'"),'external API read/write scopes must remain enforced');
 expect(rootMiddleware.includes("pathname.startsWith('/api/v1/')"),'House bridge must remain behind API-key authentication');
