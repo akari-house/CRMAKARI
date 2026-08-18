@@ -35,6 +35,15 @@ CREATE TABLE IF NOT EXISTS external_entity_links (
 CREATE INDEX IF NOT EXISTS idx_external_entity_links_local
   ON external_entity_links(tenant_id, local_entity_type, local_entity_id);
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_external_entity_links_reverse_unique
+  ON external_entity_links(
+    tenant_id,
+    external_system,
+    external_entity_type,
+    local_entity_type,
+    local_entity_id
+  );
+
 CREATE TABLE IF NOT EXISTS agreement_counterparty_identity (
   agreement_id TEXT PRIMARY KEY REFERENCES agreements(id) ON DELETE CASCADE,
   tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
