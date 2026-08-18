@@ -50,7 +50,7 @@ test('won opportunity shows one canonical outstanding-balance action with direct
   const readiness=dialog.locator('[data-bd-commercial-readiness]');
   await expect(readiness).toBeVisible();
   await expect(readiness).toContainText('NEXT REQUIRED ACTION');
-  await expect(readiness).toContainText('Collect outstanding invoice balance');
+  await expect(readiness).toContainText('Collect or reconcile $10,000.00 outstanding.');
   await expect(readiness).toContainText('3 invoice(s) · outstanding balance remains.');
   await expect(readiness.getByRole('button',{name:'View invoices'})).toBeVisible();
   await expect(readiness.getByRole('button',{name:'Record payment'})).toBeVisible();
