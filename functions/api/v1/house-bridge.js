@@ -52,6 +52,22 @@ async function upsertLink(db,auth,body){
   }
   if(existing)return{created:false,id:existing.id};
 
+  const reverse=await first(
+    db,
+    `SELECT id,external_entity_id
+       FROM external_entity_links
+      WHERE tenant_id=?
+        AND external_system='AKARI_HOUSE'
+        AND external_entity_type=?
+        AND local_entity_type=?
+        AND local_entity_id=?
+      LIMIT 1`,
+    [auth.tenantId,externalEntityType,localEntityType,localEntityId],
+  );
+  if(reverse&&reverse.external_entity_id!==externalEntityId){
+    throw Object.assign(new Error('This CRM record is already linked to a different House entity'),{status:409});
+  }
+
   const id=makeId('xlink'),stamp=nowIso();
   await run(
     db,
