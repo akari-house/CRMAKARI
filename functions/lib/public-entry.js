@@ -19,6 +19,14 @@ const REPLACEMENTS = [
     '<a href="/enter-crm">AKARI login <span aria-hidden="true">↗</span></a>',
     '<span class="public-access-closed" data-public-access="invite-only" aria-label="Private CRM access is invite only">Private CRM · Invite only</span>',
   ],
+  [
+    '<span>AKARI House / <b data-screen-crumb>',
+    '<span>CRM by AKARI / <b data-screen-crumb>',
+  ],
+  [
+    '<div class="workspace-switch"><i>AH</i><span>AKARI House<small>Illustrative workspace</small></span></div>',
+    '<div class="workspace-switch"><i>CRM</i><span>CRM by AKARI<small>Illustrative workspace</small></span></div>',
+  ],
 ];
 
 export function renderInviteOnlyPublicEntry(source) {
