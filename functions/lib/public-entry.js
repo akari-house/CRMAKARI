@@ -9,15 +9,23 @@ const INVITE_ONLY_STYLE = `<style id="akari-private-access-state">
 const REPLACEMENTS = [
   [
     '<a class="text-link" href="/enter-crm">AKARI login</a>',
-    '<span class="text-link public-access-closed" data-public-access="invite-only" aria-label="Private CRM access is invite only">Private CRM · Invite only</span>',
+    '<span class="text-link public-access-closed" data-public-access="invite-only" aria-label="Private CRM access is invite only">CRM access · Invite only</span>',
   ],
   [
     '<a class="button button-quiet" href="/enter-crm">AKARI team login</a>',
-    '<span class="button button-quiet public-access-closed" data-public-access="invite-only" aria-disabled="true">Private CRM · Invite only</span>',
+    '<span class="button button-quiet public-access-closed" data-public-access="invite-only" aria-disabled="true">CRM access · Invite only</span>',
   ],
   [
     '<a href="/enter-crm">AKARI login <span aria-hidden="true">↗</span></a>',
-    '<span class="public-access-closed" data-public-access="invite-only" aria-label="Private CRM access is invite only">Private CRM · Invite only</span>',
+    '<span class="public-access-closed" data-public-access="invite-only" aria-label="Private CRM access is invite only">CRM access · Invite only</span>',
+  ],
+  [
+    '<span>AKARI House / <b data-screen-crumb>',
+    '<span>CRM by AKARI / <b data-screen-crumb>',
+  ],
+  [
+    '<div class="workspace-switch"><i>AH</i><span>AKARI House<small>Illustrative workspace</small></span></div>',
+    '<div class="workspace-switch"><i>CRM</i><span>CRM by AKARI<small>Illustrative workspace</small></span></div>',
   ],
 ];
 
