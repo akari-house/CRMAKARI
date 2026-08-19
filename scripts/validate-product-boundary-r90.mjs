@@ -14,7 +14,7 @@ const forbidText = (source, value, label) => {
 };
 
 requireText(renderedHome, 'CRM by AKARI', 'Rendered CRM homepage');
-requireText(renderedHome, 'CRM access · Invite only', 'Rendered CRM homepage');
+requireText(renderedHome, 'Private CRM · Invite only', 'Rendered CRM homepage');
 forbidText(renderedHome, 'AKARI House / ', 'Rendered CRM homepage');
 forbidText(
   renderedHome,
